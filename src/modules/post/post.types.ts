@@ -1,4 +1,4 @@
-export interface updatePost{
-    title?:string
-    content?:string
+export interface updatePost {
+  title?: string;
+  content?: string;
 }

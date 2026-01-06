@@ -11,9 +11,8 @@ import {
 } from "typeorm";
 
 export abstract class BaseEntity {
-
   protected abstract idPrefix: string;
-  
+
   constructor() {
     Object.defineProperty(this, "idPrefix", {
       enumerable: false,
@@ -38,8 +37,6 @@ export abstract class BaseEntity {
   @ManyToOne("UsersEntity", { nullable: true })
   @JoinColumn({ name: "updatedBy" })
   updater?: UsersEntity;
-
-
 
   @CreateDateColumn({
     type: "timestamp with time zone",

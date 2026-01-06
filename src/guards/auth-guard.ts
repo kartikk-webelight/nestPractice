@@ -9,7 +9,7 @@ import { Repository } from "typeorm";
 export class AuthGuard implements CanActivate {
   constructor(
     @InjectRepository(UsersEntity)
-    private readonly userRepo:Repository<UsersEntity>,
+    private readonly userRepo: Repository<UsersEntity>,
     private readonly authHelperService: AuthHelperService,
   ) {}
 
@@ -22,7 +22,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("token is required");
     }
 
-    console.log(token)
+    console.log(token);
 
     let decodedToken;
     try {
@@ -30,21 +30,22 @@ export class AuthGuard implements CanActivate {
     } catch (error) {
       throw new UnauthorizedException("invalid token");
     }
-    console.log(decodedToken)
+    console.log(decodedToken);
 
     if (!decodedToken.payload) {
       throw new UnauthorizedException("invalid token");
     }
 
-    const user = await this
-      .userRepo
-      .findOne({ where: { id: decodedToken.payload }, select: { password: false, refreshToken: false } });
+    const user = await this.userRepo.findOne({
+      where: { id: decodedToken.payload },
+      select: { password: false, refreshToken: false },
+    });
     if (!user) {
       throw new NotFoundException("user not found");
     }
 
     request.user = user;
-    console.log("user.name",user.name)
+    console.log("user.name", user.name);
 
     return true;
   }

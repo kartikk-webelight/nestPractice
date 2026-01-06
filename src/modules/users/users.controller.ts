@@ -12,17 +12,16 @@ import { AuthGuard } from "src/guards/auth-guard";
 @ApiTags("Users")
 @Controller("users")
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
   @UseGuards(AuthGuard)
   @Get("current")
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
-
     const result = await this.usersService.getCurrentUser(req.user.id);
 
     return responseUtils.success(res, {
-      data: {result, message:"current user"},
+      data: { result, message: "current user" },
       status: StatusCodes.OK,
     });
   }
@@ -33,7 +32,7 @@ export class UsersController {
     const result = await this.usersService.findAll();
 
     return responseUtils.success(res, {
-      data: {result, message:"all users fetched"},
+      data: { result, message: "all users fetched" },
       status: StatusCodes.OK,
     });
   }
@@ -48,13 +47,12 @@ export class UsersController {
     });
   }
 
-
   @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
   @Get(":id")
   async getUserById(@Res() res: Response, @Param("id") userId: string) {
     const result = await this.usersService.getUserById(userId);
     return responseUtils.success(res, {
-      data: {result, message:"user fetched"},
+      data: { result, message: "user fetched" },
       status: StatusCodes.OK,
     });
   }
@@ -70,7 +68,7 @@ export class UsersController {
     res.cookie("refreshToken", result.refreshToken, cookieOptions);
     res.cookie("accessToken", result.accessToken, cookieOptions);
     return responseUtils.success(res, {
-      data: { result, message:"user logged in"},
+      data: { result, message: "user logged in" },
       status: StatusCodes.OK,
     });
   }
@@ -90,45 +88,36 @@ export class UsersController {
     res.cookie("refreshToken", result.newRefreshToken, cookieOptions);
 
     return responseUtils.success(res, {
-      data: { result, message:"tokens refreshed" },
+      data: { result, message: "tokens refreshed" },
       status: StatusCodes.OK,
     });
   }
 
-  @ApiSwaggerResponse(UsersResponse, {status:StatusCodes.OK})
+  @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
   @UseGuards(AuthGuard)
   @Post("update")
-  async updateDetails(
-    @Req() req:Request,
-    @Body() body:updateDetailsDto,
-    @Res() res:Response 
-  ){
-    const result=await this.usersService.updateDetails(body, req.user.id)
+  async updateDetails(@Req() req: Request, @Body() body: updateDetailsDto, @Res() res: Response) {
+    const result = await this.usersService.updateDetails(body, req.user.id);
 
-    return responseUtils.success(res,{
-      data:{result, message:"details updated successfully"}
-    })
+    return responseUtils.success(res, {
+      data: { result, message: "details updated successfully" },
+    });
   }
-
-
 
   @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.ACCEPTED })
   @UseGuards(AuthGuard)
-  @Post('logout')
-  async logoutUser(
-    @Req() req: Request,
-    @Res() res: Response
-  ) {
-    const result = await this.usersService.logoutUser(req.user.id)
+  @Post("logout")
+  async logoutUser(@Req() req: Request, @Res() res: Response) {
+    const result = await this.usersService.logoutUser(req.user.id);
 
     const cookieOptions = {
-      httpOnly: true
-    }
-    res.clearCookie("accessToken", cookieOptions)
-    res.clearCookie("refreshToken", cookieOptions)
+      httpOnly: true,
+    };
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
     return responseUtils.success(res, {
-      data: {result, message:"user logged out" }
-    })
+      data: { result, message: "user logged out" },
+    });
   }
 }

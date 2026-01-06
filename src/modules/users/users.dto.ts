@@ -34,7 +34,6 @@ export class loginDto {
 }
 
 export class updateDetailsDto {
-
   @ApiProperty()
   @IsOptional()
   @IsNotEmpty()
@@ -53,4 +52,3 @@ export class updateDetailsDto {
   @TrimString()
   password: string;
 }
-

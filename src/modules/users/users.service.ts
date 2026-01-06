@@ -21,13 +21,13 @@ export class UsersService {
       email: user.email,
     });
     await newUser.setPassword(user.password);
-    const savedUser=await this.userRepository.save(newUser);
+    const savedUser = await this.userRepository.save(newUser);
 
-    if(!savedUser){
-      throw new NotFoundException("saved user not found")
+    if (!savedUser) {
+      throw new NotFoundException("saved user not found");
     }
 
-    return savedUser
+    return savedUser;
   }
 
   async findAll() {
@@ -107,17 +107,16 @@ export class UsersService {
   }
 
   async getCurrentUser(userId: string) {
-    
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
       throw new NotFoundException("User not found");
     }
-    
+
     return user;
   }
 
-  async updateDetails(body:updateDetails, userId: string) {
+  async updateDetails(body: updateDetails, userId: string) {
     const { email, name, password } = body;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -132,44 +131,41 @@ export class UsersService {
       throw new ForbiddenException("invalid password");
     }
 
-      if (name !== undefined && name.trim() !== '') {
-    user.name = name.toLowerCase();
-  }
-
-  if (email !== undefined && email.trim() !== '') {
-    user.email = email;
-  }
-
-  await this.userRepository.save(user)
-  const savedUser=await this.userRepository.findOne({where:{id:user.id}})
-  if(!savedUser){
-    throw new NotFoundException("user not found")
-  }
-  return savedUser
-  }
-
-  async logoutUser(userId:string){
-    const user=await this.userRepository.findOne({where:{id:userId}})
-
-    if(!user){
-      throw new NotFoundException("user not found")
+    if (name !== undefined && name.trim() !== "") {
+      user.name = name.toLowerCase();
     }
 
-    user.refreshToken=""
-
-    await this.userRepository.save(user)
-
-    return {}
-  }
-
-
-  async findById(userId:string){
-     
-    const user =await this.userRepository.findOne({where:{id:userId}})
-    if(!user){
-      throw new NotFoundException("user not found")
+    if (email !== undefined && email.trim() !== "") {
+      user.email = email;
     }
-    return user
+
+    await this.userRepository.save(user);
+    const savedUser = await this.userRepository.findOne({ where: { id: user.id } });
+    if (!savedUser) {
+      throw new NotFoundException("user not found");
+    }
+    return savedUser;
   }
-  
+
+  async logoutUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("user not found");
+    }
+
+    user.refreshToken = "";
+
+    await this.userRepository.save(user);
+
+    return {};
+  }
+
+  async findById(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException("user not found");
+    }
+    return user;
+  }
 }

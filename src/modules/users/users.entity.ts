@@ -1,20 +1,18 @@
-import { Entity, Column} from "typeorm";
+import { Entity, Column } from "typeorm";
 import * as bcrypt from "bcrypt";
 import { BaseEntity } from "src/database/base-entity";
 import { Exclude } from "class-transformer";
 
-
-export enum UserRole{
-  ADMIN="admin",
-  READER="reader",
-  EDITOR="editor",
-  AUTHOR="author"
+export enum UserRole {
+  ADMIN = "admin",
+  READER = "reader",
+  EDITOR = "editor",
+  AUTHOR = "author",
 }
 
 @Entity("Users")
-export class UsersEntity extends BaseEntity{
-
-  idPrefix="user"
+export class UsersEntity extends BaseEntity {
+  idPrefix = "user";
 
   @Column()
   name: string;
@@ -30,11 +28,11 @@ export class UsersEntity extends BaseEntity{
   refreshToken: string;
 
   @Column({
-    type:"enum",
-    enum:UserRole,
-    default:UserRole.READER
+    type: "enum",
+    enum: UserRole,
+    default: UserRole.READER,
   })
-  role:UserRole;
+  role: UserRole;
 
   async setPassword(password: string) {
     this.password = await bcrypt.hash(password, 10);

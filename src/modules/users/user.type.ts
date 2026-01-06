@@ -14,6 +14,5 @@ export interface decodedToken {
 export interface updateDetails {
   name?: string;
   email?: string;
-  password:string
+  password: string;
 }
-
