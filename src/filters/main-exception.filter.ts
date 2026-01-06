@@ -3,6 +3,7 @@ import { HttpAdapterHost } from "@nestjs/core";
 import { captureException } from "@sentry/node";
 import { ERROR_MESSAGES } from "src/constants/messages.constants";
 import { logger } from "src/services/logger.service";
+import { AnyType } from "src/types/types";
 
 @Catch(HttpException)
 export class MainExceptionFilter implements ExceptionFilter {

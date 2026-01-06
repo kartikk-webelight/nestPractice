@@ -10,3 +10,10 @@ export interface login {
 export interface decodedToken {
   id: string;
 }
+
+export interface updateDetails {
+  name?: string;
+  email?: string;
+  password:string
+}
+

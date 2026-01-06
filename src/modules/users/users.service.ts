@@ -4,7 +4,7 @@ import { Repository } from "typeorm";
 import { transformToInstance } from "src/utils/helper.utils";
 import { UsersEntity } from "./users.entity";
 import { UsersResponse } from "./users.response";
-import { create, decodedToken, login } from "./user.type";
+import { create, decodedToken, login, updateDetails } from "./user.type";
 import { AuthHelperService } from "../auth/auth.helper.service";
 
 @Injectable()
@@ -21,7 +21,13 @@ export class UsersService {
       email: user.email,
     });
     await newUser.setPassword(user.password);
-    return this.userRepository.save(newUser);
+    const savedUser=await this.userRepository.save(newUser);
+
+    if(!savedUser){
+      throw new NotFoundException("saved user not found")
+    }
+
+    return savedUser
   }
 
   async findAll() {
@@ -99,4 +105,71 @@ export class UsersService {
       newAccessToken,
     };
   }
+
+  async getCurrentUser(userId: string) {
+    
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    
+    return user;
+  }
+
+  async updateDetails(body:updateDetails, userId: string) {
+    const { email, name, password } = body;
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+
+    if (!isPasswordCorrect) {
+      throw new ForbiddenException("invalid password");
+    }
+
+      if (name !== undefined && name.trim() !== '') {
+    user.name = name.toLowerCase();
+  }
+
+  if (email !== undefined && email.trim() !== '') {
+    user.email = email;
+  }
+
+  await this.userRepository.save(user)
+  const savedUser=await this.userRepository.findOne({where:{id:user.id}})
+  if(!savedUser){
+    throw new NotFoundException("user not found")
+  }
+  return savedUser
+  }
+
+  async logoutUser(userId:string){
+    const user=await this.userRepository.findOne({where:{id:userId}})
+
+    if(!user){
+      throw new NotFoundException("user not found")
+    }
+
+    user.refreshToken=""
+
+    await this.userRepository.save(user)
+
+    return {}
+  }
+
+
+  async findById(userId:string){
+     
+    const user =await this.userRepository.findOne({where:{id:userId}})
+    if(!user){
+      throw new NotFoundException("user not found")
+    }
+    return user
+  }
+  
 }

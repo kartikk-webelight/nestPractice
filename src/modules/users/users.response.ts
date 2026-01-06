@@ -1,4 +1,4 @@
-import { ApiPropertyWritable } from "src/modules/swagger/swagger.writable.decorator";
+import { ApiPropertyWritable } from "src/swagger/swagger.writable.decorator";
 
 import { Expose } from "class-transformer";
 

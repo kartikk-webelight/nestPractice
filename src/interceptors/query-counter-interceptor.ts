@@ -2,6 +2,7 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nes
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 import { logger } from "src/services/logger.service";
+import { AnyType } from "src/types/types";
 
 @Injectable()
 export class QueryCountInterceptor implements NestInterceptor {
