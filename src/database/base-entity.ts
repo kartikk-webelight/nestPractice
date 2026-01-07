@@ -1,4 +1,3 @@
-import { UsersEntity } from "src/modules/users/users.entity";
 import { generateKSUID } from "src/utils/helper.utils";
 import {
   BeforeInsert,
@@ -23,20 +22,6 @@ export abstract class BaseEntity {
   }
   @PrimaryColumn()
   id: string;
-
-  @Column({ nullable: true })
-  createdBy?: string;
-
-  @ManyToOne("UsersEntity", { nullable: true })
-  @JoinColumn({ name: "createdBy" })
-  creator?: UsersEntity;
-
-  @Column({ nullable: true })
-  updatedBy?: string;
-
-  @ManyToOne("UsersEntity", { nullable: true })
-  @JoinColumn({ name: "updatedBy" })
-  updater?: UsersEntity;
 
   @CreateDateColumn({
     type: "timestamp with time zone",

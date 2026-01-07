@@ -1,17 +1,17 @@
-export interface create {
+export interface CreateUser {
   name: string;
   email: string;
   password: string;
 }
-export interface login {
+export interface LoginUser {
   email: string;
   password: string;
 }
-export interface decodedToken {
+export interface DecodedToken {
   id: string;
 }
 
-export interface updateDetails {
+export interface UpdateDetails {
   name?: string;
   email?: string;
   password: string;

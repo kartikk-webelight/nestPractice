@@ -1,114 +1,127 @@
-import { Controller, Get, Post, Body, Res, Param, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Res, Param, Req, UseGuards, Patch, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import responseUtils from "src/utils/response.utils";
-import { UsersResponse } from "./users.response";
 import { UsersService } from "./users.service";
 import { ApiSwaggerResponse } from "../../swagger/swagger.decorator";
-import { MessageResponse } from "../../swagger/dtos/response.dtos";
-import { CreateUserDto, loginDto, updateDetailsDto } from "./users.dto";
+import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/users.dto";
 import { AuthGuard } from "src/guards/auth-guard";
+import {
+  GetAllUsersDto,
+  LoginResponseDto,
+  PaginatedUserResponseDto,
+  RefreshResponseDto,
+  UsersResponseDto,
+} from "./dto/users-response.dto";
 @ApiTags("Users")
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(UsersResponseDto)
   @UseGuards(AuthGuard)
   @Get("current")
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
-    const result = await this.usersService.getCurrentUser(req.user.id);
+    const data = await this.usersService.getCurrentUser(req.user.id);
 
-    return responseUtils.success(res, {
-      data: { result, message: "current user" },
+    return responseUtils.success<UsersResponseDto>(res, {
+      data: { data, message: "current user" },
       status: StatusCodes.OK,
+      transformWith: UsersResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UsersResponse)
+  @ApiSwaggerResponse(PaginatedUserResponseDto)
   @Get()
-  async findAll(@Res() res: Response) {
-    const result = await this.usersService.findAll();
+  async getAllUsers(@Res() res: Response, @Query() query: GetAllUsersDto) {
+    const { page, limit } = query;
+    const { data, meta } = await this.usersService.getAllUsers(page, limit);
 
     return responseUtils.success(res, {
-      data: { result, message: "all users fetched" },
+      data: { data, meta, message: "all users fetched" },
       status: StatusCodes.OK,
+      transformWith: PaginatedUserResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(MessageResponse, { status: StatusCodes.CREATED })
+  @ApiSwaggerResponse(UsersResponseDto, { status: StatusCodes.CREATED })
   @Post("create")
   async create(@Res() res: Response, @Body() body: CreateUserDto) {
-    const result = await this.usersService.create(body);
+    const data = await this.usersService.create(body);
     return responseUtils.success(res, {
-      data: { result, message: "User created successfully" },
+      data: { data, message: "User created successfully" },
       status: StatusCodes.CREATED,
+      transformWith: UsersResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(UsersResponseDto, { status: StatusCodes.OK })
   @Get(":id")
   async getUserById(@Res() res: Response, @Param("id") userId: string) {
-    const result = await this.usersService.getUserById(userId);
+    const data = await this.usersService.getUserById(userId);
     return responseUtils.success(res, {
-      data: { result, message: "user fetched" },
+      data: { data, message: "user fetched" },
       status: StatusCodes.OK,
+      transformWith: UsersResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(LoginResponseDto, { status: StatusCodes.OK })
   @Post("login")
-  async login(@Body() body: loginDto, @Res() res: Response) {
-    const result = await this.usersService.login(body);
+  async login(@Body() body: LoginDto, @Res() res: Response) {
+    const data = await this.usersService.login(body);
     const cookieOptions = {
       httpOnly: true,
       sameSite: "strict" as const,
     };
-    res.cookie("refreshToken", result.refreshToken, cookieOptions);
-    res.cookie("accessToken", result.accessToken, cookieOptions);
+    res.cookie("refreshToken", data.refreshToken, cookieOptions);
+    res.cookie("accessToken", data.accessToken, cookieOptions);
     return responseUtils.success(res, {
-      data: { result, message: "user logged in" },
+      data: { data, message: "user logged in" },
       status: StatusCodes.OK,
+      transformWith: LoginResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(RefreshResponseDto, { status: StatusCodes.OK })
   @Post("refreshToken")
   async refreshToken(@Req() req: Request, @Res() res: Response) {
     const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
-    const result = await this.usersService.refreshToken(incomingRefreshToken);
+    const data = await this.usersService.refreshToken(incomingRefreshToken);
 
     const cookieOptions = {
       httpOnly: true,
     };
 
-    res.cookie("accessToken", result.newAccessToken, cookieOptions);
-    res.cookie("refreshToken", result.newRefreshToken, cookieOptions);
+    res.cookie("accessToken", data.newAccessToken, cookieOptions);
+    res.cookie("refreshToken", data.newRefreshToken, cookieOptions);
 
     return responseUtils.success(res, {
-      data: { result, message: "tokens refreshed" },
+      data: { data, message: "tokens refreshed" },
       status: StatusCodes.OK,
+      transformWith: RefreshResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(UsersResponseDto, { status: StatusCodes.OK })
   @UseGuards(AuthGuard)
-  @Post("update")
-  async updateDetails(@Req() req: Request, @Body() body: updateDetailsDto, @Res() res: Response) {
-    const result = await this.usersService.updateDetails(body, req.user.id);
+  @Patch("update")
+  async updateDetails(@Req() req: Request, @Body() body: UpdateDetailsDto, @Res() res: Response) {
+    const data = await this.usersService.updateDetails(body, req.user.id);
 
     return responseUtils.success(res, {
-      data: { result, message: "details updated successfully" },
+      data: { data, message: "details updated successfully" },
+      transformWith: UsersResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UsersResponse, { status: StatusCodes.ACCEPTED })
+  @ApiSwaggerResponse(UsersResponseDto, { status: StatusCodes.ACCEPTED })
   @UseGuards(AuthGuard)
   @Post("logout")
   async logoutUser(@Req() req: Request, @Res() res: Response) {
-    const result = await this.usersService.logoutUser(req.user.id);
+    const data = await this.usersService.logoutUser(req.user.id);
 
     const cookieOptions = {
       httpOnly: true,
@@ -117,7 +130,7 @@ export class UsersController {
     res.clearCookie("refreshToken", cookieOptions);
 
     return responseUtils.success(res, {
-      data: { result, message: "user logged out" },
+      data: { data, message: "user logged out" },
     });
   }
 }

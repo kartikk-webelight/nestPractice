@@ -1,21 +1,19 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { transformToInstance } from "src/utils/helper.utils";
-import { UsersEntity } from "./users.entity";
-import { UsersResponse } from "./users.response";
-import { create, decodedToken, login, updateDetails } from "./user.type";
+import { UserEntity } from "./users.entity";
 import { AuthHelperService } from "../auth/auth.helper.service";
+import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./user.type";
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(UsersEntity)
-    private readonly userRepository: Repository<UsersEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
     private readonly authHelperService: AuthHelperService,
   ) {}
 
-  async create(user: create): Promise<UsersEntity> {
+  async create(user: CreateUser): Promise<UserEntity> {
     const newUser = this.userRepository.create({
       name: user.name,
       email: user.email,
@@ -30,21 +28,32 @@ export class UsersService {
     return savedUser;
   }
 
-  async findAll() {
-    const data = await this.userRepository.find();
+  async getAllUsers(page: number, limit: number) {
+    const [users, total] = await this.userRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
-    return transformToInstance(UsersResponse, data);
+    return {
+      data: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getUserById(userId: string) {
-    const user = this.userRepository.findOne({ where: { id: userId }, select: { password: false } });
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException("User not found");
     }
     return user;
   }
 
-  async login(body: login) {
+  async login(body: LoginUser) {
     const { email, password } = body;
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -74,7 +83,7 @@ export class UsersService {
       throw new UnauthorizedException("refreshToken required");
     }
 
-    let decodedToken: decodedToken;
+    let decodedToken: DecodedToken;
     try {
       decodedToken = this.authHelperService.verifyRefreshToken(refreshToken);
     } catch (error) {
@@ -116,7 +125,7 @@ export class UsersService {
     return user;
   }
 
-  async updateDetails(body: updateDetails, userId: string) {
+  async updateDetails(body: UpdateDetails, userId: string) {
     const { email, name, password } = body;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });

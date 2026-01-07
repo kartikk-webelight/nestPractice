@@ -1,20 +1,20 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { postEntity, PostStatus } from "./post.entity";
+import { PostEntity } from "./post.entity";
 import { Repository } from "typeorm";
-import { createPostDto } from "./post.dto";
 import { UsersService } from "../users/users.service";
-import { updatePost } from "./post.types";
+import { PostStatus } from "src/enums/index";
+import { CreatePost, UpdatePost } from "./post.types";
 
 @Injectable()
 export class PostService {
   constructor(
-    @InjectRepository(postEntity)
-    private readonly postRepository: Repository<postEntity>,
+    @InjectRepository(PostEntity)
+    private readonly postRepository: Repository<PostEntity>,
     private readonly usersService: UsersService,
   ) {}
 
-  async create(body: createPostDto, userId: string) {
+  async createPost(body: CreatePost, userId: string) {
     const { title, content } = body;
 
     const user = await this.usersService.findById(userId);
@@ -38,12 +38,22 @@ export class PostService {
     return savedPost;
   }
 
-  async getAllPost() {
-    const posts = await this.postRepository.find({
+  async getAllPosts(page: number, limit: number) {
+    const [posts, total] = await this.postRepository.findAndCount({
       relations: { author: true },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return posts;
+    return {
+      data: posts,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getPostById(postId: string) {
@@ -58,23 +68,34 @@ export class PostService {
     return post;
   }
 
-  async getMyposts(userId: string) {
-    const posts = await this.postRepository.find({
+  async getMyposts(userId: string, page: number, limit: number) {
+    const [posts, total] = await this.postRepository.findAndCount({
       where: { author: { id: userId } },
       relations: { author: true },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return posts;
+    return {
+      data: posts,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  async updatePost(body: updatePost, postId: string, userId: string) {
-    const { title, content } = body;
+  async updatePost(body: UpdatePost, userId: string) {
+    const { title, content, postId } = body;
 
-    const post = await this.postRepository.findOne({ where: { id: postId } });
+    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
       throw new NotFoundException("post not found");
     }
+
     if (post?.author.id !== userId) {
       throw new UnauthorizedException("not allowed to edit the post");
     }
@@ -96,7 +117,7 @@ export class PostService {
   }
 
   async publishPost(postId: string, user: any) {
-    const post = await this.postRepository.findOne({ where: { id: postId } });
+    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
       throw new NotFoundException("post not found");
@@ -118,7 +139,7 @@ export class PostService {
   }
 
   async unPublishPost(postId: string, user: any) {
-    const post = await this.postRepository.findOne({ where: { id: postId } });
+    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
       throw new NotFoundException("post not found");
@@ -139,7 +160,7 @@ export class PostService {
   }
 
   async deletePost(postId: string, user: any) {
-    const post = await this.postRepository.findOne({ where: { id: postId } });
+    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
       throw new NotFoundException("post not found");
@@ -152,12 +173,22 @@ export class PostService {
     return {};
   }
 
-  async getPublishedPost() {
-    const posts = await this.postRepository.find({
+  async getPublishedPosts(page: number, limit: number) {
+    const [posts, total] = await this.postRepository.findAndCount({
       where: { status: PostStatus.PUBLISHED },
       relations: { author: true },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return posts;
+    return {
+      data: posts,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

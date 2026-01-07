@@ -1,15 +1,14 @@
 import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { AuthHelperService } from "src/modules/auth/auth.helper.service";
-import { Observable } from "rxjs";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UsersEntity } from "src/modules/users/users.entity";
+import { UserEntity } from "src/modules/users/users.entity";
 import { Repository } from "typeorm";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    @InjectRepository(UsersEntity)
-    private readonly userRepo: Repository<UsersEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepo: Repository<UserEntity>,
     private readonly authHelperService: AuthHelperService,
   ) {}
 
@@ -45,7 +44,6 @@ export class AuthGuard implements CanActivate {
     }
 
     request.user = user;
-    console.log("user.name", user.name);
 
     return true;
   }

@@ -2,16 +2,10 @@ import { Entity, Column } from "typeorm";
 import * as bcrypt from "bcrypt";
 import { BaseEntity } from "src/database/base-entity";
 import { Exclude } from "class-transformer";
-
-export enum UserRole {
-  ADMIN = "admin",
-  READER = "reader",
-  EDITOR = "editor",
-  AUTHOR = "author",
-}
+import { UserRole } from "src/enums/index";
 
 @Entity("Users")
-export class UsersEntity extends BaseEntity {
+export class UserEntity extends BaseEntity {
   idPrefix = "user";
 
   @Column()

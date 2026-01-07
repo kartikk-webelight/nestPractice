@@ -1,14 +1,10 @@
 import { BaseEntity } from "src/database/base-entity";
 import { Column, Entity, ManyToOne } from "typeorm";
-import { UsersEntity } from "../users/users.entity";
+import { UserEntity } from "../users/users.entity";
+import { PostStatus } from "src/enums/index";
 
-export enum PostStatus {
-  DRAFT = "draft",
-  PUBLISHED = "published",
-}
-
-Entity("Posts");
-export class postEntity extends BaseEntity {
+@Entity("Posts")
+export class PostEntity extends BaseEntity {
   idPrefix = "post";
 
   @Column()
@@ -36,6 +32,6 @@ export class postEntity extends BaseEntity {
   @Column({ type: "timestamp", nullable: true })
   publishedAt?: Date;
 
-  @ManyToOne(() => UsersEntity, { nullable: false, onDelete: "CASCADE" })
-  author: UsersEntity;
+  @ManyToOne(() => UserEntity, { nullable: false, onDelete: "CASCADE" })
+  author: UserEntity;
 }
