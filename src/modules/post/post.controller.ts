@@ -1,22 +1,20 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
-import { CreatePostDto, UpdatePostDto } from "./dto/post.dto";
+import { CreatePostDto, GetAllPostsDto, GetMyPostsDto, GetPublishedPostsDto, UpdatePostDto } from "./dto/post.dto";
 import type { Request, Response } from "express";
 import { AuthGuard } from "src/guards/auth-guard";
 import { PostService } from "./post.service";
 import responseUtils from "src/utils/response.utils";
 import { StatusCodes } from "http-status-codes";
 import { RolesGuard } from "src/guards/role-guard";
-import { Roles } from "src/guards/role-decorator";
+import { Roles } from "src/decorators/role";
 import { UserRole } from "src/enums/index";
 import { ApiTags } from "@nestjs/swagger";
 import { ApiSwaggerResponse } from "src/swagger/swagger.decorator";
 import {
-  GetAllPostsDto,
-  GetMyPostsDto,
-  GetPublishedPostsDto,
   PaginatedPostResonseDto,
   PostResonseDto,
 } from "./dto/posts-response.dto";
+import { SUCCESS_MESSAGES } from "src/constants/messages.constants";
 
 @ApiTags("Posts")
 @Controller("posts")
@@ -25,12 +23,12 @@ export class PostController {
 
   @Post("create")
   @UseGuards(AuthGuard, RolesGuard)
-  @ApiSwaggerResponse(PostResonseDto)
+  @ApiSwaggerResponse(PostResonseDto, {status:StatusCodes.CREATED})
   @Roles(UserRole.ADMIN, UserRole.AUTHOR)
   async createPost(@Req() req: Request, @Body() body: CreatePostDto, @Res() res: Response) {
     const data = await this.postService.createPost(body, req.user.id);
     return responseUtils.success(res, {
-      data: { data, message: "post created" },
+      data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.CREATED,
       transformWith: PostResonseDto,
     });
@@ -43,7 +41,7 @@ export class PostController {
     const { data, meta } = await this.postService.getAllPosts(page, limit);
 
     return responseUtils.success(res, {
-      data: { data, meta, message: "post created" },
+      data: { data, meta, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED},
       status: StatusCodes.CREATED,
       transformWith: PaginatedPostResonseDto,
     });
@@ -57,7 +55,7 @@ export class PostController {
     const { data, meta } = await this.postService.getMyposts(req.user.id, page, limit);
 
     return responseUtils.success(res, {
-      data: { data, meta, message: "my posts fetched" },
+      data: { data, meta, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
       status: StatusCodes.OK,
       transformWith: PaginatedPostResonseDto,
     });
@@ -70,7 +68,7 @@ export class PostController {
     const { data, meta } = await this.postService.getPublishedPosts(page, limit);
 
     return responseUtils.success(res, {
-      data: { data, meta, message: "my posts fetched" },
+      data: { data, meta, message:SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
       status: StatusCodes.OK,
       transformWith: PaginatedPostResonseDto,
     });
@@ -84,7 +82,7 @@ export class PostController {
     const data = await this.postService.updatePost(body, req.user.id);
 
     return responseUtils.success(res, {
-      data: { data, message: "post updated successfully" },
+      data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
       status: StatusCodes.OK,
       transformWith: PostResonseDto,
     });
@@ -97,7 +95,7 @@ export class PostController {
     const data = await this.postService.deletePost(postId, req.user);
 
     return responseUtils.success(res, {
-      data: { data, message: "post updated successfully" },
+      data: { data, message: SUCCESS_MESSAGES.UPDATED },
       status: StatusCodes.OK,
     });
   }
@@ -110,7 +108,7 @@ export class PostController {
     const data = await this.postService.publishPost(postId, req.user);
 
     return responseUtils.success(res, {
-      data: { data, message: "post published" },
+      data: { data, message: SUCCESS_MESSAGES.UPDATED},
       status: StatusCodes.OK,
       transformWith: PostResonseDto,
     });
@@ -124,7 +122,7 @@ export class PostController {
     const data = await this.postService.unPublishPost(postId, req.user);
 
     return responseUtils.success(res, {
-      data: { data, message: "post unpublished" },
+      data: { data, message: SUCCESS_MESSAGES.UPDATED },
       status: StatusCodes.OK,
       transformWith: PostResonseDto,
     });
@@ -136,7 +134,7 @@ export class PostController {
     const data = await this.postService.getPostById(postId);
 
     return responseUtils.success(res, {
-      data: { data, message: "post fetched by id" },
+      data: { data, message: SUCCESS_MESSAGES.POST_FETCHED },
       status: StatusCodes.OK,
       transformWith: PostResonseDto,
     });

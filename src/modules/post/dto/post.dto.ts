@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty } from "class-validator";
 import { TrimString } from "src/decorators/trim-string.decorator";
+import { PaginationDto } from "src/dto/common.dto";
 
 export class CreatePostDto {
   @ApiProperty({
@@ -45,3 +46,10 @@ export class UpdatePostDto {
   @TrimString()
   content?: string;
 }
+
+
+export class GetAllPostsDto extends PaginationDto {}
+
+export class GetPublishedPostsDto extends PaginationDto {}
+
+export class GetMyPostsDto extends PaginationDto {}

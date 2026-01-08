@@ -6,4 +6,6 @@ export const secretConfig = {
   refreshSecretKey: getOsEnv("REFRESH_SECRET_KEY"),
   jwtExpirationTime: getOsEnv("JWT_EXPIRATION_TIME"),
   aesEncryptionKey: getOsEnv("AES_ENCRYPTION_KEY"),
+  refreshTokenExpiry:getOsEnv("REFRESH_TOKEN_EXPIRY"),
+  accessTokenExpiry:getOsEnv("ACCESS_TOKEN_EXPIRY")
 };

@@ -13,6 +13,6 @@ import { RolesGuard } from "src/guards/role-guard";
   imports: [TypeOrmModule.forFeature([PostEntity, UserEntity]), UsersModule, AuthHelperModule],
   controllers: [PostController],
   providers: [PostService, AuthGuard, RolesGuard],
-  exports: [TypeOrmModule.forFeature([PostEntity])],
+  exports: [TypeOrmModule.forFeature([PostEntity]), PostService],
 })
 export class PostModule {}

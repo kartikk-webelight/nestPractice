@@ -21,7 +21,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("token is required");
     }
 
-    console.log(token);
+    
 
     let decodedToken;
     try {
@@ -29,7 +29,6 @@ export class AuthGuard implements CanActivate {
     } catch (error) {
       throw new UnauthorizedException("invalid token");
     }
-    console.log(decodedToken);
 
     if (!decodedToken.payload) {
       throw new UnauthorizedException("invalid token");

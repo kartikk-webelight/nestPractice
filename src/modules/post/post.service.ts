@@ -3,8 +3,9 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { PostEntity } from "./post.entity";
 import { Repository } from "typeorm";
 import { UsersService } from "../users/users.service";
-import { PostStatus } from "src/enums/index";
+import { PostStatus, UserRole } from "src/enums/index";
 import { CreatePost, UpdatePost } from "./post.types";
+import { ERROR_MESSAGES } from "src/constants/messages.constants";
 
 @Injectable()
 export class PostService {
@@ -20,7 +21,7 @@ export class PostService {
     const user = await this.usersService.findById(userId);
 
     if (!user) {
-      throw new UnauthorizedException("user not found");
+      throw new UnauthorizedException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
     const post = this.postRepository.create({
@@ -32,7 +33,7 @@ export class PostService {
     const savedPost = await this.postRepository.save(post);
 
     if (!savedPost) {
-      throw new NotFoundException("post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
     return savedPost;
@@ -63,7 +64,7 @@ export class PostService {
     });
 
     if (!post) {
-      throw new NotFoundException("post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
     return post;
   }
@@ -93,11 +94,11 @@ export class PostService {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
-      throw new NotFoundException("post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
     if (post?.author.id !== userId) {
-      throw new UnauthorizedException("not allowed to edit the post");
+      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     if (title && title !== undefined) {
@@ -110,7 +111,7 @@ export class PostService {
     const updatedPost = await this.postRepository.save(post);
 
     if (!updatedPost) {
-      throw new NotFoundException("updated post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
     return updatedPost;
@@ -120,11 +121,11 @@ export class PostService {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
-      throw new NotFoundException("post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    if (post.author.id !== user.id && !["admin", "editor"].includes(user.role)) {
-      throw new UnauthorizedException("not allowed to publish the post");
+    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
     post.status = PostStatus.PUBLISHED;
     post.publishedAt = new Date();
@@ -132,7 +133,7 @@ export class PostService {
     const publishedPost = await this.postRepository.save(post);
 
     if (!publishedPost) {
-      throw new NotFoundException("published post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
     return publishedPost;
@@ -142,18 +143,18 @@ export class PostService {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
-      throw new NotFoundException("post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    if (post.author.id !== user.id && !["admin", "editor"].includes(user.role)) {
-      throw new UnauthorizedException("not allowed to unpublish the post");
+    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
     post.status = PostStatus.DRAFT;
 
     const unPublishedPost = await this.postRepository.save(post);
 
     if (!unPublishedPost) {
-      throw new NotFoundException("published post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
     return unPublishedPost;
@@ -163,12 +164,12 @@ export class PostService {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
-      throw new NotFoundException("post not found");
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
-    if (post.author.id !== user.id && !["admin", "editor"].includes(user.role)) {
-      throw new UnauthorizedException("not allowed to delete the post");
+    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
-    await this.postRepository.delete({ id: postId });
+    await this.postRepository.softDelete({ id: postId });
 
     return {};
   }
@@ -190,5 +191,9 @@ export class PostService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async findById(postId:string){
+    return await this.postRepository.findOne({where:{id:postId}})
   }
 }

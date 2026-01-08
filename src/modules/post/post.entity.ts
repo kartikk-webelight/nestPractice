@@ -1,5 +1,5 @@
 import { BaseEntity } from "src/database/base-entity";
-import { Column, Entity, ManyToOne } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { UserEntity } from "../users/users.entity";
 import { PostStatus } from "src/enums/index";
 
@@ -33,5 +33,6 @@ export class PostEntity extends BaseEntity {
   publishedAt?: Date;
 
   @ManyToOne(() => UserEntity, { nullable: false, onDelete: "CASCADE" })
+  @JoinColumn({name:"authorId"})
   author: UserEntity;
 }

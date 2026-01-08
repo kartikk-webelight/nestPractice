@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import Redis from "ioredis";
 import { redisConfig } from "src/config/redis-config";
 
+
 @Module({
   providers: [
     {

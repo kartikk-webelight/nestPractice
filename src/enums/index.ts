@@ -9,3 +9,10 @@ export enum PostStatus {
   DRAFT = "draft",
   PUBLISHED = "published",
 }
+
+
+export enum CommentStatus{
+  PENDING="pending",
+  APPROVED="approved",
+  REJECTED="rejected"
+}

@@ -1,3 +1,5 @@
+import { NOTFOUND } from "dns";
+
 export const SUCCESS_MESSAGES = {
   SUCCESS: "Success",
   CREATED: "The record has been successfully created.",
@@ -7,6 +9,15 @@ export const SUCCESS_MESSAGES = {
   UPDATED: "The record has been successfully updated.",
   DELETED: "Record deleted successfully.",
   FILE_UPLOADED: "File uploaded successfully.",
+  ALL_USERS_FETCHED:"All users fetched successfully",
+  USER_FETCHED:"Users fetched successfully",
+  USER_LOGGED_IN:"User logged in successfully",
+  USER_LOGGED_OUT:"User logged out",
+  TOKEN_REFRESHED:"Token refreshed successfully",
+  ALL_COMMENTS_FETCHED:"All comments fetched successfully",
+  COMMENT_FETCHED:"Comment fetched successfully",
+   ALL_POSTS_FETCHED:"All posts fetched successfully",
+   POST_FETCHED:"Post fetched successfully",
 };
 
 export const ERROR_MESSAGES = {
@@ -15,6 +26,9 @@ export const ERROR_MESSAGES = {
   ALREADY_EXISTS_ACCOUNT: "Account Already Exists.",
   INVALID_EMAIL: "Invalid email address.",
   INVALID_CONTACT_NO: "Invalid contact number.",
+  INVALID_CREDENTIAL:"Invalid credentials",
+  INVALID_REFRESH_TOKEN:"Invalid refresh token",
+  INVALID_ACCESS_TOKEN:"Invalid access token",
   PASSWORD_WEAK:
     "Password must contain 8 characters, one uppercase, one lowercase, one number and one special case character.",
   INTERNAL_SERVER_ERROR: "Internal Server Error",
@@ -25,4 +39,7 @@ export const ERROR_MESSAGES = {
   REQUIRED_COOKIE_NOT_FOUND: "Required cookie/s not found.",
   DUPLICATE_VALUE_NOT_ALLOWED: "Duplicate value not allowed in imported file.",
   LINK_EXPIRED: "The link has expired or is invalid. Please try again.",
+  USER_NOT_FOUND:"User not found",
+  POST_NOT_FOUND:"Post not found",
+  COMMENT_NOT_FOUND:"Comment not found",
 };

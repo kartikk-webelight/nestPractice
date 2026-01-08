@@ -3,6 +3,7 @@ import {
   BeforeInsert,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   JoinColumn,
   ManyToOne,
   PrimaryColumn,
@@ -36,10 +37,16 @@ export abstract class BaseEntity {
   })
   updatedAt: Date;
 
+
+  @DeleteDateColumn()
+  deletedAt:Date
+
   @BeforeInsert()
   async generateUniqueId() {
     if (!this.id) {
       this.id = await generateKSUID(this.idPrefix);
     }
+
+
   }
 }
