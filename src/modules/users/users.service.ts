@@ -1,44 +1,59 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { transformToInstance } from "src/utils/helper.utils";
-import { UsersEntity } from "./users.entity";
-import { UsersResponse } from "./users.response";
-import { create, decodedToken, login } from "./user.type";
+import { UserEntity } from "./users.entity";
 import { AuthHelperService } from "../auth/auth.helper.service";
+import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./user.type";
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(UsersEntity)
-    private readonly userRepository: Repository<UsersEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
     private readonly authHelperService: AuthHelperService,
   ) {}
 
-  async create(user: create): Promise<UsersEntity> {
+  async create(user: CreateUser): Promise<UserEntity> {
     const newUser = this.userRepository.create({
       name: user.name,
       email: user.email,
     });
     await newUser.setPassword(user.password);
-    return this.userRepository.save(newUser);
+    const savedUser = await this.userRepository.save(newUser);
+
+    if (!savedUser) {
+      throw new NotFoundException("saved user not found");
+    }
+
+    return savedUser;
   }
 
-  async findAll() {
-    const data = await this.userRepository.find();
+  async getAllUsers(page: number, limit: number) {
+    const [users, total] = await this.userRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
-    return transformToInstance(UsersResponse, data);
+    return {
+      data: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getUserById(userId: string) {
-    const user = this.userRepository.findOne({ where: { id: userId }, select: { password: false } });
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException("User not found");
     }
     return user;
   }
 
-  async login(body: login) {
+  async login(body: LoginUser) {
     const { email, password } = body;
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -68,7 +83,7 @@ export class UsersService {
       throw new UnauthorizedException("refreshToken required");
     }
 
-    let decodedToken: decodedToken;
+    let decodedToken: DecodedToken;
     try {
       decodedToken = this.authHelperService.verifyRefreshToken(refreshToken);
     } catch (error) {
@@ -98,5 +113,68 @@ export class UsersService {
       newRefreshToken,
       newAccessToken,
     };
+  }
+
+  async getCurrentUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    return user;
+  }
+
+  async updateDetails(body: UpdateDetails, userId: string) {
+    const { email, name, password } = body;
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+
+    if (!isPasswordCorrect) {
+      throw new ForbiddenException("invalid password");
+    }
+
+    if (name !== undefined && name.trim() !== "") {
+      user.name = name.toLowerCase();
+    }
+
+    if (email !== undefined && email.trim() !== "") {
+      user.email = email;
+    }
+
+    await this.userRepository.save(user);
+    const savedUser = await this.userRepository.findOne({ where: { id: user.id } });
+    if (!savedUser) {
+      throw new NotFoundException("user not found");
+    }
+    return savedUser;
+  }
+
+  async logoutUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("user not found");
+    }
+
+    user.refreshToken = "";
+
+    await this.userRepository.save(user);
+
+    return {};
+  }
+
+  async findById(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException("user not found");
+    }
+    return user;
   }
 }

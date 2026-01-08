@@ -1,44 +1,50 @@
-import { ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { AuthHelperService } from "src/modules/auth/auth.helper.service";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UsersEntity } from "src/modules/users/users.entity";
+import { UserEntity } from "src/modules/users/users.entity";
 import { Repository } from "typeorm";
 
 @Injectable()
-export class AdminAuthGuard {
-  private readonly authService = new AuthHelperService();
-
+export class AuthGuard implements CanActivate {
   constructor(
-    @InjectRepository(UsersEntity)
-    private readonly usersRepository: Repository<UsersEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepo: Repository<UserEntity>,
+    private readonly authHelperService: AuthHelperService,
   ) {}
-  async canActivate(context: ExecutionContext) {
-    const req = context.switchToHttp().getRequest();
-    const { authToken } = req.cookies;
 
-    if (!authToken) {
-      throw new UnauthorizedException("Unauthorized");
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+
+    const token = request.cookies?.accessToken || request.headers.authorization?.replace("Bearer ", "");
+
+    if (!token) {
+      throw new UnauthorizedException("token is required");
     }
 
-    const { id } = this.authService.validateGuardRequest(authToken);
+    console.log(token);
 
+    let decodedToken;
     try {
-      const user = await this.usersRepository
-        .createQueryBuilder("user")
-        .leftJoin("user.media", "media")
-        .select(["user.id", "user.email", "user.name"])
-        .where("user.id = :id", { id })
-        .getOne();
-
-      if (!user) {
-        throw new UnauthorizedException("Unauthorized");
-      }
-
-      req.user = user;
-
-      return true;
-    } catch (e) {
-      throw new UnauthorizedException();
+      decodedToken = this.authHelperService.verifyAccessToken(token);
+    } catch (error) {
+      throw new UnauthorizedException("invalid token");
     }
+    console.log(decodedToken);
+
+    if (!decodedToken.payload) {
+      throw new UnauthorizedException("invalid token");
+    }
+
+    const user = await this.userRepo.findOne({
+      where: { id: decodedToken.payload },
+      select: { password: false, refreshToken: false },
+    });
+    if (!user) {
+      throw new NotFoundException("user not found");
+    }
+
+    request.user = user;
+
+    return true;
   }
 }

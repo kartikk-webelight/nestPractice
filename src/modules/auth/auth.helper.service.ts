@@ -1,7 +1,6 @@
 import { JwtPayload, sign, verify } from "jsonwebtoken";
 import { UnauthorizedException } from "@nestjs/common/exceptions";
 import { secretConfig } from "src/config/secret.config";
-import { AES, enc } from "crypto-js";
 import { ERROR_MESSAGES } from "src/constants/messages.constants";
 import { Injectable } from "@nestjs/common";
 
