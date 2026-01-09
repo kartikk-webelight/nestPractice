@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
+import { redisConfig } from "config/redis-config";
 import Redis from "ioredis";
-import { redisConfig } from "src/config/redis-config";
-
 
 @Module({
   providers: [

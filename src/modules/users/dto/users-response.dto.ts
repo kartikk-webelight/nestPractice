@@ -1,6 +1,6 @@
-import { ApiPropertyWritable } from "src/swagger/swagger.writable.decorator";
 import { Exclude, Expose, Type } from "class-transformer";
-import { UserRole } from "src/enums";
+import { UserRole } from "enums";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class UsersResponse {
   @ApiPropertyWritable()
@@ -28,8 +28,6 @@ export class UsersResponse {
   updatedAt: Date;
 }
 
-
-
 @Exclude()
 export class UsersResponseDto {
   @ApiPropertyWritable({ type: UsersResponse })
@@ -41,8 +39,3 @@ export class UsersResponseDto {
   @Expose()
   message: string;
 }
-
-
-
-
-

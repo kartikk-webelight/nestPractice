@@ -1,7 +1,6 @@
 import { Expose, Type } from "class-transformer";
-import { TrimString } from "src/decorators/trim-string.decorator";
-import { PaginationDto, PaginationMetaDto } from "src/dto/common.dto";
-import { ApiPropertyWritable } from "src/swagger/swagger.writable.decorator";
+import { PaginationDataDto } from "dto/common-response.dto";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class PostAuthorResponse {
   @ApiPropertyWritable()
@@ -21,7 +20,7 @@ export class PostAuthorResponse {
   role: string;
 }
 
-export class PostResult {
+export class PostResponse {
   @ApiPropertyWritable()
   @Expose()
   id: string;
@@ -65,36 +64,32 @@ export class PostResult {
 }
 
 export class PostResonseDto {
-  @ApiPropertyWritable({ type: PostResult })
-  @Type(() => PostResult)
+  @ApiPropertyWritable({ type: PostResponse })
+  @Type(() => PostResponse)
   @Expose()
-  data: PostResult;
+  data: PostResponse;
 
   @Expose()
   @ApiPropertyWritable()
   message: string;
 }
 
-
-
-
+export class PostsPaginationDataDto extends PaginationDataDto {
+  @ApiPropertyWritable({ type: [PostResponse] })
+  @Type(() => PostResponse)
+  @Expose()
+  data: PostResponse[];
+}
 
 export class PaginatedPostResonseDto {
-  @ApiPropertyWritable({ type: PostResult })
-  @Type(() => PostResult)
+  @ApiPropertyWritable({ type: PostsPaginationDataDto })
+  @Type(() => PostsPaginationDataDto)
   @Expose()
-  data: PostResult[];
-
-  @ApiPropertyWritable({ type: PaginationMetaDto })
-  @Type(() => PaginationMetaDto)
-  @Expose()
-  meta: PaginationMetaDto;
+  data: PostsPaginationDataDto;
 
   @Expose()
   @ApiPropertyWritable()
   message: string;
 }
 
-
-
-
+export class GetAllPostsResponseDto extends PaginatedPostResonseDto {}

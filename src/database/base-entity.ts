@@ -1,14 +1,5 @@
-import { generateKSUID } from "src/utils/helper.utils";
-import {
-  BeforeInsert,
-  Column,
-  CreateDateColumn,
-  DeleteDateColumn,
-  JoinColumn,
-  ManyToOne,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from "typeorm";
+import { BeforeInsert, CreateDateColumn, DeleteDateColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
+import { generateKSUID } from "utils/helper.utils";
 
 export abstract class BaseEntity {
   protected abstract idPrefix: string;
@@ -37,16 +28,13 @@ export abstract class BaseEntity {
   })
   updatedAt: Date;
 
-
-  @DeleteDateColumn()
-  deletedAt:Date
+  @DeleteDateColumn({ type: "timestamp with time zone" })
+  deletedAt: Date;
 
   @BeforeInsert()
   async generateUniqueId() {
     if (!this.id) {
       this.id = await generateKSUID(this.idPrefix);
     }
-
-
   }
 }

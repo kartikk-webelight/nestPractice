@@ -1,3 +1,3 @@
-import { PaginationDto } from "src/dto/common.dto";
+import { PaginationQueryDto } from "dto/common-request.dto";
 
-export class GetAllUsersDto extends PaginationDto{}
+export class GetAllUsersDto extends PaginationQueryDto {}

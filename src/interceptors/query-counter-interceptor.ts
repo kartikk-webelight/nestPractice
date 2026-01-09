@@ -1,8 +1,8 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
-import { logger } from "src/services/logger.service";
-import { AnyType } from "src/types/types";
+import { logger } from "services/logger.service";
+import { AnyType } from "types/types";
 
 @Injectable()
 export class QueryCountInterceptor implements NestInterceptor {

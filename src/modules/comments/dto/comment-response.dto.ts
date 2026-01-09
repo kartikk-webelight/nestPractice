@@ -1,7 +1,7 @@
 import { Expose, Type } from "class-transformer";
-import { PaginationMetaDto, UsersResponse } from "src/dto/common.dto";
-import { PostResult } from "src/modules/post/dto/posts-response.dto";
-import { ApiPropertyWritable } from "src/swagger/swagger.writable.decorator";
+import { PaginationDataDto, UsersResponse } from "dto/common-response.dto";
+import { PostResponse } from "modules/post/dto/posts-response.dto";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CommentResponse {
   @ApiPropertyWritable()
@@ -18,7 +18,7 @@ export class CommentResponse {
 
   @ApiPropertyWritable()
   @Expose()
-  commentStatus: string;
+  status: string;
 
   @ApiPropertyWritable()
   @Expose()
@@ -33,10 +33,10 @@ export class CommentResponse {
   @Type(() => UsersResponse)
   author: UsersResponse;
 
-  @ApiPropertyWritable({ type: PostResult })
+  @ApiPropertyWritable({ type: PostResponse })
   @Expose()
-  @Type(() => PostResult)
-  post: PostResult;
+  @Type(() => PostResponse)
+  post: PostResponse;
 
   @ApiPropertyWritable({ nullable: true })
   @Expose()
@@ -44,36 +44,38 @@ export class CommentResponse {
   parentComment: CommentResponse | null;
 }
 
-
 export class CommentResponseDto {
-
-  @ApiPropertyWritable({type:CommentResponse})
-  @Type(()=>CommentResponse)
-  @Expose()
-  data:CommentResponse
-
-  @ApiPropertyWritable({type:CommentResponse})
-  @Expose()
-  message:string
-}
-
-export class CreateCommentResponseDto extends CommentResponseDto{}
-export class ReplyCommentResponseDto extends CommentResponseDto{}
-export class GetCommentByIdResponseDto extends CommentResponseDto{}
-export class UpdateCommentResponseDto extends CommentResponseDto{}
-
-export class PaginatedCommentResonseDto {
   @ApiPropertyWritable({ type: CommentResponse })
   @Type(() => CommentResponse)
   @Expose()
-  data: CommentResponse[];
+  data: CommentResponse;
 
-  @ApiPropertyWritable({ type: PaginationMetaDto })
-  @Type(() => PaginationMetaDto)
+  @ApiPropertyWritable({ type: CommentResponse })
   @Expose()
-  meta: PaginationMetaDto;
+  message: string;
+}
+
+export class CreateCommentResponseDto extends CommentResponseDto {}
+export class ReplyCommentResponseDto extends CommentResponseDto {}
+export class GetCommentByIdResponseDto extends CommentResponseDto {}
+export class UpdateCommentResponseDto extends CommentResponseDto {}
+
+export class CommentsPaginationDataDto extends PaginationDataDto {
+  @ApiPropertyWritable({ type: [CommentResponse] })
+  @Type(() => CommentResponse)
+  @Expose()
+  data: CommentResponse[];
+}
+
+export class PaginatedCommentResonseDto {
+  @ApiPropertyWritable({ type: CommentsPaginationDataDto })
+  @Type(() => CommentsPaginationDataDto)
+  @Expose()
+  data: CommentsPaginationDataDto;
 
   @Expose()
   @ApiPropertyWritable()
   message: string;
 }
+
+export class GetAllCommentsResponseDto extends PaginatedCommentResonseDto {}

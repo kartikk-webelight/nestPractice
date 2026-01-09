@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { PostEntity } from "./post.entity";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { PostStatus, UserRole } from "enums/index";
 import { Repository } from "typeorm";
+
 import { UsersService } from "../users/users.service";
-import { PostStatus, UserRole } from "src/enums/index";
+import { PostEntity } from "./post.entity";
 import { CreatePost, UpdatePost } from "./post.types";
-import { ERROR_MESSAGES } from "src/constants/messages.constants";
 
 @Injectable()
 export class PostService {
@@ -48,12 +49,10 @@ export class PostService {
 
     return {
       data: posts,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -79,12 +78,10 @@ export class PostService {
 
     return {
       data: posts,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -184,16 +181,14 @@ export class PostService {
 
     return {
       data: posts,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
-  async findById(postId:string){
-    return await this.postRepository.findOne({where:{id:postId}})
+  async findById(postId: string) {
+    return await this.postRepository.findOne({ where: { id: postId } });
   }
 }

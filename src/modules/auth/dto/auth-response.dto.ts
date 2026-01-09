@@ -1,25 +1,22 @@
-import { ApiPropertyWritable } from "src/swagger/swagger.writable.decorator";
-import { Expose} from "class-transformer";
-import {  UsersResponseDto } from "src/dto/common.dto";
+import { Expose } from "class-transformer";
+import { UsersResponseDto } from "dto/common-response.dto";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
+export class CreateUserResponseDto extends UsersResponseDto {}
 
+export class UpdateUserResponseDto extends UsersResponseDto {}
 
-export class CreateUserResponseDto extends UsersResponseDto{}
-
-export class UpdateUserResponseDto extends UsersResponseDto{}
-
-export class CurrentUserResponseDto extends UsersResponseDto{}
+export class CurrentUserResponseDto extends UsersResponseDto {}
 
 export class LogoutUserResponseDto {
-    @ApiPropertyWritable()
-    @Expose()
-    data:{}
+  @ApiPropertyWritable()
+  @Expose()
+  data: {};
 
-    @ApiPropertyWritable()
-    @Expose()
-    message:string
+  @ApiPropertyWritable()
+  @Expose()
+  message: string;
 }
-
 
 export class LoginResponse {
   @ApiPropertyWritable()
@@ -60,5 +57,3 @@ export class RefreshResponseDto {
   @Expose()
   message: string;
 }
-
-

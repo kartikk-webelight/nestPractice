@@ -1,53 +1,56 @@
-import { JwtPayload, sign, verify } from "jsonwebtoken";
-import { UnauthorizedException } from "@nestjs/common/exceptions";
-import { secretConfig } from "src/config/secret.config";
-import { ERROR_MESSAGES } from "src/constants/messages.constants";
 import { Injectable } from "@nestjs/common";
+import { UnauthorizedException } from "@nestjs/common/exceptions";
+import { secretConfig } from "config/secret.config";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { JwtPayload, sign, SignOptions, verify } from "jsonwebtoken";
+
+import { DecodedToken } from "./auth.types";
 
 @Injectable()
 export class AuthHelperService {
-  generateAccessToken(payload: object, expiresIn = secretConfig.jwtExpirationTime): string {
-    return sign(payload, secretConfig.accessSecretKey, {}, expiresIn);
+  generateAccessToken(payload: object): string {
+    return sign(payload, secretConfig.accessSecretKey, {
+      expiresIn: secretConfig.accessTokenExpiry as SignOptions["expiresIn"],
+    });
   }
-  generateRefreshToken(payload: object, expiresIn = secretConfig.jwtExpirationTime): string {
-    return sign(payload, secretConfig.refreshSecretKey, {}, expiresIn);
+  generateRefreshToken(payload: object): string {
+    return sign(payload, secretConfig.refreshSecretKey, {
+      expiresIn: secretConfig.refreshTokenExpiry as SignOptions["expiresIn"],
+    });
   }
 
   verifyToken(token: string): JwtPayload {
     try {
-      return <JwtPayload>verify(token, secretConfig.jwtSecretKey);
+      return verify(token, secretConfig.jwtSecretKey) as JwtPayload;
     } catch (e) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
   }
 
-  verifyAccessToken(token: string): JwtPayload {
+  verifyAccessToken(token: string): DecodedToken {
     try {
-      return <JwtPayload>verify(token, secretConfig.accessSecretKey);
-    } catch (e) {
+      const decoded = verify(token, secretConfig.accessSecretKey);
+
+      if (typeof decoded === "string" || !("id" in decoded)) {
+        throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+      }
+
+      return decoded as DecodedToken;
+    } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
   }
-  verifyRefreshToken(token: string): JwtPayload {
+  verifyRefreshToken(token: string): DecodedToken {
     try {
-      return <JwtPayload>verify(token, secretConfig.refreshSecretKey);
-    } catch (e) {
+      const decoded = verify(token, secretConfig.refreshSecretKey);
+
+      if (typeof decoded === "string" || !("id" in decoded)) {
+        throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+      }
+
+      return decoded as DecodedToken;
+    } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
-  }
-
-  decodeToken(authToken: string): { id: string } {
-    if (!authToken) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
-    }
-
-    const { id } = this.verifyToken(authToken);
-
-    return { id };
-  }
-  validateGuardRequest(authToken: string): { id: string } {
-    const data = this.decodeToken(authToken);
-
-    return data;
   }
 }

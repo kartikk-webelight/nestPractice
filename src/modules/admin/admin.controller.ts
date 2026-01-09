@@ -1,41 +1,40 @@
-import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
-import { AdminService } from './admin.service';
-import responseUtils from 'src/utils/response.utils';
-import { StatusCodes } from 'http-status-codes';
-import { ApiSwaggerResponse } from 'src/swagger/swagger.decorator';
-import type { Response } from 'express';
-import { AuthGuard } from 'src/guards/auth-guard';
-import { RolesGuard } from 'src/guards/role-guard';
-import { Roles } from 'src/decorators/role';
-import { UserRole } from 'src/enums';
-import { GetAllUsersResponseDto, getUserByIdResponseDto } from './dto/admin-response.dto';
-import { GetAllUsersDto } from './dto/admin.dto';
-import { SUCCESS_MESSAGES } from 'src/constants/messages.constants';
+import { Controller, Get, Param, Query, Res, UseGuards } from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
+import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { Roles } from "decorators/role";
+import { UserRole } from "enums";
+import type { Response } from "express";
+import { AuthGuard } from "guards/auth-guard";
+import { RolesGuard } from "guards/role-guard";
+import { StatusCodes } from "http-status-codes";
+import { ApiSwaggerResponse } from "swagger/swagger.decorator";
+import responseUtils from "utils/response.utils";
 
-@Controller('admin')
+import { AdminService } from "./admin.service";
+import { GetAllUsersDto } from "./dto/admin.dto";
+import { GetAllUsersResponseDto, getUserByIdResponseDto } from "./dto/admin-response.dto";
+
+@ApiTags("Admin")
+@Roles(UserRole.ADMIN)
+@UseGuards(AuthGuard, RolesGuard)
+@Controller("admin")
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(private readonly adminService: AdminService) {}
 
   @ApiSwaggerResponse(GetAllUsersResponseDto)
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Get('users')
-  async getAllUsers(@Res() res: Response,
-    @Query() query: GetAllUsersDto) {
+  @Get("users")
+  async getAllUsers(@Res() res: Response, @Query() query: GetAllUsersDto) {
     const { page, limit } = query;
-    const { data, meta } = await this.adminService.getAllUsers(page, limit);
+    const data = await this.adminService.getAllUsers(page, limit);
 
     return responseUtils.success(res, {
-      data: { data, meta, message: SUCCESS_MESSAGES.ALL_USERS_FETCHED },
+      data: { data, message: SUCCESS_MESSAGES.ALL_USERS_FETCHED },
       status: StatusCodes.OK,
       transformWith: GetAllUsersResponseDto,
     });
   }
 
-
   @ApiSwaggerResponse(getUserByIdResponseDto, { status: StatusCodes.OK })
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
   @Get("user/:id")
   async getUserById(@Res() res: Response, @Param("id") userId: string) {
     const data = await this.adminService.getUserById(userId);
@@ -45,5 +44,4 @@ export class AdminController {
       transformWith: getUserByIdResponseDto,
     });
   }
-
 }

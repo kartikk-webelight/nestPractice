@@ -1,7 +1,7 @@
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 
-import { appConfig } from "./app.config";
 import { getOsEnv } from "../config/env.config";
+import { appConfig } from "./app.config";
 
 export const databaseConfig: TypeOrmModuleOptions = {
   type: "postgres",

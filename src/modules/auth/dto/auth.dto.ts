@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsEmail, IsNotEmpty, IsOptional } from "class-validator";
-import { TrimString } from "src/decorators/trim-string.decorator";
+import { TrimString } from "decorators/trim-string.decorator";
 
 export class CreateUserDto {
   @ApiProperty({
@@ -47,7 +47,6 @@ export class LoginDto {
   @TrimString()
   password: string;
 }
-
 
 export class UpdateDetailsDto {
   @ApiProperty({

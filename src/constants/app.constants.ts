@@ -1,4 +1,4 @@
-import { appConfig } from "src/config/app.config";
+import { appConfig } from "config/app.config";
 
 export const swaggerInfo = {
   title: "NEST Boilerplate Api Documentation",
