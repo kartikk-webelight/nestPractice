@@ -15,16 +15,17 @@ import {
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from "@nestjs/swagger";
-import { StatusCodes, getReasonPhrase } from "http-status-codes";
-import { SUCCESS_MESSAGES } from "src/constants/messages.constants";
-import { ExceptionErrorDto } from "./dtos/exception-error.dto";
-import { ResponseDtoTypeEnum, ResponseDto } from "./dtos/response.dtos";
+import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { getReasonPhrase, StatusCodes } from "http-status-codes";
 
-type ApiSwaggerOption = {
+import { ExceptionErrorDto } from "./dtos/exception-error.dto";
+import { ResponseDto, ResponseDtoTypeEnum } from "./dtos/response.dtos";
+
+interface ApiSwaggerOption {
   status?: number;
   type?: ResponseDtoTypeEnum;
   pagination?: boolean;
-};
+}
 
 interface ApiSwaggerFileOption {
   status?: number;

@@ -1,13 +1,5 @@
-import { generateKSUID } from "src/utils/helper.utils";
-import {
-  BeforeInsert,
-  Column,
-  CreateDateColumn,
-  JoinColumn,
-  ManyToOne,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from "typeorm";
+import { BeforeInsert, CreateDateColumn, DeleteDateColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
+import { generateKSUID } from "utils/helper.utils";
 
 export abstract class BaseEntity {
   protected abstract idPrefix: string;
@@ -35,6 +27,9 @@ export abstract class BaseEntity {
     default: () => "CURRENT_TIMESTAMP",
   })
   updatedAt: Date;
+
+  @DeleteDateColumn({ type: "timestamp with time zone" })
+  deletedAt: Date;
 
   @BeforeInsert()
   async generateUniqueId() {

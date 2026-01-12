@@ -1,16 +1,17 @@
-import { ClassSerializerInterceptor, ValidationPipe, VersioningType } from "@nestjs/common";
-import cookieParser from "cookie-parser";
-import { json as expressJson, urlencoded as expressUrlencoded } from "express";
-import { allowedOrigins, globalPrefix } from "src/constants/app.constants";
-import { HttpAdapterHost, Reflector } from "@nestjs/core";
-import { MainExceptionFilter } from "src/filters/main-exception.filter";
-import { init } from "@sentry/node";
+import { ValidationPipe, VersioningType } from "@nestjs/common";
+import { HttpAdapterHost } from "@nestjs/core";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { appConfig } from "./config/app.config";
-import { QueryCountInterceptor } from "./interceptors/query-counter-interceptor";
-import { swaggerInfo } from "./constants/app.constants";
+import { init } from "@sentry/node";
+import { allowedOrigins, globalPrefix } from "constants/app.constants";
+import cookieParser from "cookie-parser";
+import { json as expressJson, urlencoded as expressUrlencoded } from "express";
+import { MainExceptionFilter } from "filters/main-exception.filter";
+
 import { AppModule } from "./app.module";
+import { appConfig } from "./config/app.config";
+import { swaggerInfo } from "./constants/app.constants";
+import { QueryCountInterceptor } from "./interceptors/query-counter-interceptor";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

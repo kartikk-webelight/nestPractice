@@ -1,7 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
-import { AuthHelperService } from "src/modules/auth/auth.helper.service";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserEntity } from "src/modules/users/users.entity";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { AuthHelperService } from "modules/auth/auth.helper.service";
+import { UserEntity } from "modules/users/users.entity";
 import { Repository } from "typeorm";
 
 @Injectable()
@@ -18,29 +19,26 @@ export class AuthGuard implements CanActivate {
     const token = request.cookies?.accessToken || request.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
-      throw new UnauthorizedException("token is required");
+      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
-
-    console.log(token);
 
     let decodedToken;
     try {
       decodedToken = this.authHelperService.verifyAccessToken(token);
     } catch (error) {
-      throw new UnauthorizedException("invalid token");
+      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
-    console.log(decodedToken);
 
     if (!decodedToken.payload) {
-      throw new UnauthorizedException("invalid token");
+      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const user = await this.userRepo.findOne({
       where: { id: decodedToken.payload },
-      select: { password: false, refreshToken: false },
+      select: { password: false },
     });
     if (!user) {
-      throw new NotFoundException("user not found");
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     request.user = user;

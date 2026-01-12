@@ -1,11 +1,12 @@
-import { BaseEntity } from "src/database/base-entity";
-import { Column, Entity, ManyToOne } from "typeorm";
+import { BaseEntity } from "database/base-entity";
+import { PostStatus } from "enums/index";
+import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+
 import { UserEntity } from "../users/users.entity";
-import { PostStatus } from "src/enums/index";
 
 @Entity("Posts")
 export class PostEntity extends BaseEntity {
-  idPrefix = "post";
+  idPrefix = "p";
 
   @Column()
   title: string;
@@ -33,5 +34,6 @@ export class PostEntity extends BaseEntity {
   publishedAt?: Date;
 
   @ManyToOne(() => UserEntity, { nullable: false, onDelete: "CASCADE" })
+  @JoinColumn({ name: "authorId" })
   author: UserEntity;
 }

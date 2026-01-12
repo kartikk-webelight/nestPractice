@@ -1,6 +1,6 @@
 import { Logger } from "@nestjs/common";
-import { AnyType } from "src/types/types";
 import { Logger as TypeOrmLogger } from "typeorm";
+import { AnyType } from "types/types";
 
 export class CustomQueryLogger implements TypeOrmLogger {
   private readonly logger = new Logger(CustomQueryLogger.name);

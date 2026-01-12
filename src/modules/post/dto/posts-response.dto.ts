@@ -1,6 +1,6 @@
 import { Expose, Type } from "class-transformer";
-import { TrimString } from "src/decorators/trim-string.decorator";
-import { ApiPropertyWritable } from "src/swagger/swagger.writable.decorator";
+import { PaginationDataDto } from "dto/common-response.dto";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class PostAuthorResponse {
   @ApiPropertyWritable()
@@ -20,7 +20,7 @@ export class PostAuthorResponse {
   role: string;
 }
 
-export class PostResult {
+export class PostResponse {
   @ApiPropertyWritable()
   @Expose()
   id: string;
@@ -64,64 +64,32 @@ export class PostResult {
 }
 
 export class PostResonseDto {
-  @ApiPropertyWritable({ type: PostResult })
-  @Type(() => PostResult)
+  @ApiPropertyWritable({ type: PostResponse })
+  @Type(() => PostResponse)
   @Expose()
-  data: PostResult;
+  data: PostResponse;
 
   @Expose()
   @ApiPropertyWritable()
   message: string;
 }
 
-export class PaginationMeta {
-  @ApiPropertyWritable()
+export class PostsPaginationDataDto extends PaginationDataDto {
+  @ApiPropertyWritable({ type: [PostResponse] })
+  @Type(() => PostResponse)
   @Expose()
-  total: number;
-
-  @ApiPropertyWritable()
-  @Expose()
-  page: number;
-
-  @ApiPropertyWritable()
-  @Expose()
-  limit: number;
-
-  @ApiPropertyWritable()
-  @Expose()
-  totalPages: number;
+  data: PostResponse[];
 }
 
 export class PaginatedPostResonseDto {
-  @ApiPropertyWritable({ type: PostResult })
-  @Type(() => PostResult)
+  @ApiPropertyWritable({ type: PostsPaginationDataDto })
+  @Type(() => PostsPaginationDataDto)
   @Expose()
-  data: PostResult[];
-
-  @ApiPropertyWritable({ type: PostResult })
-  @Type(() => PaginationMeta)
-  @Expose()
-  meta: PaginationMeta;
+  data: PostsPaginationDataDto;
 
   @Expose()
   @ApiPropertyWritable()
   message: string;
 }
 
-export class PaginationDto {
-  @Expose()
-  @TrimString()
-  @ApiPropertyWritable()
-  page: number;
-
-  @ApiPropertyWritable()
-  @TrimString()
-  @Expose()
-  limit: number;
-}
-
-export class GetAllPostsDto extends PaginationDto {}
-
-export class GetPublishedPostsDto extends PaginationDto {}
-
-export class GetMyPostsDto extends PaginationDto {}
+export class GetAllPostsResponseDto extends PaginatedPostResonseDto {}

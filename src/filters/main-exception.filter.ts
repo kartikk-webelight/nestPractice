@@ -1,9 +1,9 @@
-import { Catch, ArgumentsHost, HttpException, HttpStatus, ExceptionFilter } from "@nestjs/common";
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
 import { HttpAdapterHost } from "@nestjs/core";
 import { captureException } from "@sentry/node";
-import { ERROR_MESSAGES } from "src/constants/messages.constants";
-import { logger } from "src/services/logger.service";
-import { AnyType } from "src/types/types";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { logger } from "services/logger.service";
+import { AnyType } from "types/types";
 
 @Catch(HttpException)
 export class MainExceptionFilter implements ExceptionFilter {

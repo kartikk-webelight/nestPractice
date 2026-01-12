@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+
 import { ApiPropertyWritable } from "../swagger.writable.decorator";
 
 export class ResponseDto<TData = null> {

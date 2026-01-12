@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
-import { plainToInstance, type ClassConstructor } from "class-transformer";
-import { StatusCodes } from "http-status-codes";
+import { type ClassConstructor, plainToInstance } from "class-transformer";
 import type { Response } from "express";
+import { StatusCodes } from "http-status-codes";
 export interface CommonResponseType<T> {
   data: T | T[];
   status?: number;
@@ -10,13 +10,13 @@ export interface CommonResponseType<T> {
 interface ErrorResponseType {
   res: Response;
   error: Error | HttpException;
-  additionalErrors?: Array<{ row: number; errorMessages: string[] }>;
+  additionalErrors?: { row: number; errorMessages: string[] }[];
   statusCode?: StatusCodes;
 }
 interface ErrorResponseFormat {
   statusCode: number;
   message: string;
-  errors?: Array<{ row: number; errorMessages: string[] }>;
+  errors?: { row: number; errorMessages: string[] }[];
 }
 class ResponseUtils {
   public success<T>(

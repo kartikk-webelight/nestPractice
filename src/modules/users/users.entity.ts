@@ -1,12 +1,12 @@
-import { Entity, Column } from "typeorm";
 import * as bcrypt from "bcrypt";
-import { BaseEntity } from "src/database/base-entity";
 import { Exclude } from "class-transformer";
-import { UserRole } from "src/enums/index";
+import { BaseEntity } from "database/base-entity";
+import { UserRole } from "enums/index";
+import { Column, Entity } from "typeorm";
 
 @Entity("Users")
 export class UserEntity extends BaseEntity {
-  idPrefix = "user";
+  idPrefix = "u";
 
   @Column()
   name: string;
@@ -17,9 +17,6 @@ export class UserEntity extends BaseEntity {
   @Exclude()
   @Column()
   password: string;
-
-  @Column({ nullable: true })
-  refreshToken: string;
 
   @Column({
     type: "enum",

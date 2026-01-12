@@ -2,7 +2,10 @@ import { User } from "../modules/users/users.entity";
 
 export type AnyType = any;
 
-type SearchType = { key: string; value: string };
+interface SearchType {
+  key: string;
+  value: string;
+}
 
 declare global {
   namespace Express {
