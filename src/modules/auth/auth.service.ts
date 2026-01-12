@@ -1,4 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { Repository } from "typeorm";
@@ -6,14 +12,21 @@ import { Repository } from "typeorm";
 import { AuthHelperService } from "../auth/auth.helper.service";
 import { UserEntity } from "../users/users.entity";
 import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
+import { CloudinaryService } from "shared/cloudinary/cloudinary.service";
+import { UploadApiResponse } from "cloudinary";
+import { AttachmentEntity } from "modules/post/entities/attachment.entity";
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+
+    @InjectRepository(AttachmentEntity)
+    private readonly attachmentRepository: Repository<AttachmentEntity>,
     private readonly authHelperService: AuthHelperService,
-  ) {}
+    private readonly cloudinaryService: CloudinaryService,
+  ) { }
 
   async getCurrentUser(userId: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -25,12 +38,32 @@ export class AuthService {
     return user;
   }
 
-  async create(user: CreateUser): Promise<UserEntity> {
+  async create(body: CreateUser, file: Express.Multer.File): Promise<UserEntity> {
+    const { name, email, password } = body;
+    let uploadedFile: UploadApiResponse;
+    let attachment
+    try {
+      uploadedFile = await this.cloudinaryService.uploadBufferToCloudinary(file);
+
+       attachment = this.attachmentRepository.create({
+        url: uploadedFile.secure_url,
+        mimeType: uploadedFile.format,
+        size: uploadedFile.bytes,
+        originalName: uploadedFile.original_filename,
+      })
+
+
+    } catch (error) {
+      throw new InternalServerErrorException(ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED);
+    }
     const newUser = this.userRepository.create({
-      name: user.name,
-      email: user.email,
+      name: name,
+      email: email,
+      profileImage:attachment
     });
-    await newUser.setPassword(user.password);
+    await newUser.setPassword(password);
+
+
     const savedUser = await this.userRepository.save(newUser);
 
     if (!savedUser) {
@@ -74,21 +107,20 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    if (!decodedToken.id) {
+    if (!decodedToken.payload) {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    const user = await this.userRepository.findOne({ where: { id: decodedToken.id } });
+
+    const user = await this.userRepository.findOne({ where: { id: decodedToken.payload} });
 
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const newRefreshToken = this.authHelperService.generateRefreshToken({ payload: user.id });
     const newAccessToken = this.authHelperService.generateAccessToken({ payload: user.id });
 
     return {
-      newRefreshToken,
       newAccessToken,
     };
   }
