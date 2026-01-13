@@ -1,17 +1,18 @@
 import { BaseEntity } from "database/base-entity";
 import { PostStatus } from "enums/index";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
-
-import { UserEntity } from "../users/users.entity";
+import { UserEntity } from "modules/users/users.entity";
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from "typeorm";
 
 @Entity("Posts")
 export class PostEntity extends BaseEntity {
   idPrefix = "p";
 
   @Column()
+  @Index()
   title: string;
 
   @Column()
+  @Index()
   content: string;
 
   @Column({
@@ -22,13 +23,20 @@ export class PostEntity extends BaseEntity {
   status: PostStatus;
 
   @Column({ default: 0 })
-  viewCount!: number;
+  @Index()
+  viewCount: number;
 
   @Column({ default: 0 })
-  upvotesCount!: number;
+  @Index()
+  likes: number;
 
   @Column({ default: 0 })
-  downvotesCount!: number;
+  @Index()
+  dislikes: number;
+
+  @Column({ unique: true })
+  @Index()
+  slug: string;
 
   @Column({ type: "timestamp", nullable: true })
   publishedAt?: Date;

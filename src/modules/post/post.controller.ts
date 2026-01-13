@@ -1,4 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { Roles } from "decorators/role";
@@ -10,9 +24,18 @@ import { StatusCodes } from "http-status-codes";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
 
-import { CreatePostDto, GetAllPostsDto, GetMyPostsDto, GetPublishedPostsDto, UpdatePostDto } from "./dto/post.dto";
+import {
+  CreatePostDto,
+  GetAllPostsDto,
+  GetMyPostsDto,
+  GetPublishedPostsDto,
+  SearchPostsQueryDto,
+  UpdatePostDto,
+} from "./dto/post.dto";
 import { PaginatedPostResonseDto, PostResonseDto } from "./dto/posts-response.dto";
 import { PostService } from "./post.service";
+import { FilesInterceptor } from "@nestjs/platform-express";
+import { multerMemoryOptions } from "shared/multer/multer.service";
 
 @ApiTags("Posts")
 @Controller("posts")
@@ -23,9 +46,15 @@ export class PostController {
   @Post("create")
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.AUTHOR)
+  @UseInterceptors(FilesInterceptor("files", 5, multerMemoryOptions))
   @ApiSwaggerResponse(PostResonseDto, { status: StatusCodes.CREATED })
-  async createPost(@Req() req: Request, @Body() body: CreatePostDto, @Res() res: Response) {
-    const data = await this.postService.createPost(body, req.user.id);
+  async createPost(
+    @Req() req: Request,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: CreatePostDto,
+    @Res() res: Response,
+  ) {
+    const data = await this.postService.createPost(body, req.user.id, files);
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.CREATED,
@@ -75,9 +104,14 @@ export class PostController {
   @Roles(UserRole.ADMIN, UserRole.AUTHOR, UserRole.EDITOR)
   @UseGuards(RolesGuard)
   @ApiSwaggerResponse(PostResonseDto)
-  @Patch("update")
-  async updatePost(@Req() req: Request, @Body() body: UpdatePostDto, @Res() res: Response) {
-    const data = await this.postService.updatePost(body, req.user.id);
+  @Patch("update/:id")
+  async updatePost(
+    @Req() req: Request,
+    @Param("id") postId: string,
+    @Body() body: UpdatePostDto,
+    @Res() res: Response,
+  ) {
+    const data = await this.postService.updatePost(body, req.user.id, postId);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
@@ -135,6 +169,29 @@ export class PostController {
       data: { data, message: SUCCESS_MESSAGES.POST_FETCHED },
       status: StatusCodes.OK,
       transformWith: PostResonseDto,
+    });
+  }
+
+  @Get(":slug")
+  @ApiSwaggerResponse(PostResonseDto)
+  async getPostBySlug(@Param("slug") slug: string, @Res() res: Response) {
+    const data = await this.postService.getPostBySlug(slug);
+
+    return responseUtils.success(res, {
+      data: { data, message: SUCCESS_MESSAGES.POST_FETCHED },
+      status: StatusCodes.OK,
+      transformWith: PostResonseDto,
+    });
+  }
+
+  @Get("search")
+  @UseGuards(AuthGuard)
+  @ApiSwaggerResponse(PaginatedPostResonseDto)
+  async searchPosts(@Query() query: SearchPostsQueryDto, @Res() res: Response) {
+    const data = await this.postService.searchPosts(query);
+
+    return responseUtils.success(res, {
+      data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
     });
   }
 }
