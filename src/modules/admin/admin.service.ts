@@ -3,13 +3,16 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { Repository } from "typeorm";
 
-import { UserEntity } from "../users/users.entity";
+import { UserEntity } from "modules/users/users.entity";
+import { AttachmentService } from "modules/attachment/attachment.service";
+import { EntityType } from "enums";
 
 @Injectable()
 export class AdminService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    private readonly attachmentService: AttachmentService,
   ) {}
 
   async getAllUsers(page: number, limit: number) {
@@ -18,8 +21,17 @@ export class AdminService {
       take: limit,
     });
 
+    const userIds = users.map((user) => user.id);
+    const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(userIds, EntityType.USER);
+    const usersWithAttachment = users.map((user) => {
+      return {
+        ...user,
+        attachment: attachmentMap[user.id] || [],
+      };
+    });
+
     return {
-      data: users,
+      data: usersWithAttachment,
       total,
       page,
       limit,
@@ -32,6 +44,12 @@ export class AdminService {
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
-    return user;
+
+    const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([user.id], EntityType.USER);
+
+    return {
+      ...user,
+      attachment: attachmentMap[user.id] || [],
+    };
   }
 }
