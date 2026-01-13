@@ -1,5 +1,5 @@
 import { BaseEntity } from "database/base-entity";
-import { PostEntity } from "modules/post/entities/post.entity";
+import { PostEntity } from "modules/post/post.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
 
