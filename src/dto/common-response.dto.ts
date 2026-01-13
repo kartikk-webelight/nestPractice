@@ -20,11 +20,11 @@ export class AttachmentResponseDto {
   id: string;
 
   @ApiPropertyWritable({
-    description: "Secure URL of the attachment",
-    example: "https://res.cloudinary.com/.../image.jpg",
+    description: "Secure path of the attachment",
+    example: "/image.jpg",
   })
   @Expose()
-  url: string;
+  path: string;
 
   @ApiPropertyWritable({
     description: "MIME type of the attachment",
@@ -80,11 +80,13 @@ export class UsersResponse {
   role: UserRole;
 
   @ApiPropertyWritable({
-    description: "Profile image URL of the user",
+    description: "Profile image of the user",
+    required: false,
+    type: [AttachmentResponseDto],
   })
   @Expose()
-  @Type(()=>AttachmentResponseDto)
-  profileImage: AttachmentResponseDto;
+  @Type(() => AttachmentResponseDto)
+  attachment?: AttachmentResponseDto[];
 
   @ApiPropertyWritable({
     example: "2024-01-10T09:30:00.000Z",
