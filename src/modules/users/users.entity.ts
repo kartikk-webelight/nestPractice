@@ -2,16 +2,19 @@ import * as bcrypt from "bcrypt";
 import { Exclude } from "class-transformer";
 import { BaseEntity } from "database/base-entity";
 import { UserRole } from "enums/index";
-import { Column, Entity } from "typeorm";
+import { Column, Entity, Index, JoinColumn, OneToOne } from "typeorm";
 
 @Entity("Users")
 export class UserEntity extends BaseEntity {
   idPrefix = "u";
 
-  @Column()
+  @Column({
+    unique: true,
+  })
+  @Index()
   name: string;
-
   @Column({ unique: true })
+  @Index()
   email: string;
 
   @Exclude()
