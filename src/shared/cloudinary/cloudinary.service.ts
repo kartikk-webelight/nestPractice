@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, ServiceUnavailableException } from "@nestjs/common";
-import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
+import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 import { secretConfig } from "config/secret.config";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { Readable } from "stream";

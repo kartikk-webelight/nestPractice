@@ -1,7 +1,7 @@
 import { BaseEntity } from "database/base-entity";
 import { PostStatus } from "enums/index";
 import { UserEntity } from "modules/users/users.entity";
-import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @Entity("Posts")
 export class PostEntity extends BaseEntity {

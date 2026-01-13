@@ -1,18 +1,13 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
-import { Repository } from "typeorm";
-
+import { EntityType } from "enums";
+import { AttachmentService } from "modules/attachment/attachment.service";
 import { AuthHelperService } from "modules/auth/auth.helper.service";
 import { UserEntity } from "modules/users/users.entity";
+import { Repository } from "typeorm";
+
 import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
-import { AttachmentService } from "modules/attachment/attachment.service";
-import { EntityType } from "enums";
 
 @Injectable()
 export class AuthService {

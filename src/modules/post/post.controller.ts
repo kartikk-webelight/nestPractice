@@ -13,6 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { Roles } from "decorators/role";
@@ -21,6 +22,7 @@ import type { Request, Response } from "express";
 import { AuthGuard } from "guards/auth-guard";
 import { RolesGuard } from "guards/role-guard";
 import { StatusCodes } from "http-status-codes";
+import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
 
@@ -34,8 +36,6 @@ import {
 } from "./dto/post.dto";
 import { PaginatedPostResonseDto, PostResonseDto } from "./dto/posts-response.dto";
 import { PostService } from "./post.service";
-import { FilesInterceptor } from "@nestjs/platform-express";
-import { multerMemoryOptions } from "shared/multer/multer.service";
 
 @ApiTags("Posts")
 @Controller("posts")

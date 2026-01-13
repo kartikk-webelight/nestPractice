@@ -1,6 +1,5 @@
 import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { TrimString } from "decorators/trim-string.decorator";
 import { PaginationQueryDto } from "dto/common-request.dto";
 import { PostOrderBy, PostSortBy } from "enums";

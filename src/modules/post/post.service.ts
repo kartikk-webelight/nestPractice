@@ -2,14 +2,14 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { InjectRepository } from "@nestjs/typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType, PostSortBy, PostStatus, UserRole } from "enums/index";
-import { Repository } from "typeorm";
-
-import { UsersService } from "modules/users/users.service";
-import { CreatePost, SearchPostsQuery, UpdatePost } from "./post.types";
-import { SlugService } from "shared/slug.service";
-import { generateKSUID } from "utils/helper.utils";
-import { PostEntity } from "./post.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
+import { UsersService } from "modules/users/users.service";
+import { SlugService } from "shared/slug.service";
+import { Repository } from "typeorm";
+import { generateKSUID } from "utils/helper.utils";
+
+import { PostEntity } from "./post.entity";
+import { CreatePost, SearchPostsQuery, UpdatePost } from "./post.types";
 
 @Injectable()
 export class PostService {

@@ -1,6 +1,5 @@
-import { createLogger, format, transports } from "winston";
-
 import { appConfig } from "config/app.config";
+import { createLogger, format, transports } from "winston";
 
 const { combine, timestamp, splat, prettyPrint, printf, colorize } = format;
 

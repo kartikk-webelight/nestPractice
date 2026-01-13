@@ -1,6 +1,5 @@
 import { Expose, Type } from "class-transformer";
 import { Max, Min } from "class-validator";
-import { TrimString } from "decorators/trim-string.decorator";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class PaginationQueryDto {
