@@ -8,4 +8,7 @@ export const secretConfig = {
   aesEncryptionKey: getOsEnv("AES_ENCRYPTION_KEY"),
   refreshTokenExpiry: getOsEnv("REFRESH_TOKEN_EXPIRY"),
   accessTokenExpiry: getOsEnv("ACCESS_TOKEN_EXPIRY"),
+  cloudinaryCloudName: getOsEnv("CLOUDINARY_CLOUD_NAME"),
+  cloudinaryApiKey: getOsEnv("CLOUDINARY_API_KEY"),
+  cloudinaryApiSecret: getOsEnv("CLOUDINARY_API_SECRET"),
 };

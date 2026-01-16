@@ -1,6 +1,6 @@
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 
-import { getOsEnv } from "../config/env.config";
+import { getOsEnv } from "config/env.config";
 import { appConfig } from "./app.config";
 
 export const databaseConfig: TypeOrmModuleOptions = {
@@ -12,6 +12,9 @@ export const databaseConfig: TypeOrmModuleOptions = {
   database: getOsEnv("DATABASE_NAME"),
   ssl: false,
   synchronize: true,
+  migrations: appConfig.isLocal ? ["src/migrations/*.ts"] : ["dist/migrations/*.js"],
+
+  migrationsRun: !appConfig.isLocal,
   logging: appConfig.isLocal,
   autoLoadEntities: true,
 };

@@ -5,13 +5,13 @@ export const accessCookieOptions: CookieOptions = {
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
   path: "/",
-  maxAge: 24 * 60 * 60 * 1000,
+  maxAge: 1 * 60 * 60 * 1000,
 };
 
 export const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
-  path: "/auth/refresh", // important
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: "/", // important
+  maxAge: 24 * 60 * 60 * 1000,
 };
