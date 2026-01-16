@@ -1,15 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
-import { EntityType, PostSortBy, PostStatus, UserRole } from "enums/index";
-import { Repository } from "typeorm";
-
-import { UsersService } from "modules/users/users.service";
-import { CreatePost, SearchPostsQuery, UpdatePost } from "./post.types";
-import { SlugService } from "shared/slug.service";
-import { generateKSUID } from "utils/helper.utils";
-import { PostEntity } from "./post.entity";
+import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { AttachmentService } from "modules/attachment/attachment.service";
+import { SlugService } from "shared/slug.service";
+import { DataSource, Repository } from "typeorm";
+import { User } from "types/types";
+import { generateKSUID } from "utils/helper.utils";
+
+import { PostEntity } from "./post.entity";
+import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
 
 @Injectable()
 export class PostService {
@@ -17,61 +17,33 @@ export class PostService {
     @InjectRepository(PostEntity)
     private readonly postRepository: Repository<PostEntity>,
     private readonly attachmentService: AttachmentService,
-    private readonly usersService: UsersService,
     private readonly slugService: SlugService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
-    const { title, content } = body;
+    return this.dataSource.transaction(async (manager) => {
+      const { title, content } = body;
 
-    const user = await this.usersService.findById(userId);
+      const slugId = await generateKSUID("s");
+      const slug = this.slugService.buildSlug(title, slugId);
 
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
-    const slugId = await generateKSUID("s");
+      const post = manager.create(PostEntity, {
+        title,
+        content,
+        slug,
+        author: { id: userId },
+      });
 
-    const slug = this.slugService.buildSlug(title, slugId);
+      const savedPost = await manager.save(post);
 
-    const post = this.postRepository.create({
-      title,
-      content,
-      author: user,
-      slug,
+      const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST);
+
+      return {
+        ...savedPost,
+        attachments,
+      };
     });
-
-    const savedPost = await this.postRepository.save(post);
-
-    const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST);
-
-    return {
-      ...savedPost,
-      attachments,
-    };
-  }
-
-  async getAllPosts(page: number, limit: number) {
-    const [posts, total] = await this.postRepository.findAndCount({
-      relations: { author: true },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    const postIds = posts.map((post) => post.id);
-
-    const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(postIds, EntityType.POST);
-
-    const postsWithAttachments = posts.map((post) => ({
-      ...post,
-      attachments: attachmentMap[post.id] || [],
-    }));
-
-    return {
-      data: postsWithAttachments,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async getPostById(postId: string) {
@@ -149,7 +121,7 @@ export class PostService {
     return updatedPost;
   }
 
-  async publishPost(postId: string, user: any) {
+  async publishPost(postId: string, user: User) {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
@@ -171,7 +143,7 @@ export class PostService {
     return publishedPost;
   }
 
-  async unPublishPost(postId: string, user: any) {
+  async unPublishPost(postId: string, user: User) {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
@@ -192,7 +164,7 @@ export class PostService {
     return unPublishedPost;
   }
 
-  async deletePost(postId: string, user: any) {
+  async deletePost(postId: string, user: User) {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
@@ -204,31 +176,6 @@ export class PostService {
     await this.postRepository.softDelete({ id: postId });
 
     return {};
-  }
-
-  async getPublishedPosts(page: number, limit: number) {
-    const [posts, total] = await this.postRepository.findAndCount({
-      where: { status: PostStatus.PUBLISHED },
-      relations: { author: true },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    const postIds = posts.map((post) => post.id);
-
-    const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(postIds, EntityType.POST);
-
-    const postsWithAttachments = posts.map((post) => ({
-      ...post,
-      attachments: attachmentMap[post.id] || [],
-    }));
-
-    return {
-      data: postsWithAttachments,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async getPostBySlug(slug: string) {
@@ -251,16 +198,37 @@ export class PostService {
     return postWithAttachment;
   }
 
-  async searchPosts(query: SearchPostsQuery) {
-    const { q, fromDate, toDate, sortBy = "createdAt", order = "DESC", page, limit } = query;
-
-    const allowedSorts = ["createdAt", "likes", "viewCount"];
-
-    if (!allowedSorts.includes(sortBy)) {
-      throw new BadRequestException(ERROR_MESSAGES.INVALID_SORTING_FIELD);
-    }
+  async getPosts(query: GetPostsQuery, currentUser: User) {
+    const { q, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
     const qb = this.postRepository.createQueryBuilder("post");
+
+    qb.leftJoinAndSelect("post.author", "author");
+
+    if (currentUser.role === UserRole.READER) {
+      qb.andWhere("post.status = :published", { published: PostStatus.PUBLISHED });
+    } else if (currentUser.role === UserRole.AUTHOR) {
+      if (status === PostStatus.PUBLISHED) {
+        qb.andWhere("post.status = :published", { published: PostStatus.PUBLISHED });
+      } else if (status === PostStatus.DRAFT) {
+        qb.andWhere("post.status = :draft AND  author.id = :userId", {
+          draft: PostStatus.DRAFT,
+          userId: currentUser.id,
+        });
+      } else {
+        // default if no status provided: all published + own drafts
+        qb.andWhere("(post.status = :published OR (post.status = :draft AND  author.id = :userId))", {
+          published: PostStatus.PUBLISHED,
+          draft: PostStatus.DRAFT,
+          userId: currentUser.id,
+        });
+      }
+    } else if (currentUser.role === UserRole.EDITOR || currentUser.role === UserRole.ADMIN) {
+      // Editors and admins can see all posts
+      if (status) {
+        qb.andWhere("post.status = :status", { status });
+      }
+    }
 
     // Search title + content
     if (q) {
@@ -277,13 +245,13 @@ export class PostService {
     }
 
     // Sorting
-    const SORT_MAP: Record<PostSortBy, string> = {
-      [PostSortBy.CREATED_AT]: "post.createdAt",
-      [PostSortBy.LIKES]: "post.likes",
-      [PostSortBy.VIEWS]: "post.views",
+    const SORT_MAP: Record<SortBy, string> = {
+      [SortBy.CREATED_AT]: "post.createdAt",
+      [SortBy.LIKES]: "post.likes",
+      [SortBy.VIEWS]: "post.views",
     };
 
-    qb.orderBy(SORT_MAP[sortBy ?? PostSortBy.CREATED_AT], order);
+    qb.orderBy(SORT_MAP[sortBy ?? SortBy.CREATED_AT], order);
 
     // Pagination
     qb.skip((page - 1) * limit).take(limit);
