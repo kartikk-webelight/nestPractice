@@ -1,4 +1,4 @@
-import { User } from "../modules/users/users.entity";
+import { User } from "modules/users/users.entity";
 
 export type AnyType = any;
 
