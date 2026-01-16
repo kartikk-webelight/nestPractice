@@ -27,8 +27,10 @@ export const ERROR_MESSAGES = {
   INVALID_CREDENTIAL: "Invalid credentials",
   INVALID_REFRESH_TOKEN: "Invalid refresh token",
   INVALID_ACCESS_TOKEN: "Invalid access token",
+  INVALID_SORTING_FIELD: "Invalid sorting field",
   PASSWORD_WEAK:
     "Password must contain 8 characters, one uppercase, one lowercase, one number and one special case character.",
+  NOT_FOUND: "Document not found",
   INTERNAL_SERVER_ERROR: "Internal Server Error",
   // below messages should only be used for admin
   INTEGER_EXPECTED: "Validation failed. Integer is expected.",
@@ -40,4 +42,5 @@ export const ERROR_MESSAGES = {
   USER_NOT_FOUND: "User not found",
   POST_NOT_FOUND: "Post not found",
   COMMENT_NOT_FOUND: "Comment not found",
+  CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed",
 };

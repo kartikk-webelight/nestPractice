@@ -1,4 +1,4 @@
-import * as jwt from "jsonwebtoken";
+import { JwtPayload } from "jsonwebtoken";
 
 export interface CreateUser {
   name: string;
@@ -9,7 +9,7 @@ export interface LoginUser {
   email: string;
   password: string;
 }
-export interface DecodedToken extends jwt.JwtPayload {
+export interface DecodedToken extends JwtPayload {
   id: string;
 }
 
