@@ -1,7 +1,6 @@
 import {
   ForbiddenException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -9,12 +8,11 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { Repository } from "typeorm";
 
-import { AuthHelperService } from "../auth/auth.helper.service";
-import { UserEntity } from "../users/users.entity";
+import { AuthHelperService } from "modules/auth/auth.helper.service";
+import { UserEntity } from "modules/users/users.entity";
 import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
-import { CloudinaryService } from "shared/cloudinary/cloudinary.service";
-import { UploadApiResponse } from "cloudinary";
-import { AttachmentEntity } from "modules/post/entities/attachment.entity";
+import { AttachmentService } from "modules/attachment/attachment.service";
+import { EntityType } from "enums";
 
 @Injectable()
 export class AuthService {
@@ -22,11 +20,9 @@ export class AuthService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
 
-    @InjectRepository(AttachmentEntity)
-    private readonly attachmentRepository: Repository<AttachmentEntity>,
     private readonly authHelperService: AuthHelperService,
-    private readonly cloudinaryService: CloudinaryService,
-  ) { }
+    private readonly attachmentService: AttachmentService,
+  ) {}
 
   async getCurrentUser(userId: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -35,42 +31,25 @@ export class AuthService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    return user;
+    const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([user.id], EntityType.USER);
+
+    return { ...user, attachment: attachmentMap[user.id] ?? [] };
   }
 
-  async create(body: CreateUser, file: Express.Multer.File): Promise<UserEntity> {
+  async create(body: CreateUser, file: Express.Multer.File) {
     const { name, email, password } = body;
-    let uploadedFile: UploadApiResponse;
-    let attachment
-    try {
-      uploadedFile = await this.cloudinaryService.uploadBufferToCloudinary(file);
 
-       attachment = this.attachmentRepository.create({
-        url: uploadedFile.secure_url,
-        mimeType: uploadedFile.format,
-        size: uploadedFile.bytes,
-        originalName: uploadedFile.original_filename,
-      })
-
-
-    } catch (error) {
-      throw new InternalServerErrorException(ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED);
-    }
     const newUser = this.userRepository.create({
       name: name,
       email: email,
-      profileImage:attachment
     });
     await newUser.setPassword(password);
 
-
     const savedUser = await this.userRepository.save(newUser);
 
-    if (!savedUser) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
 
-    return savedUser;
+    return { ...savedUser, attachment: [attachment] };
   }
 
   async login(body: LoginUser) {
@@ -111,8 +90,7 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-
-    const user = await this.userRepository.findOne({ where: { id: decodedToken.payload} });
+    const user = await this.userRepository.findOne({ where: { id: decodedToken.payload } });
 
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
