@@ -1,22 +1,20 @@
-import { config } from "dotenv";
 import { DataSource } from "typeorm";
 
 import { CustomQueryLogger } from "./database.custom-query-logger";
-
-config();
+import { getOsEnv } from "config/env.config";
 
 export default new DataSource({
   type: "postgres",
-  host: process.env.DATABASE_HOST,
-  port: +(process.env.DATABASE_PORT ?? 5432),
-  username: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
+  host: getOsEnv("DATABASE_HOST"),
+  port: +getOsEnv("DATABASE_PORT"),
+  username: getOsEnv("DATABASE_USER"),
+  password: getOsEnv("DATABASE_PASSWORD"),
+  database: getOsEnv("DATABASE_NAME"),
   entities: ["src/modules/**/*.entity.ts", "dist/modules/**/*.entity.js"],
   migrations: ["dist/migrations/*.{js,ts}"],
   subscribers: [],
   migrationsRun: false,
   migrationsTableName: "migrations",
   synchronize: true,
-  ...(process.env.NODE_ENV === "local" && { logger: new CustomQueryLogger() }),
+  ...(getOsEnv('ENVIRONMENT') === "local" && { logger: new CustomQueryLogger() }),
 });

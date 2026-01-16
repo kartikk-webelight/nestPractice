@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Patch, Post, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UploadedFile,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
@@ -7,7 +19,7 @@ import { AuthGuard } from "guards/auth-guard";
 import { StatusCodes } from "http-status-codes";
 import responseUtils from "utils/response.utils";
 
-import { ApiSwaggerResponse } from "../../swagger/swagger.decorator";
+import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import { AuthService } from "./auth.service";
 import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
 import {
@@ -18,6 +30,8 @@ import {
   RefreshResponseDto,
   UpdateUserResponseDto,
 } from "./dto/auth-response.dto";
+import { multerMemoryOptions } from "shared/multer/multer.service";
+import { FileInterceptor } from "@nestjs/platform-express";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -25,9 +39,10 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @ApiSwaggerResponse(CreateUserResponseDto, { status: StatusCodes.CREATED })
+  @UseInterceptors(FileInterceptor("file", multerMemoryOptions))
   @Post("create")
-  async create(@Res() res: Response, @Body() body: CreateUserDto) {
-    const data = await this.authService.create(body);
+  async create(@Res() res: Response, @Body() body: CreateUserDto, @UploadedFile() file: Express.Multer.File) {
+    const data = await this.authService.create(body, file);
     return responseUtils.success<CreateUserResponseDto>(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.CREATED,
@@ -63,14 +78,14 @@ export class AuthController {
   }
 
   @ApiSwaggerResponse(RefreshResponseDto, { status: StatusCodes.OK })
-  @Post("refreshToken")
+  @Post("refresh-token")
   async refreshToken(@Req() req: Request, @Res() res: Response) {
     const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
 
     const data = await this.authService.refreshToken(incomingRefreshToken);
 
     res.cookie("accessToken", data.newAccessToken, accessCookieOptions);
-    res.cookie("refreshToken", data.newRefreshToken, refreshCookieOptions);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.TOKEN_REFRESHED },

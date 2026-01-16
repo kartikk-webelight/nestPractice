@@ -4,75 +4,77 @@ import { TrimString } from "decorators/trim-string.decorator";
 
 export class CreateUserDto {
   @ApiProperty({
-    example: "jhon doe",
-    description: "name of the user",
+    example: "John Doe",
+    description: "Full name of the user",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Name is required" })
   @TrimString()
   name: string;
 
   @ApiProperty({
-    example: "jhondoe@gmail.com",
-    description: "email of the user",
+    example: "johndoe@gmail.com",
+    description: "Email address of the user",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Email is required" })
   @TrimString()
-  @IsEmail()
+  @IsEmail({}, { message: "Email must be a valid email address" })
   email: string;
 
   @ApiProperty({
-    example: "jhondoe123",
-    description: "password of the user",
+    example: "John@1234",
+    description: "Password used to authenticate the user",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Password is required" })
   @TrimString()
   password: string;
 }
 
 export class LoginDto {
   @ApiProperty({
-    example: "jhondoe@gmail.com",
-    description: "email of the user",
+    example: "johndoe@gmail.com",
+    description: "Registered email address of the user",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Email is required" })
   @TrimString()
-  @IsEmail()
+  @IsEmail({}, { message: "Email must be a valid email address" })
   email: string;
 
   @ApiProperty({
-    example: "jhondoe123",
-    description: "password of the user",
+    example: "John@1234",
+    description: "Account password",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Password is required" })
   @TrimString()
   password: string;
 }
 
 export class UpdateDetailsDto {
   @ApiProperty({
-    example: "jhon doe",
-    description: "name of the user",
+    example: "John Doe",
+    description: "Updated full name of the user",
+    required: false,
   })
   @IsOptional()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Name must not be empty if provided" })
   @TrimString()
   name?: string;
 
   @ApiProperty({
-    example: "jhondoe@gmail.com",
-    description: "new email of the user",
+    example: "john.updated@gmail.com",
+    description: "Updated email address of the user",
+    required: false,
   })
   @IsOptional()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Email must not be empty if provided" })
   @TrimString()
-  @IsEmail()
+  @IsEmail({}, { message: "Email must be a valid email address" })
   email?: string;
 
   @ApiProperty({
-    example: "jhondoe123",
-    description: "password of the user",
+    example: "NewPass@123",
+    description: "Current or new password used to confirm the update",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Password is required to update user details" })
   @TrimString()
   password: string;
 }

@@ -1,6 +1,5 @@
 import { BaseEntity } from "database/base-entity";
-import { CommentStatus } from "enums";
-import { PostEntity } from "modules/post/post.entity";
+import { PostEntity } from "modules/post/entities/post.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
 
@@ -10,6 +9,12 @@ export class CommentEntity extends BaseEntity {
 
   @Column()
   content: string;
+
+  @Column({ default: 0 })
+  likes: number;
+
+  @Column({ default: 0 })
+  dislikes: number;
 
   @ManyToOne(() => UserEntity, { nullable: false, onDelete: "CASCADE" })
   author: UserEntity;
@@ -25,17 +30,4 @@ export class CommentEntity extends BaseEntity {
 
   @OneToMany(() => CommentEntity, (CommentEntity) => CommentEntity.parentComment)
   child: CommentEntity[];
-
-  @Column({
-    type: "enum",
-    enum: CommentStatus,
-    default: CommentStatus.PENDING,
-  })
-  status: CommentStatus;
-
-  @Column({ default: 0 })
-  upvotes: number;
-
-  @Column({ default: 0 })
-  downvotes: number;
 }
