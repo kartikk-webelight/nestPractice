@@ -1,52 +1,64 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty } from "class-validator";
+import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { TrimString } from "decorators/trim-string.decorator";
 import { PaginationQueryDto } from "dto/common-request.dto";
-import {} from "dto/common-response.dto";
+import { OrderBy, PostStatus, SortBy } from "enums";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreatePostDto {
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "Post title",
-    description: "title of the post",
+    description: "Title of the post",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Post title is required" })
   @TrimString()
   title: string;
 
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "Post content",
-    description: "content of the post",
+    description: "Content/body of the post",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Post content is required" })
   @TrimString()
   content: string;
 }
 
-export class UpdatePostDto {
-  @ApiProperty({
-    example: "Post title",
-    description: "title of the post",
-  })
-  @IsNotEmpty()
+export class SearchPostsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ example: "nestjs" })
+  @IsOptional()
+  @IsString()
   @TrimString()
-  postId: string;
+  q?: string; // title + content
 
-  @ApiProperty({
-    example: "Post title",
-    description: "title of the post",
-  })
-  @IsNotEmpty()
-  @TrimString()
-  title?: string;
+  @ApiPropertyOptional({ example: PostStatus.PUBLISHED })
+  @IsOptional()
+  @IsEnum(PostStatus)
+  status?: PostStatus;
 
-  @ApiProperty({
-    example: "Post content",
-    description: "content of the post",
-  })
-  @IsNotEmpty()
+  @ApiPropertyOptional({ example: "2024-01-01" })
+  @IsOptional()
   @TrimString()
-  content?: string;
+  @IsDateString()
+  fromDate?: string;
+
+  @ApiPropertyOptional({ example: "2024-12-31" })
+  @IsOptional()
+  @TrimString()
+  @IsDateString()
+  toDate?: string;
+
+  @ApiPropertyOptional({ example: SortBy.LIKES })
+  @IsOptional()
+  @IsEnum(SortBy)
+  sortBy?: SortBy;
+
+  @ApiPropertyOptional({ example: OrderBy.DESC })
+  @IsOptional()
+  @IsEnum(OrderBy)
+  order?: OrderBy;
 }
+
+export class UpdatePostDto extends PartialType(CreatePostDto) {}
 
 export class GetAllPostsDto extends PaginationQueryDto {}
 
