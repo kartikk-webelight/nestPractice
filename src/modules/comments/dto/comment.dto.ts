@@ -4,10 +4,10 @@ import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CommentContentDto {
   @ApiPropertyWritable({
-    example: "this is a comment",
-    description: "content of the comment",
+    example: "This is a comment on the post",
+    description: "Text content of the comment",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Comment content must not be empty" })
   @TrimString()
   content: string;
 }
@@ -17,22 +17,22 @@ export class UpdateCommentDto extends CommentContentDto {}
 
 // CREATE: Needs content + postId
 export class CreateCommentDto extends CommentContentDto {
-  @TrimString()
-  @IsNotEmpty()
   @ApiPropertyWritable({
-    example: "post-mxmsoisx",
-    description: "id of the post user is commenting on",
+    example: "post_mxmsoisx123",
+    description: "Unique identifier of the post on which the comment is created",
   })
+  @IsNotEmpty({ message: "Post ID is required to create a comment" })
+  @TrimString()
   postId: string;
 }
 
 // REPLY: Needs content + postId + parentCommentId
 export class ReplyCommentDto extends CreateCommentDto {
-  @TrimString()
-  @IsNotEmpty()
   @ApiPropertyWritable({
-    example: "comment-mxmsoisx",
-    description: "id of the parent comment",
+    example: "comment_mxmsoisx456",
+    description: "Unique identifier of the parent comment being replied to",
   })
+  @IsNotEmpty({ message: "Parent comment ID is required when replying to a comment" })
+  @TrimString()
   parentCommentId: string;
 }

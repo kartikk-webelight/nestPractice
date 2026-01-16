@@ -4,8 +4,8 @@ import { ERROR_MESSAGES } from "constants/messages.constants";
 import { UserRole } from "enums";
 import { Repository } from "typeorm";
 
-import { PostService } from "../post/post.service";
-import { UsersService } from "../users/users.service";
+import { PostService } from "modules/post/post.service";
+import { UsersService } from "modules/users/users.service";
 import { CommentEntity } from "./comment.entity";
 import { CreateComment, ReplyComment, UpdateComment } from "./comment.types";
 
