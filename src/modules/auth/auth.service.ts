@@ -2,10 +2,10 @@ import { ForbiddenException, Injectable, NotFoundException, UnauthorizedExceptio
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
-import { AuthHelperService } from "modules/auth/auth.helper.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType } from "enums";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
 import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
 
 @Injectable()
@@ -14,7 +14,6 @@ export class AuthService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
 
-    private readonly authHelperService: AuthHelperService,
     private readonly attachmentService: AttachmentService,
   ) {}
 
@@ -59,8 +58,8 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIAL);
     }
 
-    const refreshToken = this.authHelperService.generateRefreshToken({ payload: user.id });
-    const accessToken = this.authHelperService.generateAccessToken({ payload: user.id });
+    const refreshToken = generateRefreshToken({ payload: user.id });
+    const accessToken = generateAccessToken({ payload: user.id });
 
     return {
       refreshToken,
@@ -75,7 +74,7 @@ export class AuthService {
 
     let decodedToken: DecodedToken;
     try {
-      decodedToken = this.authHelperService.verifyRefreshToken(refreshToken);
+      decodedToken = verifyRefreshToken(refreshToken);
     } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
@@ -90,7 +89,7 @@ export class AuthService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const newAccessToken = this.authHelperService.generateAccessToken({ payload: user.id });
+    const newAccessToken = generateAccessToken({ payload: user.id });
 
     return {
       newAccessToken,

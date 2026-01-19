@@ -1,0 +1,28 @@
+import { Column, Entity, ManyToOne } from "typeorm";
+import { CommentEntity } from "modules/comments/comment.entity";
+import { PostEntity } from "modules/post/post.entity";
+import { UserEntity } from "modules/users/users.entity";
+import { BaseEntity } from "database/base-entity";
+
+@Entity("Reactions")
+export class ReactionEntity extends BaseEntity {
+  idPrefix = "r";
+
+  @Column()
+  isLiked: boolean;
+
+  @ManyToOne(() => PostEntity, {
+    nullable: true,
+    onDelete: "CASCADE",
+  })
+  post?: PostEntity;
+
+  @ManyToOne(() => CommentEntity, {
+    nullable: true,
+    onDelete: "CASCADE",
+  })
+  comment?: CommentEntity;
+
+  @ManyToOne(() => UserEntity, { onDelete: "CASCADE" })
+  reactedBy: UserEntity;
+}

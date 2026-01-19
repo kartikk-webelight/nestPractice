@@ -1,16 +1,16 @@
 import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { AuthHelperService } from "modules/auth/auth.helper.service";
+import { DecodedToken } from "modules/auth/auth.types";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
+import { verifyAccessToken } from "utils/jwt";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
-    private readonly authHelperService: AuthHelperService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -22,9 +22,9 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    let decodedToken;
+    let decodedToken: DecodedToken;
     try {
-      decodedToken = this.authHelperService.verifyAccessToken(token);
+      decodedToken = verifyAccessToken(token);
     } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
