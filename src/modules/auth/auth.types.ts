@@ -10,7 +10,7 @@ export interface LoginUser {
   password: string;
 }
 export interface DecodedToken extends JwtPayload {
-  id: string;
+  payload: string;
 }
 
 export interface UpdateDetails {

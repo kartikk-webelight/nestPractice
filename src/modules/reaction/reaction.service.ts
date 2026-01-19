@@ -5,6 +5,7 @@ import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
+import { totalPages } from "utils/calculateTotalPages.utils";
 import { ReactionEntity } from "./reaction.entity";
 
 @Injectable()
@@ -54,7 +55,7 @@ export class ReactionService {
       await this.ReactionRepository.save(reaction);
       await this.postRepository.save(post);
 
-      return post;
+      return;
     }
 
     // already liked → remove like
@@ -64,7 +65,7 @@ export class ReactionService {
       await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.postRepository.save(post);
 
-      return post;
+      return;
     }
 
     // previously disliked → switch
@@ -75,7 +76,7 @@ export class ReactionService {
     await this.ReactionRepository.save(existingReaction);
     await this.postRepository.save(post);
 
-    return post;
+    return;
   }
 
   async dislikePost(postId: string, userId: string) {
@@ -109,7 +110,7 @@ export class ReactionService {
       await this.ReactionRepository.save(reaction);
       await this.postRepository.save(post);
 
-      return post;
+      return;
     }
 
     // already disliked → remove dislike
@@ -119,7 +120,7 @@ export class ReactionService {
       await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.postRepository.save(post);
 
-      return post;
+      return;
     }
 
     // previously liked → switch
@@ -167,7 +168,7 @@ export class ReactionService {
       await this.ReactionRepository.save(reaction);
       await this.commentRepository.save(comment);
 
-      return comment;
+      return;
     }
 
     // already liked → remove like
@@ -177,7 +178,7 @@ export class ReactionService {
       await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.commentRepository.save(comment);
 
-      return comment;
+      return;
     }
 
     // previously disliked → switch
@@ -188,7 +189,7 @@ export class ReactionService {
     await this.ReactionRepository.save(existingReaction);
     await this.commentRepository.save(comment);
 
-    return comment;
+    return;
   }
 
   async dislikeComment(commentId: string, userId: string) {
@@ -225,7 +226,7 @@ export class ReactionService {
       await this.ReactionRepository.save(reaction);
       await this.commentRepository.save(comment);
 
-      return comment;
+      return;
     }
 
     // already disliked → remove dislike
@@ -235,7 +236,7 @@ export class ReactionService {
       await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.commentRepository.save(comment);
 
-      return comment;
+      return;
     }
 
     // previously liked → switch
@@ -246,7 +247,7 @@ export class ReactionService {
     await this.ReactionRepository.save(existingReaction);
     await this.commentRepository.save(comment);
 
-    return comment;
+    return;
   }
 
   async getLikedPosts(page: number, limit: number, userId: string) {
@@ -266,7 +267,7 @@ export class ReactionService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: totalPages(page, limit),
     };
   }
 
@@ -288,7 +289,7 @@ export class ReactionService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: totalPages(page, limit),
     };
   }
 }

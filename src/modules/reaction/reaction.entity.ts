@@ -6,7 +6,7 @@ import { BaseEntity } from "database/base-entity";
 
 @Entity("Reactions")
 export class ReactionEntity extends BaseEntity {
-  idPrefix = "v";
+  idPrefix = "r";
 
   @Column()
   isLiked: boolean;
