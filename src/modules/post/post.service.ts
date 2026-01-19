@@ -5,7 +5,6 @@ import { AttachmentService } from "modules/attachment/attachment.service";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
-import { generateKSUID } from "utils/helper.utils";
 import { PostEntity } from "./post.entity";
 import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
 import type { User } from "types/types";

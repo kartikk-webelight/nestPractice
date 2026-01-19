@@ -24,7 +24,7 @@ import { RolesGuard } from "guards/role-guard";
 import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
-import { CreatePostDto, GetAllPostsDto, GetMyPostsDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
+import { CreatePostDto, GetMyPostsDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import { PaginatedPostResponseDto, PostResponseDto } from "./dto/posts-response.dto";
 import { PostService } from "./post.service";
 import type { Request, Response } from "express";
