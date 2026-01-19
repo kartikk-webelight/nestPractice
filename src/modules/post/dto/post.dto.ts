@@ -1,9 +1,8 @@
 import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { TrimString } from "decorators/trim-string.decorator";
 import { PaginationQueryDto } from "dto/common-request.dto";
-import { PostOrderBy, PostSortBy } from "enums";
+import { OrderBy, PostStatus, SortBy } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreatePostDto {
@@ -31,6 +30,11 @@ export class SearchPostsQueryDto extends PaginationQueryDto {
   @TrimString()
   q?: string; // title + content
 
+  @ApiPropertyOptional({ example: PostStatus.PUBLISHED })
+  @IsOptional()
+  @IsEnum(PostStatus)
+  status?: PostStatus;
+
   @ApiPropertyOptional({ example: "2024-01-01" })
   @IsOptional()
   @TrimString()
@@ -43,15 +47,15 @@ export class SearchPostsQueryDto extends PaginationQueryDto {
   @IsDateString()
   toDate?: string;
 
-  @ApiPropertyOptional({ example: "likes" })
+  @ApiPropertyOptional({ example: SortBy.LIKES })
   @IsOptional()
-  @IsEnum(PostSortBy)
-  sortBy?: PostSortBy;
+  @IsEnum(SortBy)
+  sortBy?: SortBy;
 
-  @ApiPropertyOptional({ example: "DESC" })
+  @ApiPropertyOptional({ example: OrderBy.DESC })
   @IsOptional()
-  @IsEnum(PostOrderBy)
-  order?: PostOrderBy;
+  @IsEnum(OrderBy)
+  order?: OrderBy;
 }
 
 export class UpdatePostDto extends PartialType(CreatePostDto) {}

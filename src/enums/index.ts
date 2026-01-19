@@ -15,13 +15,13 @@ export enum EntityType {
   USER = "user",
 }
 
-export enum PostSortBy {
+export enum SortBy {
   CREATED_AT = "createdAt",
   LIKES = "likes",
   VIEWS = "views",
 }
 
-export enum PostOrderBy {
+export enum OrderBy {
   ASC = "ASC",
   DESC = "DESC",
 }
