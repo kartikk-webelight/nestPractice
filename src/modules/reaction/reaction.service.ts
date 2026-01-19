@@ -3,8 +3,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
 import { UserEntity } from "modules/users/users.entity";
+import { ERROR_MESSAGES } from "constants/messages.constants";
 import { ReactionEntity } from "./reaction.entity";
 
 @Injectable()
@@ -53,6 +53,7 @@ export class ReactionService {
 
       await this.ReactionRepository.save(vote);
       await this.postRepository.save(post);
+
       return post;
     }
 
@@ -62,6 +63,7 @@ export class ReactionService {
 
       await this.ReactionRepository.delete({ id: existingVote.id });
       await this.postRepository.save(post);
+
       return post;
     }
 
@@ -106,6 +108,7 @@ export class ReactionService {
 
       await this.ReactionRepository.save(vote);
       await this.postRepository.save(post);
+
       return post;
     }
 
@@ -115,6 +118,7 @@ export class ReactionService {
 
       await this.ReactionRepository.delete({ id: existingVote.id });
       await this.postRepository.save(post);
+
       return post;
     }
 
@@ -162,6 +166,7 @@ export class ReactionService {
 
       await this.ReactionRepository.save(vote);
       await this.commentRepository.save(comment);
+
       return comment;
     }
 
@@ -171,6 +176,7 @@ export class ReactionService {
 
       await this.ReactionRepository.delete({ id: existingVote.id });
       await this.commentRepository.save(comment);
+
       return comment;
     }
 
@@ -218,6 +224,7 @@ export class ReactionService {
 
       await this.ReactionRepository.save(vote);
       await this.commentRepository.save(comment);
+
       return comment;
     }
 
@@ -227,6 +234,7 @@ export class ReactionService {
 
       await this.ReactionRepository.delete({ id: existingVote.id });
       await this.commentRepository.save(comment);
+
       return comment;
     }
 

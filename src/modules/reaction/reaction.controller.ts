@@ -1,15 +1,15 @@
 import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { AuthGuard } from "guards/auth-guard";
-import { PaginatedPostResonseDto, PostResonseDto } from "modules/post/dto/posts-response.dto";
-import { ApiSwaggerResponse } from "swagger/swagger.decorator";
-import type { Request, Response } from "express";
-import responseUtils from "utils/response.utils";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { StatusCodes } from "http-status-codes";
 import { CommentResponseDto } from "modules/comments/dto/comment-response.dto";
-import { ReactionService } from "./reaction.service";
+import { PaginatedPostResonseDto, PostResonseDto } from "modules/post/dto/posts-response.dto";
+import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { PaginationQueryDto } from "dto/common-request.dto";
+import { AuthGuard } from "guards/auth-guard";
+import { ApiSwaggerResponse } from "swagger/swagger.decorator";
+import responseUtils from "utils/response.utils";
+import { ReactionService } from "./reaction.service";
+import type { Request, Response } from "express";
 
 @ApiTags("Reaction")
 @UseGuards(AuthGuard)
@@ -22,6 +22,7 @@ export class ReactionController {
   async getLikedPost(@Req() req: Request, @Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
     const data = await this.reactionService.getLikedPosts(page, limit, req.user.id);
+
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
       status: StatusCodes.OK,
@@ -34,6 +35,7 @@ export class ReactionController {
   async getDislikedPost(@Req() req: Request, @Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
     const data = await this.reactionService.getDislikedPosts(page, limit, req.user.id);
+
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
       status: StatusCodes.OK,

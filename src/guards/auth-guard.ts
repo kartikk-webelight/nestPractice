@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { Repository } from "typeorm";
 import { AuthHelperService } from "modules/auth/auth.helper.service";
 import { UserEntity } from "modules/users/users.entity";
-import { Repository } from "typeorm";
+import { ERROR_MESSAGES } from "constants/messages.constants";
 
 @Injectable()
 export class AuthGuard implements CanActivate {

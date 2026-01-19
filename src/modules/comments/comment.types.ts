@@ -8,9 +8,7 @@ export interface CreateComment extends CommentContent {
 }
 
 // For updating an existing comment
-export interface UpdateComment extends CommentContent {
-  // Inherits only 'content'
-}
+export type UpdateComment = CommentContent;
 
 // For replying to an existing comment
 export interface ReplyComment extends CreateComment {

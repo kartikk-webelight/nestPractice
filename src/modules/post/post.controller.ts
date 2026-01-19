@@ -15,20 +15,19 @@ import {
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
+import { StatusCodes } from "http-status-codes";
+import { multerMemoryOptions } from "shared/multer/multer.service";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { Roles } from "decorators/role";
 import { UserRole } from "enums/index";
-import type { Request, Response } from "express";
 import { AuthGuard } from "guards/auth-guard";
 import { RolesGuard } from "guards/role-guard";
-import { StatusCodes } from "http-status-codes";
-import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
-
 import { CreatePostDto, GetMyPostsDto, SearchPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import { PaginatedPostResponseDto, PostResponseDto } from "./dto/posts-response.dto";
 import { PostService } from "./post.service";
+import type { Request, Response } from "express";
 
 @ApiTags("Posts")
 @Controller("posts")
@@ -48,6 +47,7 @@ export class PostController {
     @Res() res: Response,
   ) {
     const data = await this.postService.createPost(body, req.user.id, files);
+
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.CREATED,

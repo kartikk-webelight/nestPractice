@@ -1,8 +1,8 @@
 import * as bcrypt from "bcrypt";
 import { Exclude } from "class-transformer";
+import { Column, Entity } from "typeorm";
 import { BaseEntity } from "database/base-entity";
 import { UserRole } from "enums/index";
-import { Column, Entity } from "typeorm";
 
 @Entity("Users")
 export class UserEntity extends BaseEntity {

@@ -2,7 +2,7 @@ import { UserEntity } from "modules/users/users.entity";
 
 export type AnyType = any;
 
-export interface User extends Omit<UserEntity, "password"> {}
+export type User = Omit<UserEntity, "password">;
 
 interface SearchType {
   key: string;

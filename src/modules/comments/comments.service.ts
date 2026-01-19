@@ -1,11 +1,10 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
-import { UserRole } from "enums";
 import { Repository } from "typeorm";
-
 import { PostService } from "modules/post/post.service";
 import { UsersService } from "modules/users/users.service";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { UserRole } from "enums";
 import { CommentEntity } from "./comment.entity";
 import { CreateComment, ReplyComment, UpdateComment } from "./comment.types";
 
@@ -74,7 +73,7 @@ export class CommentsService {
       content,
       post,
       author: user,
-      parentComment: parentComment,
+      parentComment,
     });
 
     const savedComment = await this.commentRepository.save(comment);

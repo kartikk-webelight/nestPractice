@@ -1,7 +1,7 @@
-import { BaseEntity } from "database/base-entity";
+import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
 import { PostEntity } from "modules/post/post.entity";
 import { UserEntity } from "modules/users/users.entity";
-import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
+import { BaseEntity } from "database/base-entity";
 
 @Entity("Comments")
 export class CommentEntity extends BaseEntity {
