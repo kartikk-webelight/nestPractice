@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
-import { EntityType } from "enums";
+import { Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
-import { Repository } from "typeorm";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { EntityType } from "enums";
 
 @Injectable()
 export class AdminService {

@@ -14,7 +14,7 @@ export class LogoutUserResponseDto extends MessageResponseDto {
     description: "Empty data object returned after successful logout",
   })
   @Expose()
-  data: {};
+  data: object;
 }
 
 export class LoginResponse {

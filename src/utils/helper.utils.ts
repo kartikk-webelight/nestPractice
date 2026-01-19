@@ -9,6 +9,7 @@ export const generateKSUID = async (prefix?: string) => {
   if (prefix) {
     return `${prefix}_${ksuid.next()}`;
   }
+
   return ksuid.next();
 };
 

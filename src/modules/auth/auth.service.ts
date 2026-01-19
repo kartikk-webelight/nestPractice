@@ -1,12 +1,11 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
-import { EntityType } from "enums";
+import { Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { AuthHelperService } from "modules/auth/auth.helper.service";
 import { UserEntity } from "modules/users/users.entity";
-import { Repository } from "typeorm";
-
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { EntityType } from "enums";
 import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
 
 @Injectable()
@@ -35,8 +34,8 @@ export class AuthService {
     const { name, email, password } = body;
 
     const newUser = this.userRepository.create({
-      name: name,
-      email: email,
+      name,
+      email,
     });
     await newUser.setPassword(password);
 
@@ -77,7 +76,7 @@ export class AuthService {
     let decodedToken: DecodedToken;
     try {
       decodedToken = this.authHelperService.verifyRefreshToken(refreshToken);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
@@ -126,6 +125,7 @@ export class AuthService {
     if (!savedUser) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
+
     return savedUser;
   }
 

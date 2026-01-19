@@ -10,7 +10,7 @@ export class PaginationQueryDto {
   @Expose()
   @Type(() => Number)
   @Min(1)
-  page: number = 1;
+  page = 1;
 
   @ApiPropertyWritable({
     example: 10,
@@ -20,5 +20,5 @@ export class PaginationQueryDto {
   @Type(() => Number)
   @Min(1)
   @Max(50)
-  limit: number = 10;
+  limit = 10;
 }

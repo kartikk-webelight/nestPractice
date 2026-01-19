@@ -1,9 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { UnauthorizedException } from "@nestjs/common/exceptions";
+import { sign, SignOptions, verify } from "jsonwebtoken";
 import { secretConfig } from "config/secret.config";
 import { ERROR_MESSAGES } from "constants/messages.constants";
-import { sign, SignOptions, verify } from "jsonwebtoken";
-
 import { DecodedToken } from "./auth.types";
 
 @Injectable()
@@ -22,6 +21,7 @@ export class AuthHelperService {
   verifyAccessToken(token: string): DecodedToken {
     try {
       const decoded = verify(token, secretConfig.accessSecretKey);
+
       return decoded as DecodedToken;
     } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -30,6 +30,7 @@ export class AuthHelperService {
   verifyRefreshToken(token: string): DecodedToken {
     try {
       const decoded = verify(token, secretConfig.refreshSecretKey);
+
       return decoded as DecodedToken;
     } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);

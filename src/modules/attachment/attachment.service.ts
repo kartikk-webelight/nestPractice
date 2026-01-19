@@ -1,9 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { In, Repository } from "typeorm";
 import { EntityType } from "enums";
 import { CloudinaryService } from "shared/cloudinary/cloudinary.service";
-import { In, Repository } from "typeorm";
-
 import { AttachmentEntity } from "./attachment.entity";
 
 @Injectable()

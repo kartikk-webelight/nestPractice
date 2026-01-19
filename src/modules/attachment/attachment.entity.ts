@@ -1,6 +1,6 @@
+import { Column, Entity } from "typeorm";
 import { BaseEntity } from "database/base-entity";
 import { EntityType } from "enums";
-import { Column, Entity } from "typeorm";
 
 @Entity("Attachments")
 export class AttachmentEntity extends BaseEntity {
