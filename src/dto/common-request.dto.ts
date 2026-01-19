@@ -1,15 +1,25 @@
-import { Expose } from "class-transformer";
+import { Expose, Type } from "class-transformer";
+import { Max, Min } from "class-validator";
 import { TrimString } from "decorators/trim-string.decorator";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class PaginationQueryDto {
+  @ApiPropertyWritable({
+    example: 1,
+    description: "Page number to retrieve (starts from 1)",
+  })
   @Expose()
-  @TrimString()
-  @ApiPropertyWritable()
-  page: number;
+  @Type(() => Number)
+  @Min(1)
+  page: number = 1;
 
-  @ApiPropertyWritable()
-  @TrimString()
+  @ApiPropertyWritable({
+    example: 10,
+    description: "Number of records to return per page",
+  })
   @Expose()
-  limit: number;
+  @Type(() => Number)
+  @Min(1)
+  @Max(50)
+  limit: number = 10;
 }

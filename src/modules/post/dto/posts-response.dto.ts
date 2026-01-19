@@ -1,95 +1,155 @@
 import { Expose, Type } from "class-transformer";
-import { PaginationDataDto } from "dto/common-response.dto";
+import { AttachmentResponseDto, MessageResponseDto, PaginationDataDto } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class PostAuthorResponse {
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "user_mxms123",
+    description: "Unique identifier of the post author",
+  })
   @Expose()
   id: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "John Doe",
+    description: "Name of the post author",
+  })
   @Expose()
   name: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "johndoe@gmail.com",
+    description: "Email address of the post author",
+  })
   @Expose()
   email: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "author",
+    description: "Role of the user who authored the post",
+  })
   @Expose()
   role: string;
 }
 
 export class PostResponse {
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "post_mxmsoisx123",
+    description: "Unique identifier of the post",
+  })
   @Expose()
   id: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "How to use NestJS DTOs correctly",
+    description: "Title of the post",
+  })
   @Expose()
   title: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "This post explains how to properly design DTOs in NestJS...",
+    description: "Content/body of the post",
+  })
   @Expose()
   content: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "published",
+    description: "Current status of the post (draft, published, archived)",
+  })
   @Expose()
   status: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: 152,
+    description: "Number of times the post has been viewed",
+  })
   @Expose()
   viewCount: number;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: 24,
+    description: "Total number of upvotes received by the post",
+  })
   @Expose()
-  upvotesCount: number;
+  likes: number;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "how-to-use-nestjs-dtos-correctly",
+    description: "URL-friendly slug generated from the post title",
+  })
   @Expose()
-  downvotesCount: number;
+  slug: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: 3,
+    description: "Total number of downvotes received by the post",
+  })
+  @Expose()
+  dislikes: number;
+
+  @ApiPropertyWritable({
+    example: "2024-01-10T10:15:30.000Z",
+    description: "Date and time when the post was created",
+  })
   @Expose()
   createdAt: Date;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "2024-01-12T08:00:00.000Z",
+    nullable: true,
+    description: "Date and time when the post was published; null if unpublished",
+  })
   @Expose()
   publishedAt?: Date | null;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "files uploaded on the post",
+    nullable: true,
+    description: "files uploaded on the post",
+  })
+  @Expose()
+  @Type(() => AttachmentResponseDto)
+  attachments?: AttachmentResponseDto[];
+
+  @ApiPropertyWritable({
+    type: PostAuthorResponse,
+    description: "Author details of the post",
+  })
   @Expose()
   @Type(() => PostAuthorResponse)
   author: PostAuthorResponse;
 }
 
-export class PostResonseDto {
-  @ApiPropertyWritable({ type: PostResponse })
+export class PostResponseDto extends MessageResponseDto {
+  @ApiPropertyWritable({
+    type: PostResponse,
+    description: "Post details returned in the response",
+  })
   @Type(() => PostResponse)
   @Expose()
   data: PostResponse;
-
-  @Expose()
-  @ApiPropertyWritable()
-  message: string;
 }
 
 export class PostsPaginationDataDto extends PaginationDataDto {
-  @ApiPropertyWritable({ type: [PostResponse] })
+  @ApiPropertyWritable({
+    type: [PostResponse],
+    description: "List of posts for the current page",
+  })
   @Type(() => PostResponse)
   @Expose()
   data: PostResponse[];
 }
 
-export class PaginatedPostResonseDto {
-  @ApiPropertyWritable({ type: PostsPaginationDataDto })
+export class PaginatedPostResponseDto extends MessageResponseDto {
+  @ApiPropertyWritable({
+    type: PostsPaginationDataDto,
+    description: "Paginated posts response with metadata",
+  })
   @Type(() => PostsPaginationDataDto)
   @Expose()
   data: PostsPaginationDataDto;
-
-  @Expose()
-  @ApiPropertyWritable()
-  message: string;
 }
 
-export class GetAllPostsResponseDto extends PaginatedPostResonseDto {}
+export class GetAllPostsResponseDto extends PaginatedPostResponseDto {}

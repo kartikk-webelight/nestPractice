@@ -10,4 +10,18 @@ export enum PostStatus {
   PUBLISHED = "published",
 }
 
+export enum EntityType {
+  POST = "post",
+  USER = "user",
+}
 
+export enum SortBy {
+  CREATED_AT = "createdAt",
+  LIKES = "likes",
+  VIEWS = "views",
+}
+
+export enum OrderBy {
+  ASC = "ASC",
+  DESC = "DESC",
+}
