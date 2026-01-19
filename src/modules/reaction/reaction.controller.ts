@@ -16,7 +16,7 @@ import type { Request, Response } from "express";
 export class ReactionController {
   constructor(private readonly reactionService: ReactionService) {}
 
-  @Get("liked-post")
+  @Get("liked-posts")
   @ApiSwaggerResponse(PaginatedPostResponseDto)
   async getLikedPosts(@Req() req: Request, @Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
@@ -28,7 +28,7 @@ export class ReactionController {
     });
   }
 
-  @Get("disliked-post")
+  @Get("disliked-posts")
   @ApiSwaggerResponse(PaginatedPostResponseDto)
   async getDislikedPosts(@Req() req: Request, @Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
