@@ -11,7 +11,7 @@ import { CommentResponseDto } from "modules/comments/dto/comment-response.dto";
 import { ReactionService } from "./reaction.service";
 import { PaginationQueryDto } from "dto/common-request.dto";
 
-@ApiTags("Votes")
+@ApiTags("Reaction")
 @UseGuards(AuthGuard)
 @Controller("reaction")
 export class ReactionController {
