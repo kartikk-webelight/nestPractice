@@ -93,3 +93,4 @@ export class PaginatedCommentResonseDto extends MessageResponseDto {
 }
 
 export class GetAllCommentsResponseDto extends PaginatedCommentResonseDto {}
+export class getCommentByPostIdResponseDto extends PaginatedCommentResonseDto {}

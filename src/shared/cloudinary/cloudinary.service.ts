@@ -37,7 +37,7 @@ export class CloudinaryService {
   async deleteFromCloudinary(publicId: string): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId);
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException("Cloudinary delete failed");
     }
   }
@@ -48,7 +48,7 @@ export class CloudinaryService {
       uploadedFile = await this.uploadBufferToCloudinary(file);
 
       return uploadedFile;
-    } catch (error) {
+    } catch {
       throw new ServiceUnavailableException(ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED);
     }
   }

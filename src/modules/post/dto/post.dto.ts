@@ -2,7 +2,7 @@ import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { TrimString } from "decorators/trim-string.decorator";
 import { PaginationQueryDto } from "dto/common-request.dto";
-import { OrderBy, PostStatus, SortBy } from "enums";
+import { OrderBy, SortBy, PostStatus } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreatePostDto {
@@ -23,7 +23,7 @@ export class CreatePostDto {
   content: string;
 }
 
-export class SearchPostsQueryDto extends PaginationQueryDto {
+export class GetPostsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: "nestjs" })
   @IsOptional()
   @IsString()
@@ -56,6 +56,7 @@ export class SearchPostsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(OrderBy)
   order?: OrderBy;
+  changes;
 }
 
 export class UpdatePostDto extends PartialType(CreatePostDto) {}

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { generateKSUID } from "utils/helper.utils";
 
 @Injectable()
 export class SlugService {
@@ -11,7 +12,9 @@ export class SlugService {
       .replace(/-+/g, "-");
   }
 
-  buildSlug(title: string, id: string): string {
+  async buildSlug(title: string): Promise<string> {
+    const id = await generateKSUID("s");
+
     const baseSlug = this.slugify(title);
 
     return `${baseSlug}-${id}`;

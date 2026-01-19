@@ -153,4 +153,23 @@ export class CommentsService {
 
     return {};
   }
+
+  async getCommentByPostId(page: number, limit: number, postId: string) {
+    const [comments, total] = await this.commentRepository.findAndCount({
+      where: {
+        post: { id: postId },
+      },
+      relations: { author: true },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data: comments,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 }

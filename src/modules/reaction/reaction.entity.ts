@@ -4,7 +4,7 @@ import { PostEntity } from "modules/post/post.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { BaseEntity } from "database/base-entity";
 
-@Entity("Votes")
+@Entity("Reactions")
 export class ReactionEntity extends BaseEntity {
   idPrefix = "v";
 

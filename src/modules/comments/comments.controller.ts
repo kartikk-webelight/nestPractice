@@ -11,6 +11,7 @@ import {
   CreateCommentResponseDto,
   GetAllCommentsResponseDto,
   GetCommentByIdResponseDto,
+  getCommentByPostIdResponseDto,
   ReplyCommentResponseDto,
   UpdateCommentResponseDto,
 } from "./dto/comment-response.dto";
@@ -58,6 +59,18 @@ export class CommentsController {
       data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
       status: StatusCodes.OK,
       transformWith: GetAllCommentsResponseDto,
+    });
+  }
+  @Get("post/:id")
+  @ApiSwaggerResponse(getCommentByPostIdResponseDto)
+  async getCommentByPostId(@Param("id") postId: string, @Query() query: PaginationQueryDto, @Res() res: Response) {
+    const { page, limit } = query;
+    const data = await this.commentsService.getCommentByPostId(page, limit, postId);
+
+    return responseUtils.success(res, {
+      data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
+      status: StatusCodes.OK,
+      transformWith: getCommentByPostIdResponseDto,
     });
   }
 

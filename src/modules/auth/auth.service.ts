@@ -136,8 +136,6 @@ export class AuthService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    await this.userRepository.save(user);
-
     return {};
   }
 }

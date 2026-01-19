@@ -6,7 +6,6 @@ import { AppService } from "./app.service";
 import { DatabaseModule } from "./database/database.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { AttachmentModule } from "./modules/attachment/attachment.module";
-import { CategoryController } from "./modules/category/category.controller";
 import { CategoryModule } from "./modules/category/category.module";
 import { CommentsModule } from "./modules/comments/comments.module";
 import { PostModule } from "./modules/post/post.module";
@@ -26,7 +25,7 @@ import { UsersModule } from "./modules/users/users.module";
     AttachmentModule,
     CategoryModule,
   ],
-  controllers: [AppController, CategoryController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}

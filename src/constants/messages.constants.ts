@@ -16,6 +16,8 @@ export const SUCCESS_MESSAGES = {
   COMMENT_FETCHED: "Comment fetched successfully",
   ALL_POSTS_FETCHED: "All posts fetched successfully",
   POST_FETCHED: "Post fetched successfully",
+  ALL_CATEGORIES_FETCHED: "All posts fetched successfully",
+  CATEGORY_FETCHED: "Post fetched successfully",
 };
 
 export const ERROR_MESSAGES = {
@@ -43,4 +45,5 @@ export const ERROR_MESSAGES = {
   POST_NOT_FOUND: "Post not found",
   COMMENT_NOT_FOUND: "Comment not found",
   CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed",
+  PREFIX_REQUIRED: "Prefix is required to create a slug",
 };

@@ -24,8 +24,7 @@ export class PostService {
     return this.dataSource.transaction(async (manager) => {
       const { title, content } = body;
 
-      const slugId = await generateKSUID("s");
-      const slug = this.slugService.buildSlug(title, slugId);
+      const slug = await this.slugService.buildSlug(title);
 
       const post = manager.create(PostEntity, {
         title,
