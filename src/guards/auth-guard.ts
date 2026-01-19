@@ -25,7 +25,7 @@ export class AuthGuard implements CanActivate {
     let decodedToken;
     try {
       decodedToken = this.authHelperService.verifyAccessToken(token);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 

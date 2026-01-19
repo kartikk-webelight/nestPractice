@@ -76,7 +76,7 @@ export class AuthService {
     let decodedToken: DecodedToken;
     try {
       decodedToken = this.authHelperService.verifyRefreshToken(refreshToken);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 

@@ -7,6 +7,7 @@ import { ERROR_MESSAGES } from "constants/messages.constants";
 import { UserRole } from "enums";
 import { CommentEntity } from "./comment.entity";
 import { CreateComment, ReplyComment, UpdateComment } from "./comment.types";
+import type { User } from "types/types";
 
 @Injectable()
 export class CommentsService {
@@ -137,14 +138,14 @@ export class CommentsService {
     return updatedComment;
   }
 
-  async deleteComment(commentId: string, user: any) {
+  async deleteComment(commentId: string, user: User) {
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
     if (!comment) {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
 
-    if (comment.author.id !== user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    if (comment.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 

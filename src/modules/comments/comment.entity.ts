@@ -22,12 +22,12 @@ export class CommentEntity extends BaseEntity {
   @ManyToOne(() => PostEntity, { nullable: false, onDelete: "CASCADE" })
   post: PostEntity;
 
-  @ManyToOne(() => CommentEntity, (CommentEntity) => CommentEntity.child, {
+  @ManyToOne(() => CommentEntity, (Comment) => Comment.child, {
     onDelete: "CASCADE",
     nullable: true,
   })
   parentComment: CommentEntity | null;
 
-  @OneToMany(() => CommentEntity, (CommentEntity) => CommentEntity.parentComment)
+  @OneToMany(() => CommentEntity, (Comment) => Comment.parentComment)
   child: CommentEntity[];
 }
