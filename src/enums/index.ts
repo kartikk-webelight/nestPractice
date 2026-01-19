@@ -1,8 +1,8 @@
 export enum UserRole {
   ADMIN = "admin",
-  READER = "reader",
-  EDITOR = "editor",
   AUTHOR = "author",
+  EDITOR = "editor",
+  READER = "reader",
 }
 
 export enum PostStatus {

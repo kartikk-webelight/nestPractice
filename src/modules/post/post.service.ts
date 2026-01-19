@@ -1,15 +1,14 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
-import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
-import { AttachmentService } from "modules/attachment/attachment.service";
 import { SlugService } from "shared/slug.service";
 import { DataSource, Repository } from "typeorm";
-import { User } from "types/types";
+import { AttachmentService } from "modules/attachment/attachment.service";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { generateKSUID } from "utils/helper.utils";
-
 import { PostEntity } from "./post.entity";
 import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
+import type { User } from "types/types";
 
 @Injectable()
 export class PostService {

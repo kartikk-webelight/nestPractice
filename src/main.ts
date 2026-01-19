@@ -1,16 +1,13 @@
 import { ValidationPipe, VersioningType } from "@nestjs/common";
-import { HttpAdapterHost } from "@nestjs/core";
-import { NestFactory } from "@nestjs/core";
+import { HttpAdapterHost, NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { init } from "@sentry/node";
-import { allowedOrigins, globalPrefix } from "constants/app.constants";
 import cookieParser from "cookie-parser";
 import { json as expressJson, urlencoded as expressUrlencoded } from "express";
+import { allowedOrigins, globalPrefix, swaggerInfo } from "constants/app.constants";
 import { MainExceptionFilter } from "filters/main-exception.filter";
-
 import { AppModule } from "./app.module";
 import { appConfig } from "./config/app.config";
-import { swaggerInfo } from "./constants/app.constants";
 import { QueryCountInterceptor } from "./interceptors/query-counter-interceptor";
 
 async function bootstrap() {
@@ -61,4 +58,6 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+bootstrap().catch(() => {
+  process.exit(1);
+});

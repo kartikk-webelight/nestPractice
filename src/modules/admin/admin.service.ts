@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
 import { Repository } from "typeorm";
-
+import { ERROR_MESSAGES } from "constants/messages.constants";
 import { UserEntity } from "../users/users.entity";
 
 @Injectable()
@@ -32,6 +31,7 @@ export class AdminService {
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
+
     return user;
   }
 }

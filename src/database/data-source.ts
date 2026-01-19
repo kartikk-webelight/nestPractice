@@ -1,7 +1,6 @@
 import { DataSource } from "typeorm";
-
-import { CustomQueryLogger } from "./database.custom-query-logger";
 import { getOsEnv } from "config/env.config";
+import { CustomQueryLogger } from "./database.custom-query-logger";
 
 export default new DataSource({
   type: "postgres",
@@ -16,5 +15,5 @@ export default new DataSource({
   migrationsRun: false,
   migrationsTableName: "migrations",
   synchronize: true,
-  ...(getOsEnv('ENVIRONMENT') === "local" && { logger: new CustomQueryLogger() }),
+  ...(getOsEnv("ENVIRONMENT") === "local" && { logger: new CustomQueryLogger() }),
 });

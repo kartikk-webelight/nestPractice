@@ -1,23 +1,21 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
-import type { Request, Response } from "express";
-import { AuthGuard } from "guards/auth-guard";
 import { StatusCodes } from "http-status-codes";
+import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { PaginationQueryDto } from "dto/common-request.dto";
+import { AuthGuard } from "guards/auth-guard";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
-
 import { CommentsService } from "./comments.service";
-import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import {
   CreateCommentResponseDto,
   GetAllCommentsResponseDto,
   GetCommentByIdResponseDto,
-  PaginatedCommentResonseDto,
   ReplyCommentResponseDto,
   UpdateCommentResponseDto,
 } from "./dto/comment-response.dto";
-import { PaginationQueryDto } from "dto/common-request.dto";
+import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
+import type { Request, Response } from "express";
 
 @ApiTags("Comments")
 @Controller("comments")

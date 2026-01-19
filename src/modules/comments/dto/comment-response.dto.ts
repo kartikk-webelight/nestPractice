@@ -1,6 +1,6 @@
 import { Expose, Type } from "class-transformer";
-import { MessageResponseDto, PaginationDataDto, UsersResponse } from "dto/common-response.dto";
 import { PostResponse } from "modules/post/dto/posts-response.dto";
+import { MessageResponseDto, PaginationDataDto, UsersResponse } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CommentResponse {
