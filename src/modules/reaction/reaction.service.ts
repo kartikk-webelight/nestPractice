@@ -34,7 +34,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         post: { id: postId },
         reactedBy: { id: userId },
@@ -42,26 +42,26 @@ export class ReactionService {
     });
 
     // first like
-    if (!existingVote) {
+    if (!existingReaction) {
       post.likes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         post,
         reactedBy: user,
         isLiked: true,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.postRepository.save(post);
 
       return post;
     }
 
     // already liked → remove like
-    if (existingVote.isLiked) {
+    if (existingReaction.isLiked) {
       if (post.likes > 0) post.likes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.postRepository.save(post);
 
       return post;
@@ -71,8 +71,8 @@ export class ReactionService {
     if (post.dislikes > 0) post.dislikes -= 1;
     post.likes += 1;
 
-    existingVote.isLiked = true;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = true;
+    await this.ReactionRepository.save(existingReaction);
     await this.postRepository.save(post);
 
     return post;
@@ -89,7 +89,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         post: { id: postId },
         reactedBy: { id: userId },
@@ -97,26 +97,26 @@ export class ReactionService {
     });
 
     // first dislike
-    if (!existingVote) {
+    if (!existingReaction) {
       post.dislikes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         post,
         reactedBy: user,
         isLiked: false,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.postRepository.save(post);
 
       return post;
     }
 
     // already disliked → remove dislike
-    if (!existingVote.isLiked) {
+    if (!existingReaction.isLiked) {
       if (post.dislikes > 0) post.dislikes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.postRepository.save(post);
 
       return post;
@@ -126,8 +126,8 @@ export class ReactionService {
     if (post.likes > 0) post.likes -= 1;
     post.dislikes += 1;
 
-    existingVote.isLiked = false;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = false;
+    await this.ReactionRepository.save(existingReaction);
     await this.postRepository.save(post);
 
     return post;
@@ -147,7 +147,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         comment: { id: commentId },
         reactedBy: { id: userId },
@@ -155,26 +155,26 @@ export class ReactionService {
     });
 
     // first like
-    if (!existingVote) {
+    if (!existingReaction) {
       comment.likes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         comment,
         reactedBy: user,
         isLiked: true,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.commentRepository.save(comment);
 
       return comment;
     }
 
     // already liked → remove like
-    if (existingVote.isLiked) {
+    if (existingReaction.isLiked) {
       if (comment.likes > 0) comment.likes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.commentRepository.save(comment);
 
       return comment;
@@ -184,8 +184,8 @@ export class ReactionService {
     if (comment.dislikes > 0) comment.dislikes -= 1;
     comment.likes += 1;
 
-    existingVote.isLiked = true;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = true;
+    await this.ReactionRepository.save(existingReaction);
     await this.commentRepository.save(comment);
 
     return comment;
@@ -205,7 +205,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         comment: { id: commentId },
         reactedBy: { id: userId },
@@ -213,26 +213,26 @@ export class ReactionService {
     });
 
     // first dislike
-    if (!existingVote) {
+    if (!existingReaction) {
       comment.dislikes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         comment,
         reactedBy: user,
         isLiked: false,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.commentRepository.save(comment);
 
       return comment;
     }
 
     // already disliked → remove dislike
-    if (!existingVote.isLiked) {
+    if (!existingReaction.isLiked) {
       if (comment.dislikes > 0) comment.dislikes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.commentRepository.save(comment);
 
       return comment;
@@ -242,8 +242,8 @@ export class ReactionService {
     if (comment.likes > 0) comment.likes -= 1;
     comment.dislikes += 1;
 
-    existingVote.isLiked = false;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = false;
+    await this.ReactionRepository.save(existingReaction);
     await this.commentRepository.save(comment);
 
     return comment;

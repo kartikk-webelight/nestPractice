@@ -2,7 +2,7 @@ import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from "@nestj
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
 import { CommentResponseDto } from "modules/comments/dto/comment-response.dto";
-import { PaginatedPostResonseDto, PostResonseDto } from "modules/post/dto/posts-response.dto";
+import { PaginatedPostResponseDto, PostResponseDto } from "modules/post/dto/posts-response.dto";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { PaginationQueryDto } from "dto/common-request.dto";
 import { AuthGuard } from "guards/auth-guard";
@@ -18,7 +18,7 @@ export class ReactionController {
   constructor(private readonly reactionService: ReactionService) {}
 
   @Get("liked-post")
-  @ApiSwaggerResponse(PaginatedPostResonseDto)
+  @ApiSwaggerResponse(PaginatedPostResponseDto)
   async getLikedPost(@Req() req: Request, @Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
     const data = await this.reactionService.getLikedPosts(page, limit, req.user.id);
@@ -26,12 +26,12 @@ export class ReactionController {
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
       status: StatusCodes.OK,
-      transformWith: PaginatedPostResonseDto,
+      transformWith: PaginatedPostResponseDto,
     });
   }
 
   @Get("disliked-post")
-  @ApiSwaggerResponse(PaginatedPostResonseDto)
+  @ApiSwaggerResponse(PaginatedPostResponseDto)
   async getDislikedPost(@Req() req: Request, @Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
     const data = await this.reactionService.getDislikedPosts(page, limit, req.user.id);
@@ -39,31 +39,31 @@ export class ReactionController {
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
       status: StatusCodes.OK,
-      transformWith: PaginatedPostResonseDto,
+      transformWith: PaginatedPostResponseDto,
     });
   }
 
   @Post("like-post/:id")
-  @ApiSwaggerResponse(PostResonseDto)
+  @ApiSwaggerResponse(PostResponseDto)
   async likePost(@Req() req: Request, @Param("id") postId: string, @Res() res: Response) {
     const data = await this.reactionService.likePost(postId, req.user.id);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.OK,
-      transformWith: PostResonseDto,
+      transformWith: PostResponseDto,
     });
   }
 
   @Post("dislike-post/:id")
-  @ApiSwaggerResponse(PostResonseDto)
+  @ApiSwaggerResponse(PostResponseDto)
   async dislikePost(@Req() req: Request, @Param("id") postId: string, @Res() res: Response) {
     const data = await this.reactionService.dislikePost(postId, req.user.id);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.OK,
-      transformWith: PostResonseDto,
+      transformWith: PostResponseDto,
     });
   }
 

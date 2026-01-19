@@ -1,7 +1,7 @@
-export interface VoteOnPost {
+export interface ReactOnPost {
   postId: string;
 }
 
-export interface VoteOnComment {
+export interface ReactOnComment {
   commentId: string;
 }

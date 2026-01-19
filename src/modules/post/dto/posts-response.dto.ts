@@ -70,7 +70,7 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     example: 24,
-    description: "Total number of upvotes received by the post",
+    description: "Total number of likes received by the post",
   })
   @Expose()
   likes: number;
@@ -84,7 +84,7 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     example: 3,
-    description: "Total number of downvotes received by the post",
+    description: "Total number of dislikes received by the post",
   })
   @Expose()
   dislikes: number;
