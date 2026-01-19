@@ -18,3 +18,7 @@ export const transformToInstance = <T, V>(cls: ClassConstructor<T>, data: V): T 
     excludeExtraneousValues: true,
   });
 };
+
+export const totalPages = (total: number, limit: number): number => {
+  return Math.ceil(total / limit);
+};

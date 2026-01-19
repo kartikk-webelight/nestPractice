@@ -5,7 +5,7 @@ import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
-import { totalPages } from "utils/calculateTotalPages.utils";
+import { totalPages } from "utils/helper.utils";
 import { ReactionEntity } from "./reaction.entity";
 
 @Injectable()
