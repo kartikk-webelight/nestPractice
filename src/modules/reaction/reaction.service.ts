@@ -5,7 +5,7 @@ import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
-import { totalPages } from "utils/helper.utils";
+import { calculateOffset, getPaginatedData } from "utils/helper.utils";
 import { ReactionEntity } from "./reaction.entity";
 
 @Injectable()
@@ -257,18 +257,12 @@ export class ReactionService {
         reactedBy: { id: userId },
       },
       relations: { post: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
     const likedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    return {
-      data: likedPosts,
-      total,
-      page,
-      limit,
-      totalPages: totalPages(page, limit),
-    };
+    return getPaginatedData(likedPosts, page, limit, total);
   }
 
   async getDislikedPosts(page: number, limit: number, userId: string) {
@@ -278,18 +272,12 @@ export class ReactionService {
         reactedBy: { id: userId },
       },
       relations: { post: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
     const dislikedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    return {
-      data: dislikedPosts,
-      total,
-      page,
-      limit,
-      totalPages: totalPages(page, limit),
-    };
+    return getPaginatedData(dislikedPosts, page, limit, total);
   }
 }

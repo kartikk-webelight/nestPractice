@@ -19,6 +19,20 @@ export const transformToInstance = <T, V>(cls: ClassConstructor<T>, data: V): T 
   });
 };
 
-export const totalPages = (total: number, limit: number): number => {
+export const calculateTotalPages = (total: number, limit: number): number => {
   return Math.ceil(total / limit);
+};
+
+export const getPaginatedData = (data: object, page: number, limit: number, total: number) => {
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: calculateTotalPages(total, limit),
+  };
+};
+
+export const calculateOffset = (page: number, limit: number): number => {
+  return (page - 1) * limit;
 };
