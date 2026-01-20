@@ -5,6 +5,7 @@ import { PostService } from "modules/post/post.service";
 import { UsersService } from "modules/users/users.service";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { UserRole } from "enums";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CommentEntity } from "./comment.entity";
 import { CreateComment, ReplyComment, UpdateComment } from "./comment.types";
 import type { User } from "types/types";
@@ -86,9 +87,9 @@ export class CommentsService {
     return savedComment;
   }
 
-  async getAllComments(page: number, limit: number) {
+  async getComments(page: number, limit: number) {
     const [comments, total] = await this.commentRepository.findAndCount({
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
@@ -97,7 +98,7 @@ export class CommentsService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 
