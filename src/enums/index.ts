@@ -25,3 +25,9 @@ export enum OrderBy {
   ASC = "ASC",
   DESC = "DESC",
 }
+
+export enum RoleStatus {
+  APPROVED = "approved",
+  PENDING = "pending",
+  REJECTED = "rejected",
+}

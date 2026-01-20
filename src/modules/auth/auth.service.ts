@@ -40,9 +40,9 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(newUser);
 
-    const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
+    const attachment = file ? await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER) : null;
 
-    return { ...savedUser, attachment: [attachment] };
+    return { ...savedUser, attachment: attachment ? [attachment] : [] };
   }
 
   async login(body: LoginUser) {

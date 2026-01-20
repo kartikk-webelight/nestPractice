@@ -10,6 +10,7 @@ import { CategoryModule } from "./modules/category/category.module";
 import { CommentsModule } from "./modules/comments/comments.module";
 import { PostModule } from "./modules/post/post.module";
 import { ReactionModule } from "./modules/reaction/reaction.module";
+import { RoleModule } from "./modules/role/role.module";
 import { UsersModule } from "./modules/users/users.module";
 
 @Module({
@@ -24,6 +25,7 @@ import { UsersModule } from "./modules/users/users.module";
     ReactionModule,
     AttachmentModule,
     CategoryModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

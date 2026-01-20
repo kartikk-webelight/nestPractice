@@ -11,4 +11,5 @@ export const secretConfig = {
   cloudinaryCloudName: getOsEnv("CLOUDINARY_CLOUD_NAME"),
   cloudinaryApiKey: getOsEnv("CLOUDINARY_API_KEY"),
   cloudinaryApiSecret: getOsEnv("CLOUDINARY_API_SECRET"),
+  geminiApiKey: getOsEnv("GEMINI_API_KEY"),
 };

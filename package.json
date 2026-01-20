@@ -29,6 +29,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\""
   },
   "dependencies": {
+    "@google/genai": "^1.37.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

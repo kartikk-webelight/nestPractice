@@ -1,5 +1,6 @@
 import { Expose, Type } from "class-transformer";
 import { AttachmentResponseDto, MessageResponseDto, PaginationDataDto } from "dto/common-response.dto";
+import { PostStatus, UserRole } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class PostAuthorResponse {
@@ -25,7 +26,7 @@ export class PostAuthorResponse {
   email: string;
 
   @ApiPropertyWritable({
-    example: "author",
+    example: UserRole.AUTHOR,
     description: "Role of the user who authored the post",
   })
   @Expose()
@@ -55,7 +56,7 @@ export class PostResponse {
   content: string;
 
   @ApiPropertyWritable({
-    example: "published",
+    example: PostStatus.PUBLISHED,
     description: "Current status of the post (draft, published, archived)",
   })
   @Expose()

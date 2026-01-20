@@ -11,7 +11,7 @@ import responseUtils from "utils/response.utils";
 import { ReactionService } from "./reaction.service";
 import type { Request, Response } from "express";
 
-@ApiTags("Votes")
+@ApiTags("Reaction")
 @UseGuards(AuthGuard)
 @Controller("reaction")
 export class ReactionController {
@@ -79,7 +79,7 @@ export class ReactionController {
     });
   }
 
-  @Post("like-comment/:id")
+  @Post("dislike-comment/:id")
   @ApiSwaggerResponse(CommentResponseDto)
   async dislikeComment(@Req() req: Request, @Param("id") commentId: string, @Res() res: Response) {
     const data = await this.reactionService.dislikeComment(commentId, req.user.id);

@@ -18,6 +18,10 @@ export const SUCCESS_MESSAGES = {
   POST_FETCHED: "Post fetched successfully",
   ALL_CATEGORIES_FETCHED: "All posts fetched successfully",
   CATEGORY_FETCHED: "Post fetched successfully",
+  ROLE_REQUESTED: "Role requested",
+  ROLE_UPDATED: "Role updated",
+  REQUEST_STATUS_FETCHED: "Request status fetched successfully",
+  REQUESTS_FETCHED: "Requests fetched successfully",
 };
 
 export const ERROR_MESSAGES = {
