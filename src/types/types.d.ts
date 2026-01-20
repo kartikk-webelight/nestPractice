@@ -1,6 +1,8 @@
-import { User } from "modules/users/users.entity";
+import { UserEntity } from "modules/users/users.entity";
 
 export type AnyType = any;
+
+export type User = Omit<UserEntity, "password">;
 
 interface SearchType {
   key: string;
@@ -10,7 +12,7 @@ interface SearchType {
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user: Omit<UserEntity, "password">;
     }
   }
 }
