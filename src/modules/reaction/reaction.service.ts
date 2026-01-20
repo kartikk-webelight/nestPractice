@@ -3,7 +3,6 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
-import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
@@ -19,20 +18,12 @@ export class ReactionService {
 
     @InjectRepository(CommentEntity)
     private readonly commentRepository: Repository<CommentEntity>,
-
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
   ) {}
 
   async likePost(postId: string, userId: string) {
     const post = await this.postRepository.findOne({ where: { id: postId } });
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
-
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     const existingReaction = await this.ReactionRepository.findOne({
@@ -44,11 +35,11 @@ export class ReactionService {
 
     // first like
     if (!existingReaction) {
-      post.likes += 1;
+      await this.postRepository.increment({ id: postId }, "likes", 1);
 
       const reaction = this.ReactionRepository.create({
         post,
-        reactedBy: user,
+        reactedBy: { id: userId },
         isLiked: true,
       });
 
@@ -60,7 +51,7 @@ export class ReactionService {
 
     // already liked → remove like
     if (existingReaction.isLiked) {
-      if (post.likes > 0) post.likes -= 1;
+      if (post.likes > 0) await this.postRepository.decrement({ id: postId }, "likes", 1);
 
       await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.postRepository.save(post);
@@ -69,8 +60,8 @@ export class ReactionService {
     }
 
     // previously disliked → switch
-    if (post.dislikes > 0) post.dislikes -= 1;
-    post.likes += 1;
+    if (post.dislikes > 0) await this.postRepository.decrement({ id: postId }, "dislike", 1);
+    await this.postRepository.increment({ id: postId }, "likes", 1);
 
     existingReaction.isLiked = true;
     await this.ReactionRepository.save(existingReaction);
@@ -83,11 +74,6 @@ export class ReactionService {
     const post = await this.postRepository.findOne({ where: { id: postId } });
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
-
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     const existingReaction = await this.ReactionRepository.findOne({
@@ -103,7 +89,7 @@ export class ReactionService {
 
       const reaction = this.ReactionRepository.create({
         post,
-        reactedBy: user,
+        reactedBy: { id: userId },
         isLiked: false,
       });
 
@@ -143,11 +129,6 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
-
     const existingReaction = await this.ReactionRepository.findOne({
       where: {
         comment: { id: commentId },
@@ -161,7 +142,7 @@ export class ReactionService {
 
       const reaction = this.ReactionRepository.create({
         comment,
-        reactedBy: user,
+        reactedBy: { id: userId },
         isLiked: true,
       });
 
@@ -201,11 +182,6 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
-
     const existingReaction = await this.ReactionRepository.findOne({
       where: {
         comment: { id: commentId },
@@ -219,7 +195,7 @@ export class ReactionService {
 
       const reaction = this.ReactionRepository.create({
         comment,
-        reactedBy: user,
+        reactedBy: { id: userId },
         isLiked: false,
       });
 
@@ -274,7 +250,7 @@ export class ReactionService {
   async getDislikedPosts(page: number, limit: number, userId: string) {
     const [reactions, total] = await this.ReactionRepository.findAndCount({
       where: {
-        isLiked: true,
+        isLiked: false,
         reactedBy: { id: userId },
       },
       relations: { post: true },
