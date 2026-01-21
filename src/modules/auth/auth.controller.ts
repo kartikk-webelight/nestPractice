@@ -1,27 +1,14 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Patch,
-  Post,
-  Req,
-  Res,
-  UploadedFile,
-  UploadedFiles,
-  UseGuards,
-  UseInterceptors,
-} from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
+import { StatusCodes } from "http-status-codes";
 import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
-import type { Request, Response } from "express";
 import { AuthGuard } from "guards/auth-guard";
-import { StatusCodes } from "http-status-codes";
-import responseUtils from "utils/response.utils";
-
+import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
+import responseUtils from "utils/response.utils";
 import { AuthService } from "./auth.service";
-import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
 import {
   CreateUserResponseDto,
   CurrentUserResponseDto,
@@ -30,8 +17,8 @@ import {
   RefreshResponseDto,
   UpdateUserResponseDto,
 } from "./dto/auth-response.dto";
-import { multerMemoryOptions } from "shared/multer/multer.service";
-import { FileInterceptor } from "@nestjs/platform-express";
+import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
+import type { Request, Response } from "express";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -43,6 +30,7 @@ export class AuthController {
   @Post("create")
   async create(@Res() res: Response, @Body() body: CreateUserDto, @UploadedFile() file: Express.Multer.File) {
     const data = await this.authService.create(body, file);
+
     return responseUtils.success<CreateUserResponseDto>(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.CREATED,
@@ -70,6 +58,7 @@ export class AuthController {
 
     res.cookie("refreshToken", data.refreshToken, refreshCookieOptions);
     res.cookie("accessToken", data.accessToken, accessCookieOptions);
+
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_LOGGED_IN },
       status: StatusCodes.OK,

@@ -3,8 +3,9 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
 import { UserEntity } from "modules/users/users.entity";
+import { ERROR_MESSAGES } from "constants/messages.constants";
+import { calculateOffset, getPaginatedData } from "utils/helper.utils";
 import { ReactionEntity } from "./reaction.entity";
 
 @Injectable()
@@ -34,7 +35,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         post: { id: postId },
         reactedBy: { id: userId },
@@ -42,38 +43,40 @@ export class ReactionService {
     });
 
     // first like
-    if (!existingVote) {
+    if (!existingReaction) {
       post.likes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         post,
         reactedBy: user,
         isLiked: true,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.postRepository.save(post);
-      return post;
+
+      return;
     }
 
     // already liked → remove like
-    if (existingVote.isLiked) {
+    if (existingReaction.isLiked) {
       if (post.likes > 0) post.likes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.postRepository.save(post);
-      return post;
+
+      return;
     }
 
     // previously disliked → switch
     if (post.dislikes > 0) post.dislikes -= 1;
     post.likes += 1;
 
-    existingVote.isLiked = true;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = true;
+    await this.ReactionRepository.save(existingReaction);
     await this.postRepository.save(post);
 
-    return post;
+    return;
   }
 
   async dislikePost(postId: string, userId: string) {
@@ -87,7 +90,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         post: { id: postId },
         reactedBy: { id: userId },
@@ -95,35 +98,37 @@ export class ReactionService {
     });
 
     // first dislike
-    if (!existingVote) {
+    if (!existingReaction) {
       post.dislikes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         post,
         reactedBy: user,
         isLiked: false,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.postRepository.save(post);
-      return post;
+
+      return;
     }
 
     // already disliked → remove dislike
-    if (!existingVote.isLiked) {
+    if (!existingReaction.isLiked) {
       if (post.dislikes > 0) post.dislikes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.postRepository.save(post);
-      return post;
+
+      return;
     }
 
     // previously liked → switch
     if (post.likes > 0) post.likes -= 1;
     post.dislikes += 1;
 
-    existingVote.isLiked = false;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = false;
+    await this.ReactionRepository.save(existingReaction);
     await this.postRepository.save(post);
 
     return post;
@@ -143,7 +148,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         comment: { id: commentId },
         reactedBy: { id: userId },
@@ -151,38 +156,40 @@ export class ReactionService {
     });
 
     // first like
-    if (!existingVote) {
+    if (!existingReaction) {
       comment.likes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         comment,
         reactedBy: user,
         isLiked: true,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.commentRepository.save(comment);
-      return comment;
+
+      return;
     }
 
     // already liked → remove like
-    if (existingVote.isLiked) {
+    if (existingReaction.isLiked) {
       if (comment.likes > 0) comment.likes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.commentRepository.save(comment);
-      return comment;
+
+      return;
     }
 
     // previously disliked → switch
     if (comment.dislikes > 0) comment.dislikes -= 1;
     comment.likes += 1;
 
-    existingVote.isLiked = true;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = true;
+    await this.ReactionRepository.save(existingReaction);
     await this.commentRepository.save(comment);
 
-    return comment;
+    return;
   }
 
   async dislikeComment(commentId: string, userId: string) {
@@ -199,7 +206,7 @@ export class ReactionService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingVote = await this.ReactionRepository.findOne({
+    const existingReaction = await this.ReactionRepository.findOne({
       where: {
         comment: { id: commentId },
         reactedBy: { id: userId },
@@ -207,38 +214,40 @@ export class ReactionService {
     });
 
     // first dislike
-    if (!existingVote) {
+    if (!existingReaction) {
       comment.dislikes += 1;
 
-      const vote = this.ReactionRepository.create({
+      const reaction = this.ReactionRepository.create({
         comment,
         reactedBy: user,
         isLiked: false,
       });
 
-      await this.ReactionRepository.save(vote);
+      await this.ReactionRepository.save(reaction);
       await this.commentRepository.save(comment);
-      return comment;
+
+      return;
     }
 
     // already disliked → remove dislike
-    if (!existingVote.isLiked) {
+    if (!existingReaction.isLiked) {
       if (comment.dislikes > 0) comment.dislikes -= 1;
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
+      await this.ReactionRepository.delete({ id: existingReaction.id });
       await this.commentRepository.save(comment);
-      return comment;
+
+      return;
     }
 
     // previously liked → switch
     if (comment.likes > 0) comment.likes -= 1;
     comment.dislikes += 1;
 
-    existingVote.isLiked = false;
-    await this.ReactionRepository.save(existingVote);
+    existingReaction.isLiked = false;
+    await this.ReactionRepository.save(existingReaction);
     await this.commentRepository.save(comment);
 
-    return comment;
+    return;
   }
 
   async getLikedPosts(page: number, limit: number, userId: string) {
@@ -248,18 +257,12 @@ export class ReactionService {
         reactedBy: { id: userId },
       },
       relations: { post: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
     const likedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    return {
-      data: likedPosts,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return getPaginatedData(likedPosts, page, limit, total);
   }
 
   async getDislikedPosts(page: number, limit: number, userId: string) {
@@ -269,18 +272,12 @@ export class ReactionService {
         reactedBy: { id: userId },
       },
       relations: { post: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
     const dislikedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    return {
-      data: dislikedPosts,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return getPaginatedData(dislikedPosts, page, limit, total);
   }
 }

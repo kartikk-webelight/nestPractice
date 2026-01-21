@@ -13,6 +13,7 @@ export class SlugService {
 
   buildSlug(title: string, id: string): string {
     const baseSlug = this.slugify(title);
+
     return `${baseSlug}-${id}`;
   }
 }

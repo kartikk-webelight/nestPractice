@@ -1,8 +1,8 @@
 export enum UserRole {
   ADMIN = "admin",
-  READER = "reader",
-  EDITOR = "editor",
   AUTHOR = "author",
+  EDITOR = "editor",
+  READER = "reader",
 }
 
 export enum PostStatus {
@@ -15,13 +15,13 @@ export enum EntityType {
   USER = "user",
 }
 
-export enum PostSortBy {
+export enum SortBy {
   CREATED_AT = "createdAt",
   LIKES = "likes",
   VIEWS = "views",
 }
 
-export enum PostOrderBy {
+export enum OrderBy {
   ASC = "ASC",
   DESC = "DESC",
 }

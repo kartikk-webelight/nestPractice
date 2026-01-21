@@ -70,7 +70,7 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     example: 24,
-    description: "Total number of upvotes received by the post",
+    description: "Total number of likes received by the post",
   })
   @Expose()
   likes: number;
@@ -84,7 +84,7 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     example: 3,
-    description: "Total number of downvotes received by the post",
+    description: "Total number of dislikes received by the post",
   })
   @Expose()
   dislikes: number;
@@ -122,7 +122,7 @@ export class PostResponse {
   author: PostAuthorResponse;
 }
 
-export class PostResonseDto extends MessageResponseDto {
+export class PostResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({
     type: PostResponse,
     description: "Post details returned in the response",
@@ -142,7 +142,7 @@ export class PostsPaginationDataDto extends PaginationDataDto {
   data: PostResponse[];
 }
 
-export class PaginatedPostResonseDto extends MessageResponseDto {
+export class PaginatedPostResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({
     type: PostsPaginationDataDto,
     description: "Paginated posts response with metadata",
@@ -152,4 +152,4 @@ export class PaginatedPostResonseDto extends MessageResponseDto {
   data: PostsPaginationDataDto;
 }
 
-export class GetAllPostsResponseDto extends PaginatedPostResonseDto {}
+export class GetAllPostsResponseDto extends PaginatedPostResponseDto {}

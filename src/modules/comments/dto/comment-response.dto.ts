@@ -1,6 +1,6 @@
 import { Expose, Type } from "class-transformer";
-import { MessageResponseDto, PaginationDataDto, UsersResponse } from "dto/common-response.dto";
 import { PostResponse } from "modules/post/dto/posts-response.dto";
+import { MessageResponseDto, PaginationDataDto, UsersResponse } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CommentResponse {
@@ -27,14 +27,14 @@ export class CommentResponse {
 
   @ApiPropertyWritable({
     example: 12,
-    description: "Number of upvotes received by the comment",
+    description: "Number of likes received by the comment",
   })
   @Expose()
   likes: number;
 
   @ApiPropertyWritable({
     example: 2,
-    description: "Number of downvotes received by the comment",
+    description: "Number of dislikes received by the comment",
   })
   @Expose()
   dislikes: number;
