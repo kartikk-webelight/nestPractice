@@ -44,7 +44,6 @@ export class ReactionService {
       });
 
       await this.ReactionRepository.save(reaction);
-      await this.postRepository.save(post);
 
       return;
     }
@@ -54,7 +53,6 @@ export class ReactionService {
       if (post.likes > 0) await this.postRepository.decrement({ id: postId }, "likes", 1);
 
       await this.ReactionRepository.delete({ id: existingReaction.id });
-      await this.postRepository.save(post);
 
       return;
     }
@@ -65,7 +63,6 @@ export class ReactionService {
 
     existingReaction.isLiked = true;
     await this.ReactionRepository.save(existingReaction);
-    await this.postRepository.save(post);
 
     return;
   }
@@ -85,7 +82,7 @@ export class ReactionService {
 
     // first dislike
     if (!existingReaction) {
-      post.dislikes += 1;
+      await this.postRepository.increment({ id: postId }, "dislike", 1);
 
       const reaction = this.ReactionRepository.create({
         post,
@@ -94,30 +91,27 @@ export class ReactionService {
       });
 
       await this.ReactionRepository.save(reaction);
-      await this.postRepository.save(post);
 
       return;
     }
 
     // already disliked → remove dislike
     if (!existingReaction.isLiked) {
-      if (post.dislikes > 0) post.dislikes -= 1;
+      if (post.dislikes > 0) await this.postRepository.decrement({ id: postId }, "dislike", 1);
 
       await this.ReactionRepository.delete({ id: existingReaction.id });
-      await this.postRepository.save(post);
 
       return;
     }
 
     // previously liked → switch
-    if (post.likes > 0) post.likes -= 1;
-    post.dislikes += 1;
+    if (post.likes > 0) await this.postRepository.decrement({ id: postId }, "like", 1);
+    await this.ReactionRepository.increment({ id: postId }, "dislike", 1);
 
     existingReaction.isLiked = false;
     await this.ReactionRepository.save(existingReaction);
-    await this.postRepository.save(post);
 
-    return post;
+    return;
   }
 
   async likeComment(commentId: string, userId: string) {
@@ -138,7 +132,7 @@ export class ReactionService {
 
     // first like
     if (!existingReaction) {
-      comment.likes += 1;
+      await this.commentRepository.increment({ id: commentId }, "like", 1);
 
       const reaction = this.ReactionRepository.create({
         comment,
@@ -147,28 +141,25 @@ export class ReactionService {
       });
 
       await this.ReactionRepository.save(reaction);
-      await this.commentRepository.save(comment);
 
       return;
     }
 
     // already liked → remove like
     if (existingReaction.isLiked) {
-      if (comment.likes > 0) comment.likes -= 1;
+      if (comment.likes > 0) await this.commentRepository.decrement({ id: commentId }, "like", 1);
 
       await this.ReactionRepository.delete({ id: existingReaction.id });
-      await this.commentRepository.save(comment);
 
       return;
     }
 
     // previously disliked → switch
-    if (comment.dislikes > 0) comment.dislikes -= 1;
-    comment.likes += 1;
+    if (comment.dislikes > 0) await this.commentRepository.decrement({ id: commentId }, "dislike", 1);
+    await this.commentRepository.increment({ id: commentId }, "like", 1);
 
     existingReaction.isLiked = true;
     await this.ReactionRepository.save(existingReaction);
-    await this.commentRepository.save(comment);
 
     return;
   }
@@ -191,7 +182,7 @@ export class ReactionService {
 
     // first dislike
     if (!existingReaction) {
-      comment.dislikes += 1;
+      await this.commentRepository.increment({ id: commentId }, "dislike", 1);
 
       const reaction = this.ReactionRepository.create({
         comment,
@@ -200,28 +191,25 @@ export class ReactionService {
       });
 
       await this.ReactionRepository.save(reaction);
-      await this.commentRepository.save(comment);
 
       return;
     }
 
     // already disliked → remove dislike
     if (!existingReaction.isLiked) {
-      if (comment.dislikes > 0) comment.dislikes -= 1;
+      if (comment.dislikes > 0) await this.commentRepository.decrement({ id: commentId }, "dislike", 1);
 
       await this.ReactionRepository.delete({ id: existingReaction.id });
-      await this.commentRepository.save(comment);
 
       return;
     }
 
     // previously liked → switch
-    if (comment.likes > 0) comment.likes -= 1;
-    comment.dislikes += 1;
+    if (comment.likes > 0) await this.commentRepository.decrement({ id: commentId }, "like", 1);
+    await this.commentRepository.increment({ id: commentId }, "dislike", 1);
 
     existingReaction.isLiked = false;
     await this.ReactionRepository.save(existingReaction);
-    await this.commentRepository.save(comment);
 
     return;
   }
