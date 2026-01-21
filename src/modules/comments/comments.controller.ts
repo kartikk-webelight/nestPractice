@@ -24,7 +24,7 @@ export class CommentsController {
 
   @UseGuards(AuthGuard)
   @ApiSwaggerResponse(CreateCommentResponseDto, { status: StatusCodes.CREATED })
-  @Post("create")
+  @Post()
   async createComment(@Body() body: CreateCommentDto, @Req() req: Request, @Res() res: Response) {
     const data = await this.commentsService.createComment(body, req.user.id);
 
@@ -50,9 +50,9 @@ export class CommentsController {
 
   @Get()
   @ApiSwaggerResponse(GetAllCommentsResponseDto)
-  async getAllComment(@Query() query: PaginationQueryDto, @Res() res: Response) {
+  async getComments(@Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
-    const data = await this.commentsService.getAllComments(page, limit);
+    const data = await this.commentsService.getComments(page, limit);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
