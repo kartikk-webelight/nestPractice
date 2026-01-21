@@ -4,6 +4,7 @@ import { DataSource, Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
+import { PostStatus } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
 
@@ -21,7 +22,7 @@ export class ReactionService {
       const postRepository = manager.getRepository(PostEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
 
-      const post = await postRepository.findOne({ where: { id: postId } });
+      const post = await postRepository.findOne({ where: { id: postId, status: PostStatus.PUBLISHED } });
       if (!post) {
         throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
       }
@@ -72,7 +73,7 @@ export class ReactionService {
     await this.dataSource.transaction(async (manager) => {
       const postRepository = manager.getRepository(PostEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
-      const post = await postRepository.findOne({ where: { id: postId } });
+      const post = await postRepository.findOne({ where: { id: postId, status: PostStatus.PUBLISHED } });
       if (!post) {
         throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
       }
