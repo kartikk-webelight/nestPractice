@@ -15,7 +15,13 @@ export class MainExceptionFilter implements ExceptionFilter {
     const statusCode = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     if (
-      [HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN, HttpStatus.BAD_REQUEST, HttpStatus.NOT_FOUND].includes(statusCode)
+      [
+        HttpStatus.UNAUTHORIZED,
+        HttpStatus.FORBIDDEN,
+        HttpStatus.BAD_REQUEST,
+        HttpStatus.NOT_FOUND,
+        HttpStatus.TOO_MANY_REQUESTS,
+      ].includes(statusCode)
     ) {
       return httpAdapter.reply(ctx.getResponse(), response, statusCode);
     }
