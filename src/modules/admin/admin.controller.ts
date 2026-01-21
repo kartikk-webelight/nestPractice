@@ -9,7 +9,7 @@ import { RolesGuard } from "guards/role-guard";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
 import { AdminService } from "./admin.service";
-import { GetAllUsersResponseDto, getUserByIdResponseDto } from "./dto/admin-response.dto";
+import { GetUsersResponseDto, getUserByIdResponseDto } from "./dto/admin-response.dto";
 import { GetUsersQueryDto } from "./dto/admin.dto";
 import type { Response } from "express";
 
@@ -20,14 +20,14 @@ import type { Response } from "express";
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @ApiSwaggerResponse(GetAllUsersResponseDto)
+  @ApiSwaggerResponse(GetUsersResponseDto)
   @Get("users")
   async getUsers(@Res() res: Response, @Query() query: GetUsersQueryDto) {
     const data = await this.adminService.getUsers(query);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_USERS_FETCHED },
-      transformWith: GetAllUsersResponseDto,
+      transformWith: GetUsersResponseDto,
     });
   }
 
