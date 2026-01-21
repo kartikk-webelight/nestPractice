@@ -5,6 +5,7 @@ import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType, OrderBy } from "enums";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { GetUsersQuery } from "./admin.types";
 
 @Injectable()
@@ -42,7 +43,7 @@ export class AdminService {
 
     qb.orderBy("user.createdAt", order);
 
-    qb.skip((page - 1) * limit).take(limit);
+    qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [users, total] = await qb.getManyAndCount();
 
@@ -60,7 +61,7 @@ export class AdminService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 
