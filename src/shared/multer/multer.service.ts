@@ -6,6 +6,6 @@ export const multerMemoryOptions: MulterOptions = {
   storage: multer.memoryStorage(),
   limits: {
     files: FILE_CONSTANTS.MAX_FILE_COUNT,
-    fileSize: FILE_CONSTANTS.MAX_FILE_SIZE_IN_MB,
+    fileSize: FILE_CONSTANTS.MAX_FILE_SIZE_IN_BYTES,
   },
 };
