@@ -1,17 +1,18 @@
 import { CookieOptions } from "express";
+import { DURATION_CONSTANTS } from "constants/duration.constants";
 
 export const accessCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
   path: "/",
-  maxAge: 24 * 60 * 60 * 1000,
+  maxAge: DURATION_CONSTANTS.ONE_HOUR_IN_MS,
 };
 
 export const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
-  path: "/auth/refresh", // important
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: "/api/v1/auth/refresh-token",
+  maxAge: DURATION_CONSTANTS.ONE_DAY_IN_MS,
 };

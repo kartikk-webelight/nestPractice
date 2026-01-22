@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { SlugService } from "shared/slug.service";
 import { DataSource, Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
-import { generateKSUID } from "utils/helper.utils";
+import { SlugService } from "shared/slug.service";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { PostEntity } from "./post.entity";
 import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
 import type { User } from "types/types";
@@ -23,9 +23,7 @@ export class PostService {
   async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
     return this.dataSource.transaction(async (manager) => {
       const { title, content } = body;
-
-      const slugId = await generateKSUID("s");
-      const slug = this.slugService.buildSlug(title, slugId);
+      const slug = await this.slugService.buildSlug(title);
 
       const post = manager.create(PostEntity, {
         title,
@@ -69,7 +67,7 @@ export class PostService {
     const [posts, total] = await this.postRepository.findAndCount({
       where: { author: { id: userId } },
       relations: { author: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
@@ -87,7 +85,7 @@ export class PostService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 
@@ -253,7 +251,7 @@ export class PostService {
     qb.orderBy(SORT_MAP[sortBy ?? SortBy.CREATED_AT], order);
 
     // Pagination
-    qb.skip((page - 1) * limit).take(limit);
+    qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [posts, total] = await qb.getManyAndCount();
 
@@ -273,7 +271,7 @@ export class PostService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 

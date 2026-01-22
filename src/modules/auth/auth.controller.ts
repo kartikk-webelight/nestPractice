@@ -2,10 +2,10 @@ import { Body, Controller, Get, Patch, Post, Req, Res, UploadedFile, UseGuards, 
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
-import { multerMemoryOptions } from "shared/multer/multer.service";
 import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { AuthGuard } from "guards/auth-guard";
+import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
 import { AuthService } from "./auth.service";
@@ -27,7 +27,7 @@ export class AuthController {
 
   @ApiSwaggerResponse(CreateUserResponseDto, { status: StatusCodes.CREATED })
   @UseInterceptors(FileInterceptor("file", multerMemoryOptions))
-  @Post("create")
+  @Post()
   async create(@Res() res: Response, @Body() body: CreateUserDto, @UploadedFile() file: Express.Multer.File) {
     const data = await this.authService.create(body, file);
 
@@ -40,7 +40,7 @@ export class AuthController {
 
   @ApiSwaggerResponse(CurrentUserResponseDto)
   @UseGuards(AuthGuard)
-  @Get("current")
+  @Get()
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
     const data = await this.authService.getCurrentUser(req.user.id);
 
@@ -84,7 +84,7 @@ export class AuthController {
 
   @ApiSwaggerResponse(UpdateUserResponseDto, { status: StatusCodes.OK })
   @UseGuards(AuthGuard)
-  @Patch("update")
+  @Patch()
   async updateDetails(@Req() req: Request, @Body() body: UpdateDetailsDto, @Res() res: Response) {
     const data = await this.authService.updateDetails(body, req.user.id);
 

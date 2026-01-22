@@ -1,10 +1,12 @@
-import { Column, Entity, ManyToOne } from "typeorm";
+import { Column, Entity, ManyToOne, Unique } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { BaseEntity } from "database/base-entity";
 
 @Entity("Reactions")
+@Unique("uq_reaction_user_post", ["reactedBy", "post"])
+@Unique("uq_reaction_user_comment", ["reactedBy", "comment"])
 export class ReactionEntity extends BaseEntity {
   idPrefix = "r";
 
