@@ -198,7 +198,7 @@ export class PostService {
   }
 
   async getPosts(query: GetPostsQuery, currentUser: User) {
-    const { q, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
+    const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
     const qb = this.postRepository.createQueryBuilder("post");
 
@@ -230,8 +230,8 @@ export class PostService {
     }
 
     // Search title + content
-    if (q) {
-      qb.andWhere("(post.title ILIKE :q OR post.content ILIKE :q)", { q: `%${q}%` });
+    if (search) {
+      qb.andWhere("(post.title ILIKE :search OR post.content ILIKE :search)", { search: `%${search}%` });
     }
 
     // Date range filter

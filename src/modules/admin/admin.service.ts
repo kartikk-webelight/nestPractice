@@ -17,16 +17,12 @@ export class AdminService {
   ) {}
 
   async getUsers(query: GetUsersQuery) {
-    const { page, limit, name, email, role, fromDate, toDate, order = OrderBy.DESC } = query;
+    const { page, limit, search, role, fromDate, toDate, order = OrderBy.DESC } = query;
 
     const qb = this.userRepository.createQueryBuilder("user");
 
-    if (name) {
-      qb.andWhere("user.name ILIKE :name", { name: `%${name}%` });
-    }
-
-    if (email) {
-      qb.andWhere("user.email ILIKE :email", { email: `%${email}%` });
+    if (search) {
+      qb.andWhere("user.name ILIKE :search OR user.email ILIKE :search", { search: `%${search}%` });
     }
 
     if (fromDate) {

@@ -1,12 +1,6 @@
-import { OrderBy, UserRole } from "enums";
+import { UserRole } from "enums";
+import { BaseQuery } from "types/types";
 
-export interface GetUsersQuery {
-  name?: string;
-  email?: string;
+export interface GetUsersQuery extends BaseQuery {
   role?: UserRole;
-  fromDate?: string;
-  toDate?: string;
-  order?: OrderBy;
-  page: number;
-  limit: number;
 }
