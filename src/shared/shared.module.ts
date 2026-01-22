@@ -1,10 +1,27 @@
 import { Global, Module } from "@nestjs/common";
+import Redis from "ioredis";
+import { redisConfig } from "config/redis-config";
 import { AiService } from "./ai/ai.service";
 import { CloudinaryService } from "./cloudinary/cloudinary.service";
+import { EmailService } from "./email/email.service";
+import { RedisService } from "./redis/redis.service";
+import { SlugService } from "./slug.service";
 
 @Global()
 @Module({
-  providers: [CloudinaryService, AiService],
-  exports: [CloudinaryService, AiService],
+  providers: [
+    CloudinaryService,
+    SlugService,
+    AiService,
+    EmailService,
+    RedisService,
+    {
+      provide: "REDIS_CLIENT",
+      useFactory: () => {
+        return new Redis(redisConfig);
+      },
+    },
+  ],
+  exports: [CloudinaryService, AiService, EmailService],
 })
 export class SharedModule {}

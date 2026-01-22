@@ -12,4 +12,10 @@ export const secretConfig = {
   cloudinaryApiKey: getOsEnv("CLOUDINARY_API_KEY"),
   cloudinaryApiSecret: getOsEnv("CLOUDINARY_API_SECRET"),
   geminiApiKey: getOsEnv("GEMINI_API_KEY"),
+  mailtrapApiKey: getOsEnv("MAILTRAP_API_KEY"),
+  senderEmail: getOsEnv("SENDER_EMAIL"),
+  backendUrl: getOsEnv("FRONTEND_URL"),
+  senderName: getOsEnv("SENDER_NAME"),
+  emailVerificationSecretKey: getOsEnv("EMAIL_VERIFICATION_SECRET_KEY"),
+  emailTokenExpiry: getOsEnv("EMAIL_TOKEN_EXPIRY"),
 };

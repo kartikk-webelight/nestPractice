@@ -21,6 +21,12 @@ export class UserEntity extends BaseEntity {
   @Column()
   password: string;
 
+  @Column({ default: false })
+  isEmailVerified: boolean;
+
+  @Column({ nullable: true })
+  emailVerifiedAt: Date;
+
   @Column({
     type: "enum",
     enum: UserRole,

@@ -1,10 +1,17 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType } from "enums";
+import { EmailService } from "shared/email/email.service";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
 import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
 
@@ -15,6 +22,8 @@ export class AuthService {
     private readonly userRepository: Repository<UserEntity>,
 
     private readonly attachmentService: AttachmentService,
+
+    private readonly emailService: EmailService,
   ) {}
 
   async getCurrentUser(userId: string) {
@@ -37,8 +46,9 @@ export class AuthService {
       email,
     });
     await newUser.setPassword(password);
-
     const savedUser = await this.userRepository.save(newUser);
+
+    await this.emailService.sendVerificationEmail(email, savedUser.id, name);
 
     const attachment = file ? await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER) : null;
 
@@ -50,6 +60,10 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException("Please verify your email");
     }
 
     const isPasswordCorrect = await user.isPasswordCorrect(password);
@@ -136,5 +150,46 @@ export class AuthService {
     }
 
     return {};
+  }
+
+  async verifyEmail(token: string) {
+    const userId = await this.emailService.verifyEmailToken(token);
+
+    if (!userId) {
+      throw new BadRequestException("invalid or expired verification link");
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    if (user.isEmailVerified) {
+      return;
+    }
+
+    await this.userRepository.update(userId, {
+      isEmailVerified: true,
+      emailVerifiedAt: new Date(),
+    });
+
+    return;
+  }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException("Email already verified");
+    }
+
+    await this.emailService.resendVerificationEmail(user.email, user.id, user.name);
+
+    return;
   }
 }

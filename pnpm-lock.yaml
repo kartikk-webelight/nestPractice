@@ -68,9 +68,15 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
+      mailtrap:
+        specifier: ^4.4.0
+        version: 4.4.0(nodemailer@7.0.12)
       multer:
         specifier: ^2.0.2
         version: 2.0.2
+      nodemailer:
+        specifier: ^7.0.12
+        version: 7.0.12
       pg:
         specifier: ^8.16.3
         version: 8.16.3
@@ -3860,6 +3866,18 @@ packages:
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
 
+  mailtrap@4.4.0:
+    resolution: {integrity: sha512-HAUAUJRVr0oXzipnnJErvHqmlUJ159icD1R9u9vHNFMNM16Buh2BfakKOi/TXBhk8ihkntH2Q5JSG7sphPNRMA==}
+    engines: {node: '>=16.20.1', yarn: '>=1.22.17'}
+    peerDependencies:
+      '@types/nodemailer': ^6.4.9
+      nodemailer: ^7.0.7
+    peerDependenciesMeta:
+      '@types/nodemailer':
+        optional: true
+      nodemailer:
+        optional: true
+
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
     engines: {node: '>=10'}
@@ -4039,6 +4057,10 @@ packages:
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
+
+  nodemailer@7.0.12:
+    resolution: {integrity: sha512-H+rnK5bX2Pi/6ms3sN4/jRQvYSMltV6vqup/0SFOrxYYY/qoNvhXPlYq3e+Pm9RFJRwrMGbMIwi81M4dxpomhA==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -9635,6 +9657,14 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  mailtrap@4.4.0(nodemailer@7.0.12):
+    dependencies:
+      axios: 1.12.2
+    optionalDependencies:
+      nodemailer: 7.0.12
+    transitivePeerDependencies:
+      - debug
+
   make-dir@4.0.0:
     dependencies:
       semver: 7.7.3
@@ -9767,6 +9797,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.27: {}
+
+  nodemailer@7.0.12: {}
 
   normalize-path@3.0.0: {}
 
