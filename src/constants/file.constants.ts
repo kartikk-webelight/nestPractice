@@ -1,0 +1,4 @@
+export const FILE_CONSTANTS = {
+  MAX_FILE_SIZE_IN_MB: 5,
+  MAX_FILE_COUNT: 5,
+};
