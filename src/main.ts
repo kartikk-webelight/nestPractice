@@ -54,7 +54,18 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("docs", app, document);
+  SwaggerModule.setup("docs", app, document, {
+    customCss: `
+    body {
+      background-color: #000000ff;
+      color: #db7c08ff;
+    }
+    .swagger-ui .topbar { background-color: #000000ff; }
+    .swagger-ui .opblock { background-color: #000000ff; }
+    .swagger-ui .opblock-summary { color: #e4780cff; }
+    /* add more styles as needed */
+  `,
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }

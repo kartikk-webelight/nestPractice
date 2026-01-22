@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { generateKSUID } from "utils/helper.utils";
+import { generateKSUID } from "utils/helper";
 
 @Injectable()
 export class SlugService {

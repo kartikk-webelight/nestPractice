@@ -1,5 +1,5 @@
 import { BeforeInsert, CreateDateColumn, DeleteDateColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
-import { generateKSUID } from "utils/helper.utils";
+import { generateKSUID } from "utils/helper";
 
 export abstract class BaseEntity {
   protected abstract idPrefix: string;

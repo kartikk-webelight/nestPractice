@@ -1,4 +1,5 @@
-import { OrderBy, PostStatus, SortBy } from "enums";
+import { PostStatus, SortBy } from "enums";
+import { BaseQuery } from "types/types";
 
 export interface UpdatePost {
   title?: string;
@@ -10,13 +11,7 @@ export interface CreatePost {
   content: string;
 }
 
-export interface GetPostsQuery {
-  q?: string;
+export interface GetPostsQuery extends BaseQuery {
   status?: PostStatus;
-  fromDate?: string;
-  toDate?: string;
   sortBy?: SortBy;
-  order?: OrderBy;
-  page: number;
-  limit: number;
 }

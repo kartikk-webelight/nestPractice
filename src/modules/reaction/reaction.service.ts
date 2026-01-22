@@ -1,283 +1,264 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
-import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
+import { PostStatus } from "enums";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
 
 @Injectable()
 export class ReactionService {
   constructor(
     @InjectRepository(ReactionEntity)
-    private readonly ReactionRepository: Repository<ReactionEntity>,
+    private readonly reactionRepository: Repository<ReactionEntity>,
 
-    @InjectRepository(PostEntity)
-    private readonly postRepository: Repository<PostEntity>,
-
-    @InjectRepository(CommentEntity)
-    private readonly commentRepository: Repository<CommentEntity>,
-
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async likePost(postId: string, userId: string) {
-    const post = await this.postRepository.findOne({ where: { id: postId } });
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    await this.dataSource.transaction(async (manager) => {
+      const postRepository = manager.getRepository(PostEntity);
+      const reactionRepository = manager.getRepository(ReactionEntity);
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+      const post = await postRepository.findOne({ where: { id: postId, status: PostStatus.PUBLISHED } });
+      if (!post) {
+        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      }
 
-    const existingVote = await this.ReactionRepository.findOne({
-      where: {
-        post: { id: postId },
-        reactedBy: { id: userId },
-      },
-    });
-
-    // first like
-    if (!existingVote) {
-      post.likes += 1;
-
-      const vote = this.ReactionRepository.create({
-        post,
-        reactedBy: user,
-        isLiked: true,
+      const existingReaction = await reactionRepository.findOne({
+        where: {
+          post: { id: postId },
+          reactedBy: { id: userId },
+        },
       });
 
-      await this.ReactionRepository.save(vote);
-      await this.postRepository.save(post);
+      // first like
+      if (!existingReaction) {
+        await postRepository.increment({ id: postId }, "likes", 1);
 
-      return post;
-    }
+        const reaction = reactionRepository.create({
+          post,
+          reactedBy: { id: userId },
+          isLiked: true,
+        });
 
-    // already liked → remove like
-    if (existingVote.isLiked) {
-      if (post.likes > 0) post.likes -= 1;
+        await reactionRepository.save(reaction);
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
-      await this.postRepository.save(post);
+        return;
+      }
 
-      return post;
-    }
+      // already liked → remove like
+      if (existingReaction.isLiked) {
+        if (post.likes > 0) await postRepository.decrement({ id: postId }, "likes", 1);
 
-    // previously disliked → switch
-    if (post.dislikes > 0) post.dislikes -= 1;
-    post.likes += 1;
+        await reactionRepository.delete({ id: existingReaction.id });
 
-    existingVote.isLiked = true;
-    await this.ReactionRepository.save(existingVote);
-    await this.postRepository.save(post);
+        return;
+      }
 
-    return post;
+      // previously disliked → switch
+      if (post.dislikes > 0) await postRepository.decrement({ id: postId }, "dislikes", 1);
+      await postRepository.increment({ id: postId }, "likes", 1);
+
+      existingReaction.isLiked = true;
+      await reactionRepository.save(existingReaction);
+
+      return;
+    });
   }
 
   async dislikePost(postId: string, userId: string) {
-    const post = await this.postRepository.findOne({ where: { id: postId } });
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    await this.dataSource.transaction(async (manager) => {
+      const postRepository = manager.getRepository(PostEntity);
+      const reactionRepository = manager.getRepository(ReactionEntity);
+      const post = await postRepository.findOne({ where: { id: postId, status: PostStatus.PUBLISHED } });
+      if (!post) {
+        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
-
-    const existingVote = await this.ReactionRepository.findOne({
-      where: {
-        post: { id: postId },
-        reactedBy: { id: userId },
-      },
-    });
-
-    // first dislike
-    if (!existingVote) {
-      post.dislikes += 1;
-
-      const vote = this.ReactionRepository.create({
-        post,
-        reactedBy: user,
-        isLiked: false,
+      const existingReaction = await reactionRepository.findOne({
+        where: {
+          post: { id: postId },
+          reactedBy: { id: userId },
+        },
       });
 
-      await this.ReactionRepository.save(vote);
-      await this.postRepository.save(post);
+      // first dislike
+      if (!existingReaction) {
+        await postRepository.increment({ id: postId }, "dislikes", 1);
 
-      return post;
-    }
+        const reaction = reactionRepository.create({
+          post,
+          reactedBy: { id: userId },
+          isLiked: false,
+        });
 
-    // already disliked → remove dislike
-    if (!existingVote.isLiked) {
-      if (post.dislikes > 0) post.dislikes -= 1;
+        await reactionRepository.save(reaction);
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
-      await this.postRepository.save(post);
+        return;
+      }
 
-      return post;
-    }
+      // already disliked → remove dislike
+      if (!existingReaction.isLiked) {
+        if (post.dislikes > 0) await postRepository.decrement({ id: postId }, "dislikes", 1);
 
-    // previously liked → switch
-    if (post.likes > 0) post.likes -= 1;
-    post.dislikes += 1;
+        await reactionRepository.delete({ id: existingReaction.id });
 
-    existingVote.isLiked = false;
-    await this.ReactionRepository.save(existingVote);
-    await this.postRepository.save(post);
+        return;
+      }
 
-    return post;
+      // previously liked → switch
+      if (post.likes > 0) await postRepository.decrement({ id: postId }, "likes", 1);
+      await postRepository.increment({ id: postId }, "dislikes", 1);
+
+      existingReaction.isLiked = false;
+      await reactionRepository.save(existingReaction);
+
+      return;
+    });
   }
 
   async likeComment(commentId: string, userId: string) {
-    const comment = await this.commentRepository.findOne({
-      where: { id: commentId },
-    });
+    await this.dataSource.transaction(async (manager) => {
+      const commentRepository = manager.getRepository(CommentEntity);
+      const reactionRepository = manager.getRepository(ReactionEntity);
 
-    if (!comment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
-
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
-
-    const existingVote = await this.ReactionRepository.findOne({
-      where: {
-        comment: { id: commentId },
-        reactedBy: { id: userId },
-      },
-    });
-
-    // first like
-    if (!existingVote) {
-      comment.likes += 1;
-
-      const vote = this.ReactionRepository.create({
-        comment,
-        reactedBy: user,
-        isLiked: true,
+      const comment = await commentRepository.findOne({
+        where: { id: commentId },
       });
 
-      await this.ReactionRepository.save(vote);
-      await this.commentRepository.save(comment);
+      if (!comment) {
+        throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
+      }
 
-      return comment;
-    }
+      const existingReaction = await reactionRepository.findOne({
+        where: {
+          comment: { id: commentId },
+          reactedBy: { id: userId },
+        },
+      });
 
-    // already liked → remove like
-    if (existingVote.isLiked) {
-      if (comment.likes > 0) comment.likes -= 1;
+      // first like
+      if (!existingReaction) {
+        await commentRepository.increment({ id: commentId }, "likes", 1);
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
-      await this.commentRepository.save(comment);
+        const reaction = reactionRepository.create({
+          comment,
+          reactedBy: { id: userId },
+          isLiked: true,
+        });
 
-      return comment;
-    }
+        await reactionRepository.save(reaction);
 
-    // previously disliked → switch
-    if (comment.dislikes > 0) comment.dislikes -= 1;
-    comment.likes += 1;
+        return;
+      }
 
-    existingVote.isLiked = true;
-    await this.ReactionRepository.save(existingVote);
-    await this.commentRepository.save(comment);
+      // already liked → remove like
+      if (existingReaction.isLiked) {
+        if (comment.likes > 0) await commentRepository.decrement({ id: commentId }, "likes", 1);
 
-    return comment;
+        await reactionRepository.delete({ id: existingReaction.id });
+
+        return;
+      }
+
+      // previously disliked → switch
+      if (comment.dislikes > 0) await commentRepository.decrement({ id: commentId }, "dislikes", 1);
+      await commentRepository.increment({ id: commentId }, "likes", 1);
+
+      existingReaction.isLiked = true;
+      await reactionRepository.save(existingReaction);
+
+      return;
+    });
   }
 
   async dislikeComment(commentId: string, userId: string) {
-    const comment = await this.commentRepository.findOne({
-      where: { id: commentId },
-    });
+    await this.dataSource.transaction(async (manager) => {
+      const commentRepository = manager.getRepository(CommentEntity);
+      const reactionRepository = manager.getRepository(ReactionEntity);
 
-    if (!comment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
-
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
-
-    const existingVote = await this.ReactionRepository.findOne({
-      where: {
-        comment: { id: commentId },
-        reactedBy: { id: userId },
-      },
-    });
-
-    // first dislike
-    if (!existingVote) {
-      comment.dislikes += 1;
-
-      const vote = this.ReactionRepository.create({
-        comment,
-        reactedBy: user,
-        isLiked: false,
+      const comment = await commentRepository.findOne({
+        where: { id: commentId },
       });
 
-      await this.ReactionRepository.save(vote);
-      await this.commentRepository.save(comment);
+      if (!comment) {
+        throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
+      }
 
-      return comment;
-    }
+      const existingReaction = await reactionRepository.findOne({
+        where: {
+          comment: { id: commentId },
+          reactedBy: { id: userId },
+        },
+      });
 
-    // already disliked → remove dislike
-    if (!existingVote.isLiked) {
-      if (comment.dislikes > 0) comment.dislikes -= 1;
+      // first dislike
+      if (!existingReaction) {
+        await commentRepository.increment({ id: commentId }, "dislikes", 1);
 
-      await this.ReactionRepository.delete({ id: existingVote.id });
-      await this.commentRepository.save(comment);
+        const reaction = reactionRepository.create({
+          comment,
+          reactedBy: { id: userId },
+          isLiked: false,
+        });
 
-      return comment;
-    }
+        await reactionRepository.save(reaction);
 
-    // previously liked → switch
-    if (comment.likes > 0) comment.likes -= 1;
-    comment.dislikes += 1;
+        return;
+      }
 
-    existingVote.isLiked = false;
-    await this.ReactionRepository.save(existingVote);
-    await this.commentRepository.save(comment);
+      // already disliked → remove dislike
+      if (!existingReaction.isLiked) {
+        if (comment.dislikes > 0) await commentRepository.decrement({ id: commentId }, "dislikes", 1);
 
-    return comment;
+        await reactionRepository.delete({ id: existingReaction.id });
+
+        return;
+      }
+
+      // previously liked → switch
+      if (comment.likes > 0) await commentRepository.decrement({ id: commentId }, "likes", 1);
+      await commentRepository.increment({ id: commentId }, "dislikes", 1);
+
+      existingReaction.isLiked = false;
+      await reactionRepository.save(existingReaction);
+
+      return;
+    });
   }
 
   async getLikedPosts(page: number, limit: number, userId: string) {
-    const [reactions, total] = await this.ReactionRepository.findAndCount({
+    const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
         isLiked: true,
         reactedBy: { id: userId },
       },
       relations: { post: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
     const likedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
     return {
       data: likedPosts,
-      total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      total,
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 
   async getDislikedPosts(page: number, limit: number, userId: string) {
-    const [reactions, total] = await this.ReactionRepository.findAndCount({
+    const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
-        isLiked: true,
+        isLiked: false,
         reactedBy: { id: userId },
       },
       relations: { post: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
@@ -285,10 +266,10 @@ export class ReactionService {
 
     return {
       data: dislikedPosts,
-      total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      total,
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 }

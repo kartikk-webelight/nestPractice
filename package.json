@@ -43,6 +43,7 @@
     "cookie-parser": "^1.4.7",
     "crypto-js": "^4.2.0",
     "dotenv": "^17.2.3",
+    "eslint-plugin-typescript-sort-keys": "^3.3.0",
     "express": "^5.2.1",
     "http-status-codes": "^2.3.0",
     "ioredis": "^5.8.2",
