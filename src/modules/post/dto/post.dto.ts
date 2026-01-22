@@ -23,7 +23,7 @@ export class CreatePostDto {
   content: string;
 }
 
-export class SearchPostsQueryDto extends PaginationQueryDto {
+export class GetPostsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: "nestjs" })
   @IsOptional()
   @IsString()
