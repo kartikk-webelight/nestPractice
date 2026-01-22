@@ -8,9 +8,7 @@ import { UserRole } from "enums/index";
 export class UserEntity extends BaseEntity {
   idPrefix = "u";
 
-  @Column({
-    unique: true,
-  })
+  @Column({ unique: true })
   @Index()
   name: string;
   @Column({ unique: true })
