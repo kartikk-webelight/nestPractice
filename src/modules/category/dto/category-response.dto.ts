@@ -3,15 +3,31 @@ import { MessageResponseDto, PaginationDataDto } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CategoryResponse {
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "c_mxmsoisx123",
+    description: "Unique identifier of the category",
+  })
+  @Expose()
+  id: string;
+
+  @ApiPropertyWritable({
+    example: "Tech",
+    description: "Category that the post belongs to",
+  })
   @Expose()
   name: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "This post explains how to properly design DTOs in NestJS...",
+    description: "Content/body of the post",
+  })
   @Expose()
   description: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "science-technology",
+    description: "URL-friendly slug generated from the category name",
+  })
   @Expose()
   slug: string;
 

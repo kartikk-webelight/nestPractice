@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, In, Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
+import { CategoryEntity } from "modules/category/category.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
@@ -22,7 +23,18 @@ export class PostService {
 
   async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
     return this.dataSource.transaction(async (manager) => {
-      const { title, content } = body;
+      const categoryRepository = manager.getRepository(CategoryEntity);
+      const { title, content, categoryIds } = body;
+      let categories: CategoryEntity[] = [];
+      if (categoryIds?.length) {
+        categories = await categoryRepository.find({
+          where: { id: In(categoryIds) },
+        });
+
+        if (categories.length !== categoryIds.length) {
+          throw new BadRequestException(ERROR_MESSAGES.INVALID_CATEGORY_ID);
+        }
+      }
 
       const slug = await this.slugService.buildSlug(title);
 
@@ -31,14 +43,20 @@ export class PostService {
         content,
         slug,
         author: { id: userId },
+        categories,
       });
 
       const savedPost = await manager.save(post);
 
+      const postWithCategories = await manager.findOne(PostEntity, {
+        where: { id: savedPost.id },
+        relations: ["categories"],
+      });
+
       const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST);
 
       return {
-        ...savedPost,
+        ...postWithCategories,
         attachments,
       };
     });
@@ -47,7 +65,7 @@ export class PostService {
   async getPostById(postId: string) {
     const post = await this.postRepository.findOne({
       where: { id: postId },
-      relations: { author: true },
+      relations: { author: true, categories: true },
     });
 
     if (!post) {
@@ -67,7 +85,7 @@ export class PostService {
   async getMyposts(userId: string, page: number, limit: number) {
     const [posts, total] = await this.postRepository.findAndCount({
       where: { author: { id: userId } },
-      relations: { author: true },
+      relations: { author: true, categories: true },
       skip: calculateOffset(page, limit),
       take: limit,
     });
@@ -93,7 +111,10 @@ export class PostService {
   async updatePost(body: UpdatePost, userId: string, postId: string) {
     const { title, content } = body;
 
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: { author: true, categories: true },
+    });
 
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
@@ -120,7 +141,10 @@ export class PostService {
   }
 
   async publishPost(postId: string, user: User) {
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: { author: true, categories: true },
+    });
 
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
@@ -142,7 +166,10 @@ export class PostService {
   }
 
   async unPublishPost(postId: string, user: User) {
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: { author: true, categories: true },
+    });
 
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
@@ -179,7 +206,7 @@ export class PostService {
   async getPostBySlug(slug: string) {
     const post = await this.postRepository.findOne({
       where: { slug },
-      relations: { author: true },
+      relations: { author: true, categories: true },
     });
 
     if (!post) {

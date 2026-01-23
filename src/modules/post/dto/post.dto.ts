@@ -1,5 +1,6 @@
 import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import { IsEnum, IsNotEmpty, IsOptional } from "class-validator";
+import { TrimArrayString } from "decorators/trim-array-string.decorator";
 import { TrimString } from "decorators/trim-string.decorator";
 import { BaseQueryDto, PaginationQueryDto } from "dto/common-request.dto";
 import { PostStatus, SortBy } from "enums";
@@ -21,6 +22,13 @@ export class CreatePostDto {
   @IsNotEmpty({ message: "Post content is required" })
   @TrimString()
   content: string;
+
+  @ApiPropertyWritable({
+    example: "c_UOEWH23DH5OHC",
+    description: "Ids of categories",
+  })
+  @TrimArrayString()
+  categoryIds: string[];
 }
 
 export class GetPostsQueryDto extends BaseQueryDto {

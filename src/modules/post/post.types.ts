@@ -9,6 +9,7 @@ export interface UpdatePost {
 export interface CreatePost {
   title: string;
   content: string;
+  categoryIds: string[];
 }
 
 export interface GetPostsQuery extends BaseQuery {

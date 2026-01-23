@@ -1,4 +1,5 @@
 import { Expose, Type } from "class-transformer";
+import { CategoryResponse } from "modules/category/dto/category-response.dto";
 import { AttachmentResponseDto, MessageResponseDto, PaginationDataDto } from "dto/common-response.dto";
 import { PostStatus, UserRole } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
@@ -106,6 +107,7 @@ export class PostResponse {
   publishedAt?: Date | null;
 
   @ApiPropertyWritable({
+    type: [AttachmentResponseDto],
     example: "files uploaded on the post",
     nullable: true,
     description: "files uploaded on the post",
@@ -113,6 +115,16 @@ export class PostResponse {
   @Expose()
   @Type(() => AttachmentResponseDto)
   attachments?: AttachmentResponseDto[];
+
+  @ApiPropertyWritable({
+    type: [CategoryResponse],
+    example: "files uploaded on the post",
+    nullable: true,
+    description: "files uploaded on the post",
+  })
+  @Expose()
+  @Type(() => CategoryResponse)
+  categories: CategoryResponse[];
 
   @ApiPropertyWritable({
     type: PostAuthorResponse,

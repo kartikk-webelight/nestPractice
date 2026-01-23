@@ -1,4 +1,5 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import { CategoryEntity } from "modules/category/category.entity";
 import { UserEntity } from "modules/users/users.entity";
 import { BaseEntity } from "database/base-entity";
 import { PostStatus } from "enums/index";
@@ -44,4 +45,8 @@ export class PostEntity extends BaseEntity {
   @ManyToOne(() => UserEntity, { nullable: false, onDelete: "CASCADE" })
   @JoinColumn({ name: "authorId" })
   author: UserEntity;
+
+  @ManyToMany(() => CategoryEntity)
+  @JoinTable({ name: "post_categories" })
+  categories!: CategoryEntity[];
 }
