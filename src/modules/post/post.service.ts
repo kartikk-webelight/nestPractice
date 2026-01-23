@@ -5,7 +5,7 @@ import { AttachmentService } from "modules/attachment/attachment.service";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
-import { calculateOffset, calculateTotalPages, generateKSUID } from "utils/helper";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { PostEntity } from "./post.entity";
 import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
 import type { User } from "types/types";
@@ -23,9 +23,7 @@ export class PostService {
   async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
     return this.dataSource.transaction(async (manager) => {
       const { title, content } = body;
-
-      const slugId = await generateKSUID("s");
-      const slug = this.slugService.buildSlug(title, slugId);
+      const slug = await this.slugService.buildSlug(title);
 
       const post = manager.create(PostEntity, {
         title,
