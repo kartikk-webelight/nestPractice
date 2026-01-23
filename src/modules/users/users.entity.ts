@@ -11,7 +11,6 @@ export class UserEntity extends BaseEntity {
   @Column()
   @Index()
   name: string;
-
   @Column({ unique: true })
   @Index()
   email: string;

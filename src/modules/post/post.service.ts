@@ -245,7 +245,7 @@ export class PostService {
     const SORT_MAP: Record<SortBy, string> = {
       [SortBy.CREATED_AT]: "post.createdAt",
       [SortBy.LIKES]: "post.likes",
-      [SortBy.VIEWS]: "post.views",
+      [SortBy.VIEWCOUNT]: "post.viewCount",
     };
 
     qb.orderBy(SORT_MAP[sortBy ?? SortBy.CREATED_AT], order);
