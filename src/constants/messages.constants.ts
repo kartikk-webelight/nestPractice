@@ -16,8 +16,8 @@ export const SUCCESS_MESSAGES = {
   COMMENT_FETCHED: "Comment fetched successfully",
   ALL_POSTS_FETCHED: "All posts fetched successfully",
   POST_FETCHED: "Post fetched successfully",
-  ALL_CATEGORIES_FETCHED: "All posts fetched successfully",
-  CATEGORY_FETCHED: "Post fetched successfully",
+  ALL_CATEGORIES_FETCHED: "All Categories fetched successfully",
+  CATEGORY_FETCHED: "Category fetched successfully",
 };
 
 export const ERROR_MESSAGES = {

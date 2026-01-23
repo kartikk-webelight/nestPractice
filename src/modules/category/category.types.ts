@@ -1,21 +1,13 @@
-import { OrderBy, SortBy } from "enums";
+import { BaseQuery } from "types/types";
 
 export interface CreateCategory {
   name: string;
   description: string;
 }
 
-export interface updateCategory {
+export interface UpdateCategory {
   name?: string;
   description?: string;
 }
 
-export class GetCategoriesQuery {
-  q?: string;
-  fromDate?: string;
-  toDate?: string;
-  sortBy?: SortBy;
-  order?: OrderBy;
-  page: number;
-  limit: number;
-}
+export type GetCategoriesQuery = BaseQuery;

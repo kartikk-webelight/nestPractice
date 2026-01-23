@@ -17,6 +17,8 @@ export class PostService {
     @InjectRepository(PostEntity)
     private readonly postRepository: Repository<PostEntity>,
     private readonly attachmentService: AttachmentService,
+    @InjectRepository(CategoryEntity)
+    private readonly categoryRepository: Repository<CategoryEntity>,
     private readonly slugService: SlugService,
     private readonly dataSource: DataSource,
   ) {}
@@ -53,6 +55,10 @@ export class PostService {
         relations: ["categories"],
       });
 
+      if (!postWithCategories) {
+        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      }
+
       const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST);
 
       return {
@@ -82,7 +88,7 @@ export class PostService {
     return postWithAttachment;
   }
 
-  async getMyposts(userId: string, page: number, limit: number) {
+  async getMyPosts(userId: string, page: number, limit: number) {
     const [posts, total] = await this.postRepository.findAndCount({
       where: { author: { id: userId } },
       relations: { author: true, categories: true },
@@ -109,7 +115,7 @@ export class PostService {
   }
 
   async updatePost(body: UpdatePost, userId: string, postId: string) {
-    const { title, content } = body;
+    const { title, content, categoryIds } = body;
 
     const post = await this.postRepository.findOne({
       where: { id: postId },
@@ -124,18 +130,28 @@ export class PostService {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    if (title && title !== undefined) {
+    if (title) {
       post.title = title;
     }
-    if (content && content !== undefined) {
+    if (content) {
       post.content = content;
     }
 
-    const updatedPost = await this.postRepository.save(post);
+    if (categoryIds !== undefined) {
+      const categories = categoryIds.length
+        ? await this.categoryRepository.find({
+            where: { id: In(categoryIds) },
+          })
+        : [];
 
-    if (!updatedPost) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      if (categories.length !== categoryIds.length) {
+        throw new BadRequestException(ERROR_MESSAGES.INVALID_CATEGORY_ID);
+      }
+
+      post.categories = categories;
     }
+
+    const updatedPost = await this.postRepository.save(post);
 
     return updatedPost;
   }
@@ -158,10 +174,6 @@ export class PostService {
 
     const publishedPost = await this.postRepository.save(post);
 
-    if (!publishedPost) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
-
     return publishedPost;
   }
 
@@ -181,10 +193,6 @@ export class PostService {
     post.status = PostStatus.DRAFT;
 
     const unPublishedPost = await this.postRepository.save(post);
-
-    if (!unPublishedPost) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
 
     return unPublishedPost;
   }
@@ -273,7 +281,7 @@ export class PostService {
     const SORT_MAP: Record<SortBy, string> = {
       [SortBy.CREATED_AT]: "post.createdAt",
       [SortBy.LIKES]: "post.likes",
-      [SortBy.VIEWS]: "post.views",
+      [SortBy.VIEWS]: "post.viewCount",
     };
 
     qb.orderBy(SORT_MAP[sortBy ?? SortBy.CREATED_AT], order);

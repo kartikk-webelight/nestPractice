@@ -18,7 +18,7 @@ export enum EntityType {
 export enum SortBy {
   CREATED_AT = "createdAt",
   LIKES = "likes",
-  VIEWS = "views",
+  VIEWS = "viewCount",
 }
 
 export enum OrderBy {

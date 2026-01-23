@@ -18,8 +18,8 @@ export class CategoryResponse {
   name: string;
 
   @ApiPropertyWritable({
-    example: "This post explains how to properly design DTOs in NestJS...",
-    description: "Content/body of the post",
+    example: "This Category explains how to properly design rotes in NestJS...",
+    description: "Description of the category",
   })
   @Expose()
   description: string;
@@ -54,10 +54,10 @@ export class CategoriesPaginationResponseDto extends PaginationDataDto {
   data: CategoryResponse[];
 }
 
-export class PaginatedCategoryResonseDto extends MessageResponseDto {
+export class PaginatedCategoryResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({
     type: CategoriesPaginationResponseDto,
-    description: "Paginated posts response with metadata",
+    description: "Paginated categories response with metadata",
   })
   @Type(() => CategoriesPaginationResponseDto)
   @Expose()
@@ -72,4 +72,4 @@ export class GetCategoryByIdResponseDto extends CategoryResponseDto {}
 
 export class GetCategoryBySlugResponseDto extends CategoryResponseDto {}
 
-export class GetAllCategoriesResponseDto extends PaginatedCategoryResonseDto {}
+export class GetCategoriesResponseDto extends PaginatedCategoryResponseDto {}

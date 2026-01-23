@@ -118,9 +118,9 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     type: [CategoryResponse],
-    example: "files uploaded on the post",
+    example: "Javascript",
     nullable: true,
-    description: "files uploaded on the post",
+    description: "categories which the post belongs to",
   })
   @Expose()
   @Type(() => CategoryResponse)
@@ -165,4 +165,13 @@ export class PaginatedPostResponseDto extends MessageResponseDto {
   data: PostsPaginationDataDto;
 }
 
+export class CreatePostResponseDto extends PostResponseDto {}
+export class UpdatePostResponseDto extends PostResponseDto {}
+export class PublishPostResponseDto extends PostResponseDto {}
+export class UnpublishPostResponseDto extends PostResponseDto {}
+
 export class GetAllPostsResponseDto extends PaginatedPostResponseDto {}
+export class GetMyPostsResponseDto extends PaginatedPostResponseDto {}
+
+export class GetPostBySlugResponseDto extends PostResponseDto {}
+export class GetPostByIdResponseDto extends PostResponseDto {}
