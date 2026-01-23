@@ -1,8 +1,8 @@
 // src/decorators/date-range.decorator.ts
 import { registerDecorator, ValidationOptions, ValidationArguments } from "class-validator";
 
-export function IsAfter(property: string, validationOptions?: ValidationOptions) {
-  return function (object: object, propertyName: string) {
+export const IsAfter =
+  (property: string, validationOptions?: ValidationOptions) => (object: object, propertyName: string) => {
     registerDecorator({
       name: "isAfter",
       target: object.constructor,
@@ -25,4 +25,3 @@ export function IsAfter(property: string, validationOptions?: ValidationOptions)
       },
     });
   };
-}
