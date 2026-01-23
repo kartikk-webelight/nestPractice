@@ -6,7 +6,7 @@ import { generateKSUID } from "utils/helper";
 export class SlugService {
   async buildSlug(title: string): Promise<string> {
     const baseSlug = slugify(title);
-    const slugId = await generateKSUID("s");
+    const slugId = (await generateKSUID("s")).slice(-6).toLowerCase();
 
     return `${baseSlug}-${slugId}`;
   }
