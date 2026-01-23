@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { OrderBy } from "enums";
 import { SlugService } from "shared/slug.service";
@@ -14,7 +14,6 @@ export class CategoryService {
     @InjectRepository(CategoryEntity)
     private readonly categoryRepository: Repository<CategoryEntity>,
     private readonly slugService: SlugService,
-    private readonly dataSource: DataSource,
   ) {}
 
   async createCategory(body: CreateCategory) {
@@ -81,7 +80,7 @@ export class CategoryService {
     const qb = this.categoryRepository.createQueryBuilder("category");
 
     if (search) {
-      qb.andWhere("category.name ILIKE :search OR category.description ILIKE :search", { search: `%${search}%` });
+      qb.andWhere("(category.name ILIKE :search OR category.description ILIKE :search)", { search: `%${search}%` });
     }
 
     if (fromDate) {
@@ -115,6 +114,6 @@ export class CategoryService {
     }
     await this.categoryRepository.softDelete(categoryId);
 
-    return {};
+    return;
   }
 }

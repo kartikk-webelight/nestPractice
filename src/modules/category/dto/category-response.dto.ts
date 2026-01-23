@@ -26,7 +26,7 @@ export class CategoryResponse {
 
   @ApiPropertyWritable({
     example: "science-technology",
-    description: "URL-friendly slug generated from the category name",
+    description: "Unique URL-friendly identifier for the category",
   })
   @Expose()
   slug: string;

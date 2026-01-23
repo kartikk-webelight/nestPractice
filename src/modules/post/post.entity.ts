@@ -24,15 +24,12 @@ export class PostEntity extends BaseEntity {
   status: PostStatus;
 
   @Column({ default: 0 })
-  @Index()
   viewCount: number;
 
   @Column({ default: 0 })
-  @Index()
   likes: number;
 
   @Column({ default: 0 })
-  @Index()
   dislikes: number;
 
   @Column({ unique: true })

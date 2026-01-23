@@ -131,6 +131,8 @@ export class PostService {
     }
 
     if (title) {
+      const slug = await this.slugService.buildSlug(title);
+      post.slug = slug;
       post.title = title;
     }
     if (content) {

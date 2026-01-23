@@ -49,4 +49,4 @@ export class GetAllPostsDto extends PaginationQueryDto {}
 
 export class GetPublishedPostsDto extends PaginationQueryDto {}
 
-export class GetMyPostsDto extends PaginationQueryDto {}
+export class GetMyPostsQueryDto extends PaginationQueryDto {}

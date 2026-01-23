@@ -16,6 +16,7 @@ import {
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
+import { FILE_CONSTANTS } from "constants/file.constants";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { Roles } from "decorators/role";
 import { UserRole } from "enums/index";
@@ -24,7 +25,7 @@ import { RolesGuard } from "guards/role-guard";
 import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
-import { CreatePostDto, GetMyPostsDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
+import { CreatePostDto, GetMyPostsQueryDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import {
   CreatePostResponseDto,
   GetMyPostsResponseDto,
@@ -47,7 +48,7 @@ export class PostController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.AUTHOR)
-  @UseInterceptors(FilesInterceptor("files", 5, multerMemoryOptions))
+  @UseInterceptors(FilesInterceptor("files", FILE_CONSTANTS.MAX_FILE_COUNT, multerMemoryOptions))
   @ApiSwaggerResponse(CreatePostResponseDto, { status: StatusCodes.CREATED })
   async createPost(
     @Req() req: Request,
@@ -66,7 +67,7 @@ export class PostController {
 
   @Get("my")
   @ApiSwaggerResponse(GetMyPostsResponseDto)
-  async getMyPosts(@Req() req: Request, @Query() query: GetMyPostsDto, @Res() res: Response) {
+  async getMyPosts(@Req() req: Request, @Query() query: GetMyPostsQueryDto, @Res() res: Response) {
     const { page, limit } = query;
     const data = await this.postService.getMyPosts(req.user.id, page, limit);
 
