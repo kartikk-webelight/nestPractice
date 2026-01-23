@@ -1,4 +1,5 @@
 import { Expose, Type } from "class-transformer";
+import { CategoryResponse } from "modules/category/dto/category-response.dto";
 import { AttachmentResponseDto, MessageResponseDto, PaginationDataDto } from "dto/common-response.dto";
 import { PostStatus, UserRole } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
@@ -30,7 +31,7 @@ export class PostAuthorResponse {
     description: "Role of the user who authored the post",
   })
   @Expose()
-  role: string;
+  role: UserRole;
 }
 
 export class PostResponse {
@@ -57,10 +58,10 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     example: PostStatus.PUBLISHED,
-    description: "Current status of the post (draft, published, archived)",
+    description: "Current status of the post (draft, published)",
   })
   @Expose()
-  status: string;
+  status: PostStatus;
 
   @ApiPropertyWritable({
     example: 152,
@@ -71,7 +72,7 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     example: 24,
-    description: "Total number of upvotes received by the post",
+    description: "Total number of likes received by the post",
   })
   @Expose()
   likes: number;
@@ -85,7 +86,7 @@ export class PostResponse {
 
   @ApiPropertyWritable({
     example: 3,
-    description: "Total number of downvotes received by the post",
+    description: "Total number of dislikes received by the post",
   })
   @Expose()
   dislikes: number;
@@ -106,6 +107,7 @@ export class PostResponse {
   publishedAt?: Date | null;
 
   @ApiPropertyWritable({
+    type: [AttachmentResponseDto],
     example: "files uploaded on the post",
     nullable: true,
     description: "files uploaded on the post",
@@ -113,6 +115,16 @@ export class PostResponse {
   @Expose()
   @Type(() => AttachmentResponseDto)
   attachments?: AttachmentResponseDto[];
+
+  @ApiPropertyWritable({
+    type: [CategoryResponse],
+    example: "Javascript",
+    nullable: true,
+    description: "categories which the post belongs to",
+  })
+  @Expose()
+  @Type(() => CategoryResponse)
+  categories: CategoryResponse[];
 
   @ApiPropertyWritable({
     type: PostAuthorResponse,
@@ -153,4 +165,13 @@ export class PaginatedPostResponseDto extends MessageResponseDto {
   data: PostsPaginationDataDto;
 }
 
+export class CreatePostResponseDto extends PostResponseDto {}
+export class UpdatePostResponseDto extends PostResponseDto {}
+export class PublishPostResponseDto extends PostResponseDto {}
+export class UnpublishPostResponseDto extends PostResponseDto {}
+
 export class GetAllPostsResponseDto extends PaginatedPostResponseDto {}
+export class GetMyPostsResponseDto extends PaginatedPostResponseDto {}
+
+export class GetPostBySlugResponseDto extends PostResponseDto {}
+export class GetPostByIdResponseDto extends PostResponseDto {}

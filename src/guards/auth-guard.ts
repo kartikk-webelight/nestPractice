@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { DecodedToken } from "modules/auth/auth.types";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { verifyAccessToken } from "utils/jwt";
@@ -21,7 +22,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    let decodedToken;
+    let decodedToken: DecodedToken;
     try {
       decodedToken = verifyAccessToken(token);
     } catch {

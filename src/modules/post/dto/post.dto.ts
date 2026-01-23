@@ -1,8 +1,9 @@
 import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsOptional } from "class-validator";
+import { TrimArrayString } from "decorators/trim-array-string.decorator";
 import { TrimString } from "decorators/trim-string.decorator";
-import { PaginationQueryDto } from "dto/common-request.dto";
-import { OrderBy, SortBy, PostStatus } from "enums";
+import { BaseQueryDto, PaginationQueryDto } from "dto/common-request.dto";
+import { PostStatus, SortBy } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreatePostDto {
@@ -21,42 +22,25 @@ export class CreatePostDto {
   @IsNotEmpty({ message: "Post content is required" })
   @TrimString()
   content: string;
+
+  @ApiPropertyWritable({
+    example: "c_UOEWH23DH5OHC",
+    description: "Ids of categories",
+  })
+  @TrimArrayString()
+  categoryIds: string[];
 }
 
-export class GetPostsQueryDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ example: "nestjs" })
-  @IsOptional()
-  @IsString()
-  @TrimString()
-  q?: string; // title + content
-
+export class GetPostsQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ example: PostStatus.PUBLISHED })
   @IsOptional()
   @IsEnum(PostStatus)
   status?: PostStatus;
 
-  @ApiPropertyOptional({ example: "2024-01-01" })
-  @IsOptional()
-  @TrimString()
-  @IsDateString()
-  fromDate?: string;
-
-  @ApiPropertyOptional({ example: "2024-12-31" })
-  @IsOptional()
-  @TrimString()
-  @IsDateString()
-  toDate?: string;
-
   @ApiPropertyOptional({ example: SortBy.LIKES })
   @IsOptional()
   @IsEnum(SortBy)
   sortBy?: SortBy;
-
-  @ApiPropertyOptional({ example: OrderBy.DESC })
-  @IsOptional()
-  @IsEnum(OrderBy)
-  order?: OrderBy;
-  changes;
 }
 
 export class UpdatePostDto extends PartialType(CreatePostDto) {}
@@ -65,4 +49,4 @@ export class GetAllPostsDto extends PaginationQueryDto {}
 
 export class GetPublishedPostsDto extends PaginationQueryDto {}
 
-export class GetMyPostsDto extends PaginationQueryDto {}
+export class GetMyPostsQueryDto extends PaginationQueryDto {}

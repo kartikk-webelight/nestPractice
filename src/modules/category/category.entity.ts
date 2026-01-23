@@ -5,7 +5,7 @@ import { BaseEntity } from "database/base-entity";
 export class CategoryEntity extends BaseEntity {
   idPrefix = "c";
 
-  @Column()
+  @Column({ unique: true })
   @Index()
   name: string;
 

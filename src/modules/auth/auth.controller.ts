@@ -27,7 +27,7 @@ export class AuthController {
 
   @ApiSwaggerResponse(CreateUserResponseDto, { status: StatusCodes.CREATED })
   @UseInterceptors(FileInterceptor("file", multerMemoryOptions))
-  @Post("create")
+  @Post()
   async create(@Res() res: Response, @Body() body: CreateUserDto, @UploadedFile() file: Express.Multer.File) {
     const data = await this.authService.create(body, file);
 
@@ -40,7 +40,7 @@ export class AuthController {
 
   @ApiSwaggerResponse(CurrentUserResponseDto)
   @UseGuards(AuthGuard)
-  @Get("current")
+  @Get()
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
     const data = await this.authService.getCurrentUser(req.user.id);
 
@@ -84,7 +84,7 @@ export class AuthController {
 
   @ApiSwaggerResponse(UpdateUserResponseDto, { status: StatusCodes.OK })
   @UseGuards(AuthGuard)
-  @Patch("update")
+  @Patch()
   async updateDetails(@Req() req: Request, @Body() body: UpdateDetailsDto, @Res() res: Response) {
     const data = await this.authService.updateDetails(body, req.user.id);
 

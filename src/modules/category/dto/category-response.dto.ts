@@ -3,15 +3,31 @@ import { MessageResponseDto, PaginationDataDto } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CategoryResponse {
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "c_mxmsoisx123",
+    description: "Unique identifier of the category",
+  })
+  @Expose()
+  id: string;
+
+  @ApiPropertyWritable({
+    example: "Tech",
+    description: "Category that the post belongs to",
+  })
   @Expose()
   name: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "This Category explains how to properly design rotes in NestJS...",
+    description: "Description of the category",
+  })
   @Expose()
   description: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "science-technology",
+    description: "Unique URL-friendly identifier for the category",
+  })
   @Expose()
   slug: string;
 
@@ -38,10 +54,10 @@ export class CategoriesPaginationResponseDto extends PaginationDataDto {
   data: CategoryResponse[];
 }
 
-export class PaginatedCategoryResonseDto extends MessageResponseDto {
+export class PaginatedCategoryResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({
     type: CategoriesPaginationResponseDto,
-    description: "Paginated posts response with metadata",
+    description: "Paginated categories response with metadata",
   })
   @Type(() => CategoriesPaginationResponseDto)
   @Expose()
@@ -56,4 +72,4 @@ export class GetCategoryByIdResponseDto extends CategoryResponseDto {}
 
 export class GetCategoryBySlugResponseDto extends CategoryResponseDto {}
 
-export class GetAllCategoriesResponseDto extends PaginatedCategoryResonseDto {}
+export class GetCategoriesResponseDto extends PaginatedCategoryResponseDto {}
