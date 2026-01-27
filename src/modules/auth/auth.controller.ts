@@ -3,7 +3,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
 import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { AuthGuard } from "guards/auth-guard";
 import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";

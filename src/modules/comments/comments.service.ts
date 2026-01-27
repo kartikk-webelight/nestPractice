@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/co
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { PostService } from "modules/post/post.service";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { UserRole } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CommentEntity } from "./comment.entity";
