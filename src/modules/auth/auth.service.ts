@@ -63,7 +63,7 @@ export class AuthService {
     }
 
     if (!user.isEmailVerified) {
-      throw new UnauthorizedException("Please verify your email");
+      throw new UnauthorizedException(ERROR_MESSAGES.VERIFY_YOUR_EMAIL);
     }
 
     const isPasswordCorrect = await user.isPasswordCorrect(password);
@@ -72,8 +72,8 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIAL);
     }
 
-    const refreshToken = generateRefreshToken({ payload: user.id });
-    const accessToken = generateAccessToken({ payload: user.id });
+    const refreshToken = generateRefreshToken({ id: user.id });
+    const accessToken = generateAccessToken({ id: user.id });
 
     return {
       refreshToken,
@@ -93,17 +93,17 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    if (!decodedToken.payload) {
+    if (!decodedToken.id) {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    const user = await this.userRepository.findOne({ where: { id: decodedToken.payload } });
+    const user = await this.userRepository.findOne({ where: { id: decodedToken.id } });
 
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const newAccessToken = generateAccessToken({ payload: user.id });
+    const newAccessToken = generateAccessToken({ id: user.id });
 
     return {
       newAccessToken,
@@ -153,7 +153,7 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
-    const userId = await this.emailService.verifyEmailToken(token);
+    const userId = await this.emailService.verifyEmail(token);
 
     if (!userId) {
       throw new BadRequestException("invalid or expired verification link");

@@ -24,7 +24,10 @@ export class UserEntity extends BaseEntity {
   @Column({ default: false })
   isEmailVerified: boolean;
 
-  @Column({ nullable: true })
+  @Column({
+    type: "timestamp with time zone",
+    nullable: true,
+  })
   emailVerifiedAt: Date;
 
   @Column({

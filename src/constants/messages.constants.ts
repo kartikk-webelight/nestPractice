@@ -50,4 +50,5 @@ export const ERROR_MESSAGES = {
   COMMENT_NOT_FOUND: "Comment not found",
   CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed",
   PREFIX_REQUIRED: "Prefix is required to create a slug",
+  VERIFY_YOUR_EMAIL: "Please verify your email",
 };

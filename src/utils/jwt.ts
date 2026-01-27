@@ -17,6 +17,12 @@ export function generateRefreshToken(payload: object): string {
   });
 }
 
+export function generateEmailToken(payload: object): string {
+  return sign(payload, secretConfig.emailVerificationSecretKey, {
+    expiresIn: secretConfig.emailTokenExpiry as SignOptions["expiresIn"],
+  });
+}
+
 export function verifyAccessToken(token: string): DecodedToken {
   try {
     return verify(token, secretConfig.accessSecretKey) as DecodedToken;
@@ -29,6 +35,13 @@ export function verifyRefreshToken(token: string): DecodedToken {
   try {
     return verify(token, secretConfig.refreshSecretKey) as DecodedToken;
   } catch {
+    throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+  }
+}
+export function verifyEmailToken(token: string) {
+  try {
+    return verify(token, secretConfig.emailVerificationSecretKey);
+  } catch (error) {
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
 }

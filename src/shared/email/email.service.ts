@@ -1,24 +1,29 @@
 import { Injectable } from "@nestjs/common";
-import { sign, SignOptions, verify } from "jsonwebtoken";
-import { MailtrapClient } from "mailtrap";
+import * as nodemailer from "nodemailer"; // Import nodemailer
 import { secretConfig } from "config/secret.config";
+import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
-
-const client = new MailtrapClient({
-  token: secretConfig.mailtrapApiKey,
-});
 
 @Injectable()
 export class EmailService {
-  constructor(private readonly redisService: RedisService) {}
+  private transporter: nodemailer.Transporter;
+
+  constructor(private readonly redisService: RedisService) {
+    this.transporter = nodemailer.createTransport({
+      host: "sandbox.smtp.mailtrap.io",
+      port: 2525,
+      auth: {
+        user: secretConfig.mailtrapSandboxUsername, // From Mailtrap Inbox settings
+        pass: secretConfig.mailtrapSandboxPassword, // From Mailtrap Inbox settings
+      },
+    });
+  }
 
   /**
    * Generate verification token for email verification
    */
   private generateVerificationToken(userId: string): string {
-    return sign({ userId, type: "email_verification" }, secretConfig.emailVerificationSecretKey, {
-      expiresIn: secretConfig.emailTokenExpiry as SignOptions["expiresIn"],
-    });
+    return generateEmailToken({ userId, type: "email_verification" });
   }
 
   /**
@@ -26,36 +31,19 @@ export class EmailService {
    */
   async sendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
     try {
-      // Generate verification token
       const token = this.generateVerificationToken(userId);
-
-      // Store token in Redis with 24 hour expiration (in seconds)
       const redisKey = `verification:${userId}`;
       await this.redisService.set(redisKey, token, 24 * 60 * 60);
 
-      // Create verification link
-      const verificationLink = `${secretConfig.backendUrl}/verify-email?token=${token}`;
+      const verificationLink = `${secretConfig.backendUrl}/auth/verify-email?token=${token}`;
 
-      // Prepare email content
-      const sender = {
-        email: secretConfig.senderEmail,
-        name: secretConfig.senderName,
-      };
-
-      const recipients = [{ email }];
-
-      const subject = "Verify Your Email Address";
-      const html = this.getVerificationEmailTemplate(name || "User", verificationLink);
-      const text = `Hello ${name || "User"},\n\nPlease verify your email address by clicking the following link:\n${verificationLink}\n\nThis link will expire in 24 hours.\n\nIf you did not create an account, please ignore this email.`;
-
-      // Send email
-      await client.send({
-        from: sender,
-        to: recipients,
-        subject,
-        text,
-        html,
-        category: "Email Verification",
+      // Send email using Transporter
+      await this.transporter.sendMail({
+        from: `"${secretConfig.senderName}" <${secretConfig.senderEmail}>`,
+        to: email,
+        subject: "Verify Your Email Address",
+        text: `Hello ${name || "User"},\n\nPlease verify your email: ${verificationLink}`,
+        html: this.getVerificationEmailTemplate(name || "User", verificationLink),
       });
     } catch (error) {
       throw error;
@@ -65,9 +53,9 @@ export class EmailService {
   /**
    * Verify email token from Redis
    */
-  async verifyEmailToken(token: string): Promise<string | null> {
+  async verifyEmail(token: string) {
     try {
-      const decoded = verify(token, secretConfig.accessSecretKey) as { userId: string; type: string };
+      const decoded = verifyEmailToken(token) as { userId: string; type: string };
 
       if (decoded.type !== "email_verification") {
         return null;
