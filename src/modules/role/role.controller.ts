@@ -9,8 +9,8 @@ import { AuthGuard } from "guards/auth-guard";
 import { RolesGuard } from "guards/role-guard";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
-import { GetRequestedRoleStatusResponseDto, GetRoleRequestsResponseDto } from "./dto/role-response.to";
-import { CreateRoleRequestDto, GetRoleRequestsQueryDto, UpdateRoleDto } from "./dto/role.dto";
+import { GetRequestedRoleStatusResponseDto, GetRoleRequestsResponseDto } from "./dto/role-response.dto";
+import { CreateRoleRequestDto, GetRoleRequestsQueryDto, UpdateRoleRequestDto } from "./dto/role.dto";
 import { RoleService } from "./role.service";
 import type { Request, Response } from "express";
 
@@ -36,13 +36,13 @@ export class RoleController {
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
   @ApiSwaggerResponse(MessageResponseDto)
-  async updateRole(
+  async updateRoleRequest(
     @Req() req: Request,
     @Param("id") requestId: string,
-    @Body() body: UpdateRoleDto,
+    @Body() body: UpdateRoleRequestDto,
     @Res() res: Response,
   ) {
-    await this.roleService.updateRole(req.user.id, requestId, body.action);
+    await this.roleService.updateRoleRequest(req.user.id, requestId, body.action);
 
     return responseUtils.success(res, {
       data: { message: SUCCESS_MESSAGES.ROLE_UPDATED },
@@ -63,7 +63,7 @@ export class RoleController {
 
   @Get()
   @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard)
+  @UseGuards(RolesGuard)
   @ApiSwaggerResponse(GetRoleRequestsResponseDto)
   async getRoleRequests(@Query() query: GetRoleRequestsQueryDto, @Res() res: Response) {
     const data = await this.roleService.getRoleRequests(query);

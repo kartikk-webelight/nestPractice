@@ -31,3 +31,8 @@ export enum RoleStatus {
   PENDING = "pending",
   REJECTED = "rejected",
 }
+
+export enum RoleRequestAction {
+  APPROVE = "approve",
+  REJECT = "reject",
+}

@@ -10,7 +10,10 @@ export class RoleEntity extends BaseEntity {
   @ManyToOne(() => UserEntity)
   user: UserEntity; // user making the request
 
-  @Column()
+  @Column({
+    type: "enum",
+    enum: UserRole,
+  })
   requestedRole: UserRole; // role they want
 
   @Column({

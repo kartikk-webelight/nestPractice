@@ -1,51 +1,29 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional } from "class-validator";
+import { IsEnum, IsNotEmpty, IsOptional } from "class-validator";
 import { TrimString } from "decorators/trim-string.decorator";
-import { PaginationQueryDto } from "dto/common-request.dto";
-import { OrderBy, RoleStatus, UserRole } from "enums";
+import { BaseQueryDto } from "dto/common-request.dto";
+import { RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreateRoleRequestDto {
-  @ApiPropertyWritable({ example: "author", description: "Requested role" })
+  @ApiPropertyWritable({ example: UserRole.AUTHOR, description: "Requested role" })
   @TrimString()
   @IsNotEmpty()
+  @IsEnum(UserRole)
   requestedRole: UserRole;
 }
 
-export class UpdateRoleDto {
-  @ApiPropertyWritable({ example: RoleStatus.APPROVED, description: "action to approve or reject the request" })
+export class UpdateRoleRequestDto {
+  @ApiPropertyWritable({ example: RoleRequestAction.APPROVE, description: "action to approve or reject the request" })
   @TrimString()
   @IsNotEmpty()
-  @IsEnum(RoleStatus)
-  action: RoleStatus;
+  @IsEnum(RoleRequestAction)
+  action: RoleRequestAction;
 }
 
-export class GetRoleRequestsQueryDto extends PaginationQueryDto {
-  @ApiPropertyWritable()
-  @TrimString()
-  @IsOptional()
-  name?: string;
-
+export class GetRoleRequestsQueryDto extends BaseQueryDto {
   @ApiPropertyWritable({ example: RoleStatus.APPROVED })
   @TrimString()
   @IsOptional()
   @IsEnum(RoleStatus)
   status?: RoleStatus;
-
-  @ApiPropertyWritable({ example: OrderBy.DESC })
-  @TrimString()
-  @IsOptional()
-  @IsEnum(OrderBy)
-  order?: OrderBy;
-
-  @ApiPropertyWritable({ example: "2024-12-31" })
-  @TrimString()
-  @IsOptional()
-  @IsDateString()
-  fromDate?: string;
-
-  @ApiPropertyWritable({ example: "2024-12-31" })
-  @TrimString()
-  @IsOptional()
-  @IsDateString()
-  toDate?: string;
 }

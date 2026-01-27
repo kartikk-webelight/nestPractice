@@ -1,11 +1,6 @@
-import { OrderBy, RoleStatus } from "enums";
+import { RoleStatus } from "enums";
+import { BaseQuery } from "types/types";
 
-export interface GetRoleRequestsQuery {
-  name?: string;
+export interface GetRoleRequestsQuery extends BaseQuery {
   status?: RoleStatus;
-  order?: OrderBy;
-  fromDate?: string;
-  toDate?: string;
-  page: number;
-  limit: number;
 }
