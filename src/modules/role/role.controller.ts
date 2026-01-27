@@ -14,7 +14,7 @@ import { CreateRoleRequestDto, GetRoleRequestsQueryDto, UpdateRoleRequestDto } f
 import { RoleService } from "./role.service";
 import type { Request, Response } from "express";
 
-@ApiTags("Role")
+@ApiTags("Roles")
 @Controller("roles")
 @UseGuards(AuthGuard)
 export class RoleController {

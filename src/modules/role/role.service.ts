@@ -45,8 +45,6 @@ export class RoleService {
     });
 
     await this.roleRepository.save(roleRequest);
-
-    return;
   }
 
   async updateRoleRequest(adminId: string, requestId: string, action: RoleRequestAction) {
@@ -68,23 +66,21 @@ export class RoleService {
         throw new BadRequestException("Role request already reviewed");
       }
 
-      // 2. Update request metadata
-      if (action === RoleRequestAction.APPROVE) {
-        roleRequest.status = RoleStatus.APPROVED;
-      } else if (action === RoleRequestAction.REJECT) {
-        roleRequest.status = RoleStatus.REJECTED;
+      if (roleRequest.user.id === adminId) {
+        throw new ForbiddenException("You cannot approve your own request");
       }
-      roleRequest.reviewedBy = userRepository.create({
-        id: adminId,
-      });
+
+      const isApproved = action === RoleRequestAction.APPROVE;
 
       // 3. If approved → update user role
       if (action === RoleRequestAction.APPROVE) {
-        roleRequest.user.role = roleRequest.requestedRole;
-        await userRepository.save(roleRequest.user);
+        await userRepository.update(roleRequest.user.id, { role: roleRequest.requestedRole });
       }
 
-      await roleRepository.save(roleRequest);
+      await roleRepository.update(requestId, {
+        status: isApproved ? RoleStatus.APPROVED : RoleStatus.REJECTED,
+        reviewedBy: { id: adminId },
+      });
 
       return;
     });
