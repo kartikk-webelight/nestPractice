@@ -20,4 +20,6 @@ export const secretConfig = {
   emailTokenExpiry: getOsEnv("EMAIL_TOKEN_EXPIRY"),
   mailtrapSandboxUsername: getOsEnv("MAILTRAP_SANDBOX_USERNAME"),
   mailtrapSandboxPassword: getOsEnv("MAILTRAP_SANDBOX_PASSWORD"),
+  mailtrapHost: getOsEnv("MAILTRAP_HOST"),
+  mailtrapPort: getOsEnv("MAILTRAP_PORT"),
 };

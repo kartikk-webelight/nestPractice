@@ -41,7 +41,7 @@ export function verifyRefreshToken(token: string): DecodedToken {
 export function verifyEmailToken(token: string) {
   try {
     return verify(token, secretConfig.emailVerificationSecretKey);
-  } catch (error) {
+  } catch {
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
 }

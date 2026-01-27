@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsEmail, IsNotEmpty, IsOptional } from "class-validator";
 import { TrimString } from "decorators/trim-string.decorator";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreateUserDto {
   @ApiProperty({
@@ -30,7 +31,7 @@ export class CreateUserDto {
 }
 
 export class LoginDto {
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "johndoe@gmail.com",
     description: "Registered email address of the user",
   })
@@ -39,7 +40,7 @@ export class LoginDto {
   @IsEmail({}, { message: "Email must be a valid email address" })
   email: string;
 
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "John@1234",
     description: "Account password",
   })
@@ -49,7 +50,7 @@ export class LoginDto {
 }
 
 export class UpdateDetailsDto {
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "John Doe",
     description: "Updated full name of the user",
     required: false,
@@ -59,7 +60,7 @@ export class UpdateDetailsDto {
   @TrimString()
   name?: string;
 
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "john.updated@gmail.com",
     description: "Updated email address of the user",
     required: false,
@@ -70,11 +71,22 @@ export class UpdateDetailsDto {
   @IsEmail({}, { message: "Email must be a valid email address" })
   email?: string;
 
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "NewPass@123",
     description: "Current or new password used to confirm the update",
   })
   @IsNotEmpty({ message: "Password is required to update user details" })
   @TrimString()
   password: string;
+}
+
+export class ResendVerificationEmailDto {
+  @ApiPropertyWritable({
+    example: "john.updated@gmail.com",
+    description: "Updated email address of the user",
+  })
+  @IsNotEmpty({ message: "Email must not be empty if provided" })
+  @TrimString()
+  @IsEmail({}, { message: "Email must be a valid email address" })
+  email: string;
 }

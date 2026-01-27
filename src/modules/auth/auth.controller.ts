@@ -30,7 +30,7 @@ import {
   RefreshResponseDto,
   UpdateUserResponseDto,
 } from "./dto/auth-response.dto";
-import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
+import { CreateUserDto, LoginDto, ResendVerificationEmailDto, UpdateDetailsDto } from "./dto/auth.dto";
 import type { Request, Response } from "express";
 
 @ApiTags("Auth")
@@ -131,6 +131,17 @@ export class AuthController {
 
     return responseUtils.success(res, {
       data: { message: "email verified" },
+      transformWith: MessageResponse,
+    });
+  }
+
+  @ApiSwaggerResponse(MessageResponse)
+  @Get("resend-verification-email")
+  async resendVerificationEmail(@Body() body: ResendVerificationEmailDto, @Res() res: Response) {
+    await this.authService.resendVerificationEmail(body.email);
+
+    return responseUtils.success(res, {
+      data: { message: SUCCESS_MESSAGES.EMAIL_SENT },
       transformWith: MessageResponse,
     });
   }

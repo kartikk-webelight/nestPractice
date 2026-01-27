@@ -1,22 +1,23 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import * as nodemailer from "nodemailer"; // Import nodemailer
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { secretConfig } from "config/secret.config";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter;
+  private readonly transporter: nodemailer.Transporter;
 
   constructor(private readonly redisService: RedisService) {
     this.transporter = nodemailer.createTransport({
-      host: "sandbox.smtp.mailtrap.io",
-      port: 2525,
+      host: secretConfig.mailtrapHost,
+      port: Number(secretConfig.mailtrapPort),
       auth: {
-        user: secretConfig.mailtrapSandboxUsername, // From Mailtrap Inbox settings
-        pass: secretConfig.mailtrapSandboxPassword, // From Mailtrap Inbox settings
+        user: secretConfig.mailtrapSandboxUsername,
+        pass: secretConfig.mailtrapSandboxPassword,
       },
-    });
+    } as SMTPTransport.Options);
   }
 
   /**
@@ -45,8 +46,8 @@ export class EmailService {
         text: `Hello ${name || "User"},\n\nPlease verify your email: ${verificationLink}`,
         html: this.getVerificationEmailTemplate(name || "User", verificationLink),
       });
-    } catch (error) {
-      throw error;
+    } catch {
+      throw new InternalServerErrorException("error while sending verification email");
     }
   }
 
@@ -73,7 +74,7 @@ export class EmailService {
       await this.redisService.delete([redisKey]);
 
       return decoded.userId;
-    } catch (error) {
+    } catch {
       return null;
     }
   }

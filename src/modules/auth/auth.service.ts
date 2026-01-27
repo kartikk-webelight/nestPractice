@@ -148,8 +148,6 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
-
-    return {};
   }
 
   async verifyEmail(token: string) {
@@ -173,8 +171,6 @@ export class AuthService {
       isEmailVerified: true,
       emailVerifiedAt: new Date(),
     });
-
-    return;
   }
 
   async resendVerificationEmail(email: string) {
@@ -189,7 +185,5 @@ export class AuthService {
     }
 
     await this.emailService.resendVerificationEmail(user.email, user.id, user.name);
-
-    return;
   }
 }
