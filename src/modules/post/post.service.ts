@@ -23,7 +23,7 @@ export class PostService {
   async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
     return this.dataSource.transaction(async (manager) => {
       const { title, content } = body;
-      const slug = await this.slugService.buildSlug(title);
+      const slug = this.slugService.buildSlug(title);
 
       const post = manager.create(PostEntity, {
         title,
