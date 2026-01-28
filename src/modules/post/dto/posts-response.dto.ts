@@ -1,4 +1,5 @@
 import { Expose, Type } from "class-transformer";
+import { CategoryResponse } from "modules/category/dto/category-response.dto";
 import { AttachmentResponseDto, MessageResponseDto, PaginationDataDto } from "dto/common-response.dto";
 import { PostStatus, UserRole } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
@@ -106,6 +107,7 @@ export class PostResponse {
   publishedAt?: Date | null;
 
   @ApiPropertyWritable({
+    type: [AttachmentResponseDto],
     example: "files uploaded on the post",
     nullable: true,
     description: "files uploaded on the post",
@@ -113,6 +115,16 @@ export class PostResponse {
   @Expose()
   @Type(() => AttachmentResponseDto)
   attachments?: AttachmentResponseDto[];
+
+  @ApiPropertyWritable({
+    type: [CategoryResponse],
+    example: "Javascript",
+    nullable: true,
+    description: "categories which the post belongs to",
+  })
+  @Expose()
+  @Type(() => CategoryResponse)
+  categories: CategoryResponse[];
 
   @ApiPropertyWritable({
     type: PostAuthorResponse,
@@ -153,4 +165,13 @@ export class PaginatedPostResponseDto extends MessageResponseDto {
   data: PostsPaginationDataDto;
 }
 
+export class CreatePostResponseDto extends PostResponseDto {}
+export class UpdatePostResponseDto extends PostResponseDto {}
+export class PublishPostResponseDto extends PostResponseDto {}
+export class UnpublishPostResponseDto extends PostResponseDto {}
+
 export class GetAllPostsResponseDto extends PaginatedPostResponseDto {}
+export class GetMyPostsResponseDto extends PaginatedPostResponseDto {}
+
+export class GetPostBySlugResponseDto extends PostResponseDto {}
+export class GetPostByIdResponseDto extends PostResponseDto {}
