@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AuthModule } from "modules/auth/auth.module";
 import { SharedModule } from "shared/shared.module";
 import { AppController } from "./app.controller";
@@ -10,10 +12,20 @@ import { CategoryModule } from "./modules/category/category.module";
 import { CommentsModule } from "./modules/comments/comments.module";
 import { PostModule } from "./modules/post/post.module";
 import { ReactionModule } from "./modules/reaction/reaction.module";
+import { RoleModule } from "./modules/role/role.module";
 import { UsersModule } from "./modules/users/users.module";
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: "default",
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
+    }),
     DatabaseModule,
     UsersModule,
     PostModule,
@@ -24,8 +36,15 @@ import { UsersModule } from "./modules/users/users.module";
     ReactionModule,
     AttachmentModule,
     CategoryModule,
+    RoleModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    AppService,
+  ],
 })
 export class AppModule {}
