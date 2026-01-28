@@ -113,7 +113,5 @@ export class CategoryService {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
     await this.categoryRepository.softDelete(categoryId);
-
-    return;
   }
 }
