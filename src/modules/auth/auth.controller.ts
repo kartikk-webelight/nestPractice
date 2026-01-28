@@ -18,6 +18,7 @@ import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config"
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { MessageResponseDto } from "dto/common-response.dto";
 import { AuthGuard } from "guards/auth-guard";
+import { logger } from "services/logger.service";
 import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
@@ -55,6 +56,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Get()
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
+    logger.info("CURRENT USER");
     const data = await this.authService.getCurrentUser(req.user.id);
 
     return responseUtils.success<CurrentUserResponseDto>(res, {

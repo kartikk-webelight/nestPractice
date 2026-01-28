@@ -2,5 +2,5 @@ projectKey=blog-app
 serverUrl=http://localhost:9000
 serverVersion=26.1.0.118079
 dashboardUrl=http://localhost:9000/dashboard?id=blog-app
-ceTaskId=af416229-2354-435f-b68f-0843ed70d449
-ceTaskUrl=http://localhost:9000/api/ce/task?id=af416229-2354-435f-b68f-0843ed70d449
+ceTaskId=6040eb52-4dd9-40af-b79a-92e0c64b7c3d
+ceTaskUrl=http://localhost:9000/api/ce/task?id=6040eb52-4dd9-40af-b79a-92e0c64b7c3d

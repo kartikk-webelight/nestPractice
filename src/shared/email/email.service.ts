@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import * as nodemailer from "nodemailer"; // Import nodemailer
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { secretConfig } from "config/secret.config";
+import { DURATION_CONSTANTS } from "constants/duration.constants";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
@@ -35,7 +36,7 @@ export class EmailService {
     try {
       const token = this.generateVerificationToken(userId);
       const redisKey = `verification:${userId}`;
-      await this.redisService.set(redisKey, token, 24 * 60 * 60);
+      await this.redisService.set(redisKey, token, DURATION_CONSTANTS.ONE_DAY_IN_SEC);
 
       const verificationLink = `${secretConfig.backendUrl}/auth/verify-email?token=${token}`;
 
