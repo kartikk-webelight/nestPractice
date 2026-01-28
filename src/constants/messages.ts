@@ -47,4 +47,5 @@ export const ERROR_MESSAGES = {
   CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed",
   PREFIX_REQUIRED: "Prefix is required to create a slug",
   INVALID_CATEGORY_ID: "Category id is invalid",
+  CATEGORY_ALREADY_EXISTS: "Category with same name already exists",
 };

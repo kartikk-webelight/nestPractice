@@ -1,7 +1,7 @@
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { Roles } from "decorators/role";
 import { MessageResponseDto } from "dto/common-response.dto";
 import { UserRole } from "enums";
@@ -14,7 +14,6 @@ import {
   CreateCategoryResponseDto,
   GetCategoriesResponseDto,
   GetCategoryByIdResponseDto,
-  GetCategoryBySlugResponseDto,
   UpdateCategoryResponseDto,
 } from "./dto/category-response.dto";
 import { CreateCategoryDto, GetCategoriesQueryDto, UpdateCategoryDto } from "./dto/category.dto";
@@ -38,6 +37,7 @@ export class CategoryController {
       transformWith: CreateCategoryResponseDto,
     });
   }
+
   @Get()
   @ApiSwaggerResponse(GetCategoriesResponseDto)
   async getCategories(@Query() query: GetCategoriesQueryDto, @Res() res: Response) {
@@ -45,7 +45,6 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_CATEGORIES_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetCategoriesResponseDto,
     });
   }
@@ -57,22 +56,10 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
       transformWith: UpdateCategoryResponseDto,
     });
   }
 
-  @Get(":slug/slug")
-  @ApiSwaggerResponse(GetCategoryBySlugResponseDto)
-  async getCategoryBySlug(@Param("slug") categorySlug: string, @Res() res: Response) {
-    const data = await this.categoryService.getCategoryBySlug(categorySlug);
-
-    return responseUtils.success(res, {
-      data: { data, message: SUCCESS_MESSAGES.CATEGORY_FETCHED },
-      status: StatusCodes.OK,
-      transformWith: GetCategoryBySlugResponseDto,
-    });
-  }
   @Get(":id")
   @ApiSwaggerResponse(GetCategoryByIdResponseDto)
   async getCategoryById(@Param("id") categoryId: string, @Res() res: Response) {
@@ -80,7 +67,6 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.CATEGORY_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetCategoryByIdResponseDto,
     });
   }
@@ -92,7 +78,6 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { message: SUCCESS_MESSAGES.DELETED },
-      status: StatusCodes.OK,
       transformWith: MessageResponseDto,
     });
   }

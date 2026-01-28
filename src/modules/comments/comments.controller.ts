@@ -57,10 +57,10 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetAllCommentsResponseDto,
     });
   }
+
   @Get("post/:id")
   @ApiSwaggerResponse(GetCommentByPostIdResponseDto)
   async getCommentByPostId(@Param("id") postId: string, @Query() query: PaginationQueryDto, @Res() res: Response) {
@@ -69,7 +69,6 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetCommentByPostIdResponseDto,
     });
   }
@@ -81,7 +80,6 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.COMMENT_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetCommentByIdResponseDto,
     });
   }
@@ -99,7 +97,6 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
       transformWith: UpdateCommentResponseDto,
     });
   }
@@ -111,7 +108,6 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.DELETED },
-      status: StatusCodes.OK,
     });
   }
 }

@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Not, Repository } from "typeorm";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy } from "enums";
 import { SlugService } from "shared/slug.service";
@@ -18,6 +18,12 @@ export class CategoryService {
 
   async createCategory(body: CreateCategory) {
     const { name, description } = body;
+
+    const existingCategory = await this.categoryRepository.findOne({ where: { name } });
+
+    if (existingCategory) {
+      throw new ConflictException(ERROR_MESSAGES.CATEGORY_ALREADY_EXISTS);
+    }
 
     const slug = this.slugService.buildSlug(name);
 
@@ -42,9 +48,19 @@ export class CategoryService {
     }
 
     if (name) {
-      const slug = this.slugService.buildSlug(name);
+      const duplicateCategory = await this.categoryRepository.findOne({
+        where: {
+          name,
+          id: Not(categoryId),
+        },
+      });
+
+      if (duplicateCategory) {
+        throw new ConflictException(ERROR_MESSAGES.CATEGORY_ALREADY_EXISTS);
+      }
+
       category.name = name;
-      category.slug = slug;
+      category.slug = this.slugService.buildSlug(name);
     }
     if (description) {
       category.description = description;
@@ -57,15 +73,6 @@ export class CategoryService {
 
   async getCategoryById(categoryId: string) {
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
-
-    if (!category) {
-      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
-    }
-
-    return category;
-  }
-  async getCategoryBySlug(categorySlug: string) {
-    const category = await this.categoryRepository.findOne({ where: { slug: categorySlug } });
 
     if (!category) {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);

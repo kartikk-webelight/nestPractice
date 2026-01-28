@@ -127,8 +127,6 @@ export class CommentsService {
     }
 
     await this.commentRepository.softDelete({ id: commentId });
-
-    return {};
   }
 
   async getCommentByPostId(page: number, limit: number, postId: string) {
@@ -137,7 +135,7 @@ export class CommentsService {
         post: { id: postId },
       },
       relations: { author: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
@@ -146,7 +144,7 @@ export class CommentsService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 }

@@ -45,5 +45,5 @@ export class PostEntity extends BaseEntity {
 
   @ManyToMany(() => CategoryEntity)
   @JoinTable({ name: "post_categories" })
-  categories!: CategoryEntity[];
+  categories: CategoryEntity[];
 }
