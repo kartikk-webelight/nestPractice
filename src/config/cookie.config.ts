@@ -1,5 +1,5 @@
 import { CookieOptions } from "express";
-import { DURATION_CONSTANTS } from "constants/duration.constants";
+import { DURATION_CONSTANTS } from "constants/duration";
 
 export const accessCookieOptions: CookieOptions = {
   httpOnly: true,

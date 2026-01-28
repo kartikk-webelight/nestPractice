@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { PaginationQueryDto } from "dto/common-request.dto";
 import { AuthGuard } from "guards/auth-guard";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";

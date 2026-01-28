@@ -16,7 +16,7 @@ import {
   getSchemaPath,
 } from "@nestjs/swagger";
 import { getReasonPhrase, StatusCodes } from "http-status-codes";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { ExceptionErrorDto } from "./dtos/exception-error.dto";
 import { ResponseDto, ResponseDtoTypeEnum } from "./dtos/response.dtos";
 

@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { PaginatedPostResponseDto } from "modules/post/dto/posts-response.dto";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { PaginationQueryDto } from "dto/common-request.dto";
 import { MessageResponseDto } from "dto/common-response.dto";
 import { AuthGuard } from "guards/auth-guard";

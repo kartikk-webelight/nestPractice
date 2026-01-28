@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { Roles } from "decorators/role";
 import { UserRole } from "enums";
 import { AuthGuard } from "guards/auth-guard";
