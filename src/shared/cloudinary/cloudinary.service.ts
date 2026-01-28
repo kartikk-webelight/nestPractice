@@ -8,9 +8,9 @@ import { ERROR_MESSAGES } from "constants/messages";
 export class CloudinaryService {
   constructor() {
     cloudinary.config({
-      cloud_name: secretConfig.cloudinaryCloudName,
-      api_key: secretConfig.cloudinaryApiKey,
-      api_secret: secretConfig.cloudinaryApiSecret,
+      cloud_name: secretConfig.cloudinaryConfigs.cloudName,
+      api_key: secretConfig.cloudinaryConfigs.apiKey,
+      api_secret: secretConfig.cloudinaryConfigs.apiSecret,
       secure: true,
     });
   }

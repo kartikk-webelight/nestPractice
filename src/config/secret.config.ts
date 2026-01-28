@@ -1,24 +1,43 @@
 import { getOsEnv } from "./env.config";
 
 export const secretConfig = {
-  jwtSecretKey: getOsEnv("JWT_SECRET_KEY"),
-  accessSecretKey: getOsEnv("ACCESS_SECRET_KEY"),
-  refreshSecretKey: getOsEnv("REFRESH_SECRET_KEY"),
-  jwtExpirationTime: getOsEnv("JWT_EXPIRATION_TIME"),
-  aesEncryptionKey: getOsEnv("AES_ENCRYPTION_KEY"),
-  refreshTokenExpiry: getOsEnv("REFRESH_TOKEN_EXPIRY"),
-  accessTokenExpiry: getOsEnv("ACCESS_TOKEN_EXPIRY"),
-  cloudinaryCloudName: getOsEnv("CLOUDINARY_CLOUD_NAME"),
-  cloudinaryApiKey: getOsEnv("CLOUDINARY_API_KEY"),
-  cloudinaryApiSecret: getOsEnv("CLOUDINARY_API_SECRET"),
-  geminiApiKey: getOsEnv("GEMINI_API_KEY"),
-  senderEmail: getOsEnv("SENDER_EMAIL"),
-  apiBaseUrl: getOsEnv("API_BASE_URL"),
-  senderName: getOsEnv("SENDER_NAME"),
-  emailVerificationSecretKey: getOsEnv("EMAIL_VERIFICATION_SECRET_KEY"),
-  emailTokenExpiry: getOsEnv("EMAIL_TOKEN_EXPIRY"),
+  // Prefix: AUTH_
+  authConfigs: {
+    jwtSecretKey: getOsEnv("AUTH_JWT_SECRET_KEY"),
+    accessSecretKey: getOsEnv("AUTH_ACCESS_SECRET_KEY"),
+    refreshSecretKey: getOsEnv("AUTH_REFRESH_SECRET_KEY"),
+    jwtExpirationTime: getOsEnv("AUTH_JWT_EXPIRATION_TIME"),
+    refreshTokenExpiry: getOsEnv("AUTH_REFRESH_TOKEN_EXPIRY"),
+    accessTokenExpiry: getOsEnv("AUTH_ACCESS_TOKEN_EXPIRY"),
+    emailVerificationSecretKey: getOsEnv("AUTH_EMAIL_VERIFICATION_SECRET_KEY"),
+    emailTokenExpiry: getOsEnv("AUTH_EMAIL_TOKEN_EXPIRY"),
+    aesEncryptionKey: getOsEnv("AUTH_AES_ENCRYPTION_KEY"),
+  },
 
-  // Mailtrap Configuration
+  // SERVER
+  serverConfigs: {
+    baseUrl: getOsEnv("SERVER_BASE_URL"),
+  },
+
+  // Prefix: CLOUDINARY_
+  cloudinaryConfigs: {
+    cloudName: getOsEnv("CLOUDINARY_CLOUD_NAME"),
+    apiKey: getOsEnv("CLOUDINARY_API_KEY"),
+    apiSecret: getOsEnv("CLOUDINARY_API_SECRET"),
+  },
+
+  // Prefix: GEMINI_
+  geminiConfigs: {
+    apiKey: getOsEnv("GEMINI_API_KEY"),
+  },
+
+  // Prefix: EMAIL_
+  emailConfigs: {
+    senderEmail: getOsEnv("EMAIL_SENDER_EMAIL"),
+    senderName: getOsEnv("EMAIL_SENDER_NAME"),
+  },
+
+  // Prefix: MAILTRAP_
   mailtrapConfigs: {
     apiKey: getOsEnv("MAILTRAP_API_KEY"),
     sandboxUsername: getOsEnv("MAILTRAP_SANDBOX_USERNAME"),

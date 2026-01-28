@@ -38,11 +38,11 @@ export class EmailService {
       const redisKey = `verification:${userId}`;
       await this.redisService.set(redisKey, token, DURATION_CONSTANTS.ONE_DAY_IN_SEC);
 
-      const verificationLink = `${secretConfig.apiBaseUrl}/auth/verify-email?token=${token}`;
+      const verificationLink = `${secretConfig.serverConfigs.baseUrl}/auth/verify-email?token=${token}`;
 
       // Send email using Transporter
       await this.transporter.sendMail({
-        from: `"${secretConfig.senderName}" <${secretConfig.senderEmail}>`,
+        from: `"${secretConfig.emailConfigs.senderName}" <${secretConfig.emailConfigs.senderEmail}>`,
         to: email,
         subject: "Verify Your Email Address",
         text: `Hello ${name || "User"},\n\nPlease verify your email: ${verificationLink}`,
