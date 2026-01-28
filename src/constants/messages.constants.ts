@@ -51,4 +51,7 @@ export const ERROR_MESSAGES = {
   CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed",
   PREFIX_REQUIRED: "Prefix is required to create a slug",
   VERIFY_YOUR_EMAIL: "Please verify your email",
+  EMAIL_ALREADY_VERIFIED: "Email is already verified",
+  EMAIL_VERIFICATION_LINK_INVALID: "Email verification link invalid or expired",
+  EMAIL_VERIFICATION_FAILED: "Error occured while sending verification email",
 };

@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import * as nodemailer from "nodemailer"; // Import nodemailer
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { secretConfig } from "config/secret.config";
+import { ERROR_MESSAGES } from "constants/messages.constants";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
 
@@ -47,7 +48,7 @@ export class EmailService {
         html: this.getVerificationEmailTemplate(name || "User", verificationLink),
       });
     } catch {
-      throw new InternalServerErrorException("error while sending verification email");
+      throw new InternalServerErrorException(ERROR_MESSAGES.EMAIL_VERIFICATION_FAILED);
     }
   }
 

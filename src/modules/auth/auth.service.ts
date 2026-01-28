@@ -116,7 +116,7 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     const isPasswordCorrect = await user.isPasswordCorrect(password);
@@ -154,13 +154,13 @@ export class AuthService {
     const userId = await this.emailService.verifyEmail(token);
 
     if (!userId) {
-      throw new BadRequestException("invalid or expired verification link");
+      throw new BadRequestException(ERROR_MESSAGES.EMAIL_VERIFICATION_LINK_INVALID);
     }
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     if (user.isEmailVerified) {
@@ -177,11 +177,11 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { email } });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     if (user.isEmailVerified) {
-      throw new BadRequestException("Email already verified");
+      throw new BadRequestException(ERROR_MESSAGES.EMAIL_ALREADY_VERIFIED);
     }
 
     await this.emailService.resendVerificationEmail(user.email, user.id, user.name);

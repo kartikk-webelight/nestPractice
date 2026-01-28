@@ -16,9 +16,9 @@ import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
 import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
 import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { MessageResponseDto } from "dto/common-response.dto";
 import { AuthGuard } from "guards/auth-guard";
 import { multerMemoryOptions } from "shared/multer/multer.service";
-import { MessageResponse } from "swagger/dtos/response.dtos";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
 import { AuthService } from "./auth.service";
@@ -124,25 +124,25 @@ export class AuthController {
     });
   }
 
-  @ApiSwaggerResponse(MessageResponse)
+  @ApiSwaggerResponse(MessageResponseDto)
   @Get("verify-email")
   async verifyEmail(@Query("token") token: string, @Res() res: Response) {
     await this.authService.verifyEmail(token);
 
     return responseUtils.success(res, {
       data: { message: "email verified" },
-      transformWith: MessageResponse,
+      transformWith: MessageResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(MessageResponse)
-  @Get("resend-verification-email")
+  @ApiSwaggerResponse(MessageResponseDto)
+  @Post("resend-verification-email")
   async resendVerificationEmail(@Body() body: ResendVerificationEmailDto, @Res() res: Response) {
     await this.authService.resendVerificationEmail(body.email);
 
     return responseUtils.success(res, {
       data: { message: SUCCESS_MESSAGES.EMAIL_SENT },
-      transformWith: MessageResponse,
+      transformWith: MessageResponseDto,
     });
   }
 }
