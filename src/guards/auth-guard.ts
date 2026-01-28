@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { DecodedToken } from "modules/auth/auth.types";
 import { UserEntity } from "modules/users/users.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { verifyAccessToken } from "utils/jwt";
 
 @Injectable()

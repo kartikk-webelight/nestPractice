@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostEntity } from "modules/post/post.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { PostStatus } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";

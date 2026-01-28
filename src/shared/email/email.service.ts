@@ -1,9 +1,9 @@
+import { DURATION_CONSTANTS } from "constants/duration.constants";
+import { ERROR_MESSAGES } from "constants/messages.constants";
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import * as nodemailer from "nodemailer"; // Import nodemailer
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { secretConfig } from "config/secret.config";
-import { DURATION_CONSTANTS } from "constants/duration.constants";
-import { ERROR_MESSAGES } from "constants/messages.constants";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
 

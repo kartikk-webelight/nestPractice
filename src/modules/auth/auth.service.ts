@@ -10,7 +10,7 @@ import { Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType } from "enums";
 import { EmailService } from "shared/email/email.service";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";

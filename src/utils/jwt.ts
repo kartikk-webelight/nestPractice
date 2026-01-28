@@ -3,7 +3,7 @@ import { UnauthorizedException } from "@nestjs/common";
 import { sign, verify, SignOptions } from "jsonwebtoken";
 import { secretConfig } from "config/secret.config";
 import { DecodedToken } from "modules/auth/auth.types";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 
 /**
  * Generate a JWT access token

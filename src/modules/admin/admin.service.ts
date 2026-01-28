@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { GetUsersQuery } from "./admin.types";

@@ -15,7 +15,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
 import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { MessageResponseDto } from "dto/common-response.dto";
 import { AuthGuard } from "guards/auth-guard";
 import { logger } from "services/logger.service";

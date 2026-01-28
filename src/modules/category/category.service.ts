@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy } from "enums";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
@@ -19,7 +19,7 @@ export class CategoryService {
   async createCategory(body: CreateCategory) {
     const { name, description } = body;
 
-    const slug = await this.slugService.buildSlug(name);
+    const slug = this.slugService.buildSlug(name);
 
     const category = this.categoryRepository.create({
       name,
@@ -42,7 +42,7 @@ export class CategoryService {
     }
 
     if (name) {
-      const slug = await this.slugService.buildSlug(name);
+      const slug = this.slugService.buildSlug(name);
       category.name = name;
       category.slug = slug;
     }
@@ -113,7 +113,5 @@ export class CategoryService {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
     await this.categoryRepository.softDelete(categoryId);
-
-    return;
   }
 }

@@ -55,4 +55,9 @@ export const ERROR_MESSAGES = {
   EMAIL_VERIFICATION_LINK_INVALID: "Email verification link invalid or expired",
   EMAIL_VERIFICATION_FAILED: "Error occured while sending verification email",
   INVALID_CATEGORY_ID: "Category id is invalid",
+  ROLE_ALREADY_ASSIGNED: "You already have this role",
+  ADMIN_ROLE_FORBIDDEN: "You cannot request admin role",
+  PENDING_REQUEST_EXISTS: "You already have a pending role request",
+  REQUEST_ALREADY_REVIEWED: "Role request already reviewed",
+  SELF_APPROVE_FORBIDDEN: "You cannot approve your own request",
 };
