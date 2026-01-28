@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { init } from "@sentry/node";
 import cookieParser from "cookie-parser";
 import { json as expressJson, urlencoded as expressUrlencoded } from "express";
-import { allowedOrigins, globalPrefix, swaggerInfo } from "constants/app.constants";
+import { allowedOrigins, globalPrefix, swaggerInfo } from "constants/app";
 import { MainExceptionFilter } from "filters/main-exception.filter";
 import { AppModule } from "./app.module";
 import { appConfig } from "./config/app.config";

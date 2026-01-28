@@ -1,13 +1,27 @@
 import { Injectable } from "@nestjs/common";
 import slugify from "slugify";
-import { generateKSUID } from "utils/helper";
 
 @Injectable()
 export class SlugService {
-  async buildSlug(title: string): Promise<string> {
-    const baseSlug = slugify(title);
-    const slugId = (await generateKSUID("s")).slice(-6).toLowerCase();
+  private randomString(length = 6): string {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
 
-    return `${baseSlug}-${slugId}`;
+    return result;
+  }
+
+  buildSlug(title: string): string {
+    const base = slugify(title, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    const randomSuffix = this.randomString();
+
+    return `${base}-${randomSuffix}`;
   }
 }

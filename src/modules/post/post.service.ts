@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { CategoryEntity } from "modules/category/category.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
@@ -37,8 +37,7 @@ export class PostService {
           throw new BadRequestException(ERROR_MESSAGES.INVALID_CATEGORY_ID);
         }
       }
-
-      const slug = await this.slugService.buildSlug(title);
+      const slug = this.slugService.buildSlug(title);
 
       const post = manager.create(PostEntity, {
         title,
@@ -131,7 +130,7 @@ export class PostService {
     }
 
     if (title) {
-      const slug = await this.slugService.buildSlug(title);
+      const slug = this.slugService.buildSlug(title);
       post.slug = slug;
       post.title = title;
     }
