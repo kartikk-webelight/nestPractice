@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, In, Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
+import { CategoryEntity } from "modules/category/category.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { PostEntity } from "./post.entity";
 import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
 import type { User } from "types/types";
@@ -15,13 +17,26 @@ export class PostService {
     @InjectRepository(PostEntity)
     private readonly postRepository: Repository<PostEntity>,
     private readonly attachmentService: AttachmentService,
+    @InjectRepository(CategoryEntity)
+    private readonly categoryRepository: Repository<CategoryEntity>,
     private readonly slugService: SlugService,
     private readonly dataSource: DataSource,
   ) {}
 
   async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
     return this.dataSource.transaction(async (manager) => {
-      const { title, content } = body;
+      const categoryRepository = manager.getRepository(CategoryEntity);
+      const { title, content, categoryIds } = body;
+      let categories: CategoryEntity[] = [];
+      if (categoryIds?.length) {
+        categories = await categoryRepository.find({
+          where: { id: In(categoryIds) },
+        });
+
+        if (categories.length !== categoryIds.length) {
+          throw new BadRequestException(ERROR_MESSAGES.INVALID_CATEGORY_ID);
+        }
+      }
 
       const slug = await this.slugService.buildSlug(title);
 
@@ -30,14 +45,24 @@ export class PostService {
         content,
         slug,
         author: { id: userId },
+        categories,
       });
 
       const savedPost = await manager.save(post);
 
+      const postWithCategories = await manager.findOne(PostEntity, {
+        where: { id: savedPost.id },
+        relations: ["categories"],
+      });
+
+      if (!postWithCategories) {
+        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      }
+
       const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST);
 
       return {
-        ...savedPost,
+        ...postWithCategories,
         attachments,
       };
     });
@@ -46,7 +71,7 @@ export class PostService {
   async getPostById(postId: string) {
     const post = await this.postRepository.findOne({
       where: { id: postId },
-      relations: { author: true },
+      relations: { author: true, categories: true },
     });
 
     if (!post) {
@@ -63,11 +88,11 @@ export class PostService {
     return postWithAttachment;
   }
 
-  async getMyposts(userId: string, page: number, limit: number) {
+  async getMyPosts(userId: string, page: number, limit: number) {
     const [posts, total] = await this.postRepository.findAndCount({
       where: { author: { id: userId } },
-      relations: { author: true },
-      skip: (page - 1) * limit,
+      relations: { author: true, categories: true },
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
@@ -85,14 +110,17 @@ export class PostService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 
   async updatePost(body: UpdatePost, userId: string, postId: string) {
-    const { title, content } = body;
+    const { title, content, categoryIds } = body;
 
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: { author: true, categories: true },
+    });
 
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
@@ -102,24 +130,39 @@ export class PostService {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    if (title && title !== undefined) {
+    if (title) {
+      const slug = await this.slugService.buildSlug(title);
+      post.slug = slug;
       post.title = title;
     }
-    if (content && content !== undefined) {
+    if (content) {
       post.content = content;
     }
 
-    const updatedPost = await this.postRepository.save(post);
+    if (categoryIds !== undefined) {
+      const categories = categoryIds.length
+        ? await this.categoryRepository.find({
+            where: { id: In(categoryIds) },
+          })
+        : [];
 
-    if (!updatedPost) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      if (categories.length !== categoryIds.length) {
+        throw new BadRequestException(ERROR_MESSAGES.INVALID_CATEGORY_ID);
+      }
+
+      post.categories = categories;
     }
+
+    const updatedPost = await this.postRepository.save(post);
 
     return updatedPost;
   }
 
   async publishPost(postId: string, user: User) {
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: { author: true, categories: true },
+    });
 
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
@@ -133,15 +176,14 @@ export class PostService {
 
     const publishedPost = await this.postRepository.save(post);
 
-    if (!publishedPost) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
-
     return publishedPost;
   }
 
   async unPublishPost(postId: string, user: User) {
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: { author: true, categories: true },
+    });
 
     if (!post) {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
@@ -153,10 +195,6 @@ export class PostService {
     post.status = PostStatus.DRAFT;
 
     const unPublishedPost = await this.postRepository.save(post);
-
-    if (!unPublishedPost) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
 
     return unPublishedPost;
   }
@@ -178,7 +216,7 @@ export class PostService {
   async getPostBySlug(slug: string) {
     const post = await this.postRepository.findOne({
       where: { slug },
-      relations: { author: true },
+      relations: { author: true, categories: true },
     });
 
     if (!post) {
@@ -196,7 +234,7 @@ export class PostService {
   }
 
   async getPosts(query: GetPostsQuery, currentUser: User) {
-    const { q, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
+    const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
     const qb = this.postRepository.createQueryBuilder("post");
 
@@ -228,8 +266,8 @@ export class PostService {
     }
 
     // Search title + content
-    if (q) {
-      qb.andWhere("(post.title ILIKE :q OR post.content ILIKE :q)", { q: `%${q}%` });
+    if (search) {
+      qb.andWhere("(post.title ILIKE :search OR post.content ILIKE :search)", { search: `%${search}%` });
     }
 
     // Date range filter
@@ -245,13 +283,13 @@ export class PostService {
     const SORT_MAP: Record<SortBy, string> = {
       [SortBy.CREATED_AT]: "post.createdAt",
       [SortBy.LIKES]: "post.likes",
-      [SortBy.VIEWS]: "post.views",
+      [SortBy.VIEWCOUNT]: "post.viewCount",
     };
 
     qb.orderBy(SORT_MAP[sortBy ?? SortBy.CREATED_AT], order);
 
     // Pagination
-    qb.skip((page - 1) * limit).take(limit);
+    qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [posts, total] = await qb.getManyAndCount();
 
@@ -271,7 +309,7 @@ export class PostService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 

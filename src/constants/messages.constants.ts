@@ -16,12 +16,12 @@ export const SUCCESS_MESSAGES = {
   COMMENT_FETCHED: "Comment fetched successfully",
   ALL_POSTS_FETCHED: "All posts fetched successfully",
   POST_FETCHED: "Post fetched successfully",
-  ALL_CATEGORIES_FETCHED: "All posts fetched successfully",
-  CATEGORY_FETCHED: "Post fetched successfully",
   ROLE_REQUESTED: "Role requested",
   ROLE_UPDATED: "Role updated",
   REQUEST_STATUS_FETCHED: "Request status fetched successfully",
   REQUESTS_FETCHED: "Requests fetched successfully",
+  ALL_CATEGORIES_FETCHED: "All Categories fetched successfully",
+  CATEGORY_FETCHED: "Category fetched successfully",
 };
 
 export const ERROR_MESSAGES = {
@@ -54,4 +54,5 @@ export const ERROR_MESSAGES = {
   EMAIL_ALREADY_VERIFIED: "Email is already verified",
   EMAIL_VERIFICATION_LINK_INVALID: "Email verification link invalid or expired",
   EMAIL_VERIFICATION_FAILED: "Error occured while sending verification email",
+  INVALID_CATEGORY_ID: "Category id is invalid",
 };

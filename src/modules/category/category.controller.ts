@@ -12,9 +12,9 @@ import responseUtils from "utils/response.utils";
 import { CategoryService } from "./category.service";
 import {
   CreateCategoryResponseDto,
+  GetCategoriesResponseDto,
   GetCategoryByIdResponseDto,
   GetCategoryBySlugResponseDto,
-  PaginatedCategoryResonseDto,
   UpdateCategoryResponseDto,
 } from "./dto/category-response.dto";
 import { CreateCategoryDto, GetCategoriesQueryDto, UpdateCategoryDto } from "./dto/category.dto";
@@ -23,7 +23,7 @@ import type { Response } from "express";
 @ApiTags("Categories")
 @Roles(UserRole.ADMIN)
 @UseGuards(AuthGuard, RolesGuard)
-@Controller("category")
+@Controller("categories")
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
@@ -39,14 +39,14 @@ export class CategoryController {
     });
   }
   @Get()
-  @ApiSwaggerResponse(PaginatedCategoryResonseDto)
+  @ApiSwaggerResponse(GetCategoriesResponseDto)
   async getCategories(@Query() query: GetCategoriesQueryDto, @Res() res: Response) {
     const data = await this.categoryService.getCategories(query);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_CATEGORIES_FETCHED },
       status: StatusCodes.OK,
-      transformWith: PaginatedCategoryResonseDto,
+      transformWith: GetCategoriesResponseDto,
     });
   }
 
@@ -62,9 +62,9 @@ export class CategoryController {
     });
   }
 
-  @Get("slug/:id")
+  @Get(":slug/slug")
   @ApiSwaggerResponse(GetCategoryBySlugResponseDto)
-  async getCategoryBySlug(@Param("id") categorySlug: string, @Res() res: Response) {
+  async getCategoryBySlug(@Param("slug") categorySlug: string, @Res() res: Response) {
     const data = await this.categoryService.getCategoryBySlug(categorySlug);
 
     return responseUtils.success(res, {

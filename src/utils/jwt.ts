@@ -5,43 +5,52 @@ import { secretConfig } from "config/secret.config";
 import { DecodedToken } from "modules/auth/auth.types";
 import { ERROR_MESSAGES } from "constants/messages.constants";
 
-export function generateAccessToken(payload: object): string {
-  return sign(payload, secretConfig.accessSecretKey, {
+/**
+ * Generate a JWT access token
+ */
+export const generateAccessToken = (payload: object): string =>
+  sign(payload, secretConfig.accessSecretKey, {
     expiresIn: secretConfig.accessTokenExpiry as SignOptions["expiresIn"],
   });
-}
 
-export function generateRefreshToken(payload: object): string {
-  return sign(payload, secretConfig.refreshSecretKey, {
+/**
+ * Generate a JWT refresh token
+ */
+export const generateRefreshToken = (payload: object): string =>
+  sign(payload, secretConfig.refreshSecretKey, {
     expiresIn: secretConfig.refreshTokenExpiry as SignOptions["expiresIn"],
   });
-}
 
-export function generateEmailToken(payload: object): string {
-  return sign(payload, secretConfig.emailVerificationSecretKey, {
+export const generateEmailToken = (payload: object): string =>
+  sign(payload, secretConfig.emailVerificationSecretKey, {
     expiresIn: secretConfig.emailTokenExpiry as SignOptions["expiresIn"],
   });
-}
 
-export function verifyAccessToken(token: string): DecodedToken {
+/**
+ * Verify an access token and return decoded payload
+ */
+export const verifyAccessToken = (token: string): DecodedToken => {
   try {
     return verify(token, secretConfig.accessSecretKey) as DecodedToken;
   } catch {
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
-}
+};
 
-export function verifyRefreshToken(token: string): DecodedToken {
+/**
+ * Verify a refresh token and return decoded payload
+ */
+export const verifyRefreshToken = (token: string): DecodedToken => {
   try {
     return verify(token, secretConfig.refreshSecretKey) as DecodedToken;
   } catch {
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
-}
-export function verifyEmailToken(token: string) {
+};
+export const verifyEmailToken = (token: string) => {
   try {
     return verify(token, secretConfig.emailVerificationSecretKey);
   } catch {
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
-}
+};

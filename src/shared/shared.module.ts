@@ -1,7 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import Redis from "ioredis";
 import { redisConfig } from "config/redis-config";
-import { AiService } from "./ai/ai.service";
 import { CloudinaryService } from "./cloudinary/cloudinary.service";
 import { EmailService } from "./email/email.service";
 import { RedisService } from "./redis/redis.service";
@@ -12,7 +11,6 @@ import { SlugService } from "./slug.service";
   providers: [
     CloudinaryService,
     SlugService,
-    AiService,
     EmailService,
     RedisService,
     {
@@ -22,6 +20,6 @@ import { SlugService } from "./slug.service";
       },
     },
   ],
-  exports: [CloudinaryService, AiService, EmailService],
+  exports: [CloudinaryService, SlugService, RedisService],
 })
 export class SharedModule {}

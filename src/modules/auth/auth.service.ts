@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
@@ -50,9 +51,14 @@ export class AuthService {
 
     await this.emailService.sendVerificationEmail(email, savedUser.id, name);
 
-    const attachment = file ? await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER) : null;
+    let attachmentArray: AttachmentEntity[] = [];
 
-    return { ...savedUser, attachment: attachment ? [attachment] : [] };
+    if (file) {
+      const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
+      attachmentArray = [attachment];
+    }
+
+    return { ...savedUser, attachment: attachmentArray };
   }
 
   async login(body: LoginUser) {

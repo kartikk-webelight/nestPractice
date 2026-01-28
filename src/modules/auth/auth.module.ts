@@ -3,12 +3,13 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
+import { CloudinaryService } from "shared/cloudinary/cloudinary.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 
 @Module({
   imports: [TypeOrmModule.forFeature([UserEntity, AttachmentEntity])],
-  providers: [AuthService, AttachmentService],
+  providers: [AuthService, AttachmentService, CloudinaryService],
   controllers: [AuthController],
 })
 export class AuthModule {}

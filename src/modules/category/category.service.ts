@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { ERROR_MESSAGES } from "constants/messages.constants";
+import { OrderBy } from "enums";
 import { SlugService } from "shared/slug.service";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CategoryEntity } from "./category.entity";
-import { CreateCategory, GetCategoriesQuery, updateCategory } from "./category.types";
+import { CreateCategory, GetCategoriesQuery, UpdateCategory } from "./category.types";
 
 @Injectable()
 export class CategoryService {
@@ -12,7 +14,6 @@ export class CategoryService {
     @InjectRepository(CategoryEntity)
     private readonly categoryRepository: Repository<CategoryEntity>,
     private readonly slugService: SlugService,
-    private readonly dataSource: DataSource,
   ) {}
 
   async createCategory(body: CreateCategory) {
@@ -31,7 +32,7 @@ export class CategoryService {
     return savedCategory;
   }
 
-  async updateCategory(body: updateCategory, categoryId: string) {
+  async updateCategory(body: UpdateCategory, categoryId: string) {
     const { name, description } = body;
 
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
@@ -40,12 +41,12 @@ export class CategoryService {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
 
-    if (name && name != undefined) {
+    if (name) {
       const slug = await this.slugService.buildSlug(name);
       category.name = name;
       category.slug = slug;
     }
-    if (description && description != undefined) {
+    if (description) {
       category.description = description;
     }
 
@@ -74,16 +75,34 @@ export class CategoryService {
   }
 
   async getCategories(query: GetCategoriesQuery) {
-    const { page, limit, q, fromDate, sortBy, order } = query;
+    const { page, limit, search, fromDate, order = OrderBy.DESC, toDate } = query;
 
-    const [categories, total] = await this.categoryRepository.findAndCount({ skip: (page - 1) * limit, take: limit });
+    const qb = this.categoryRepository.createQueryBuilder("category");
+
+    if (search) {
+      qb.andWhere("(category.name ILIKE :search OR category.description ILIKE :search)", { search: `%${search}%` });
+    }
+
+    if (fromDate) {
+      qb.andWhere("category.createdAt >= :fromDate", { fromDate });
+    }
+
+    if (toDate) {
+      qb.andWhere("category.createdAt <= :toDate", { toDate });
+    }
+
+    qb.orderBy("category.createdAt", order);
+
+    qb.skip(calculateOffset(page, limit)).take(limit);
+
+    const [categories, total] = await qb.getManyAndCount();
 
     return {
       data: categories,
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 
@@ -95,6 +114,6 @@ export class CategoryService {
     }
     await this.categoryRepository.softDelete(categoryId);
 
-    return {};
+    return;
   }
 }

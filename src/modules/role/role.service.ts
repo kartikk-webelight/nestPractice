@@ -1,10 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages.constants";
-import { OrderBy, RoleStatus, UserRole } from "enums";
+import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { User } from "types/types";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { RoleEntity } from "./role.entity";
 import { GetRoleRequestsQuery } from "./role.types";
 
@@ -14,8 +15,7 @@ export class RoleService {
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
 
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createRoleRequest(user: User, requestedRole: UserRole) {
@@ -45,40 +45,45 @@ export class RoleService {
     });
 
     await this.roleRepository.save(roleRequest);
-
-    return;
   }
 
-  async updateRole(adminId: string, requestId: string, action: RoleStatus) {
-    const roleRequest = await this.roleRepository.findOne({
-      where: { id: requestId },
-      relations: ["user"],
+  async updateRoleRequest(adminId: string, requestId: string, action: RoleRequestAction) {
+    return this.dataSource.transaction(async (manager) => {
+      const userRepository = manager.getRepository(UserEntity);
+      const roleRepository = manager.getRepository(RoleEntity);
+
+      const roleRequest = await roleRepository.findOne({
+        where: { id: requestId },
+        relations: ["user"],
+      });
+
+      if (!roleRequest) {
+        throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      // 1. Only pending requests can be reviewed
+      if (roleRequest.status !== RoleStatus.PENDING) {
+        throw new BadRequestException("Role request already reviewed");
+      }
+
+      if (roleRequest.user.id === adminId) {
+        throw new ForbiddenException("You cannot approve your own request");
+      }
+
+      const isApproved = action === RoleRequestAction.APPROVE;
+
+      // 3. If approved → update user role
+      if (action === RoleRequestAction.APPROVE) {
+        await userRepository.update(roleRequest.user.id, { role: roleRequest.requestedRole });
+      }
+
+      await roleRepository.update(requestId, {
+        status: isApproved ? RoleStatus.APPROVED : RoleStatus.REJECTED,
+        reviewedBy: { id: adminId },
+      });
+
+      return;
     });
-
-    if (!roleRequest) {
-      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
-    }
-
-    // 1. Only pending requests can be reviewed
-    if (roleRequest.status !== RoleStatus.PENDING) {
-      throw new BadRequestException("Role request already reviewed");
-    }
-
-    // 2. Update request metadata
-    roleRequest.status = action;
-    roleRequest.reviewedBy = this.userRepository.create({
-      id: adminId,
-    });
-
-    // 3. If approved → update user role
-    if (action === RoleStatus.APPROVED) {
-      roleRequest.user.role = roleRequest.requestedRole;
-      await this.userRepository.save(roleRequest.user);
-    }
-
-    await this.roleRepository.save(roleRequest);
-
-    return;
   }
 
   async getRequestedRoleStatus(userId: string) {
@@ -94,12 +99,12 @@ export class RoleService {
   }
 
   async getRoleRequests(query: GetRoleRequestsQuery) {
-    const { page = 1, limit = 10, name, status, order = OrderBy.DESC, fromDate, toDate } = query;
+    const { page = 1, limit = 10, search, status, order = OrderBy.DESC, fromDate, toDate } = query;
 
     const qb = this.roleRepository.createQueryBuilder("role").leftJoinAndSelect("role.user", "user");
 
-    if (name) {
-      qb.andWhere("user.name ILIKE :name", { name: `%${name}%` });
+    if (search) {
+      qb.andWhere("(user.name ILIKE :search OR user.email ILIKE :search)", { search: `%${search}%` });
     }
 
     if (status) {
@@ -116,7 +121,7 @@ export class RoleService {
 
     qb.orderBy("role.createdAt", order);
 
-    qb.skip((page - 1) * limit).take(limit);
+    qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [roleRequests, total] = await qb.getManyAndCount();
 
@@ -125,7 +130,7 @@ export class RoleService {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 }

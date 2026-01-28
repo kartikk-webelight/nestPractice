@@ -18,7 +18,7 @@ export enum EntityType {
 export enum SortBy {
   CREATED_AT = "createdAt",
   LIKES = "likes",
-  VIEWS = "views",
+  VIEWCOUNT = "viewCount",
 }
 
 export enum OrderBy {
@@ -30,4 +30,9 @@ export enum RoleStatus {
   APPROVED = "approved",
   PENDING = "pending",
   REJECTED = "rejected",
+}
+
+export enum RoleRequestAction {
+  APPROVE = "approve",
+  REJECT = "reject",
 }
