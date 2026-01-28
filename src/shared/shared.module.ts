@@ -20,6 +20,6 @@ import { SlugService } from "./slug.service";
       },
     },
   ],
-  exports: [CloudinaryService, SlugService, RedisService],
+  exports: [CloudinaryService, SlugService, RedisService, EmailService],
 })
 export class SharedModule {}

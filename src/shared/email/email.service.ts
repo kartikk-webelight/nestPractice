@@ -13,11 +13,11 @@ export class EmailService {
 
   constructor(private readonly redisService: RedisService) {
     this.transporter = nodemailer.createTransport({
-      host: secretConfig.mailtrapHost,
-      port: Number(secretConfig.mailtrapPort),
+      host: secretConfig.mailtrapConfigs.host,
+      port: Number(secretConfig.mailtrapConfigs.port),
       auth: {
-        user: secretConfig.mailtrapSandboxUsername,
-        pass: secretConfig.mailtrapSandboxPassword,
+        user: secretConfig.mailtrapConfigs.sandboxUsername,
+        pass: secretConfig.mailtrapConfigs.sandboxPassword,
       },
     } as SMTPTransport.Options);
   }
@@ -38,7 +38,7 @@ export class EmailService {
       const redisKey = `verification:${userId}`;
       await this.redisService.set(redisKey, token, DURATION_CONSTANTS.ONE_DAY_IN_SEC);
 
-      const verificationLink = `${secretConfig.backendUrl}/auth/verify-email?token=${token}`;
+      const verificationLink = `${secretConfig.apiBaseUrl}/auth/verify-email?token=${token}`;
 
       // Send email using Transporter
       await this.transporter.sendMail({

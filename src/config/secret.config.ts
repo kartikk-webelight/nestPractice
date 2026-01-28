@@ -12,14 +12,18 @@ export const secretConfig = {
   cloudinaryApiKey: getOsEnv("CLOUDINARY_API_KEY"),
   cloudinaryApiSecret: getOsEnv("CLOUDINARY_API_SECRET"),
   geminiApiKey: getOsEnv("GEMINI_API_KEY"),
-  mailtrapApiKey: getOsEnv("MAILTRAP_API_KEY"),
   senderEmail: getOsEnv("SENDER_EMAIL"),
-  backendUrl: getOsEnv("BACKEND_URL"),
+  apiBaseUrl: getOsEnv("API_BASE_URL"),
   senderName: getOsEnv("SENDER_NAME"),
   emailVerificationSecretKey: getOsEnv("EMAIL_VERIFICATION_SECRET_KEY"),
   emailTokenExpiry: getOsEnv("EMAIL_TOKEN_EXPIRY"),
-  mailtrapSandboxUsername: getOsEnv("MAILTRAP_SANDBOX_USERNAME"),
-  mailtrapSandboxPassword: getOsEnv("MAILTRAP_SANDBOX_PASSWORD"),
-  mailtrapHost: getOsEnv("MAILTRAP_HOST"),
-  mailtrapPort: getOsEnv("MAILTRAP_PORT"),
+
+  // Mailtrap Configuration
+  mailtrapConfigs: {
+    apiKey: getOsEnv("MAILTRAP_API_KEY"),
+    sandboxUsername: getOsEnv("MAILTRAP_SANDBOX_USERNAME"),
+    sandboxPassword: getOsEnv("MAILTRAP_SANDBOX_PASSWORD"),
+    host: getOsEnv("MAILTRAP_HOST"),
+    port: getOsEnv("MAILTRAP_PORT"),
+  },
 };

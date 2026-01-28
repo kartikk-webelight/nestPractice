@@ -132,7 +132,7 @@ export class AuthController {
     await this.authService.verifyEmail(token);
 
     return responseUtils.success(res, {
-      data: { message: "email verified" },
+      data: { message: SUCCESS_MESSAGES.ACCOUNT_VERIFIED },
       transformWith: MessageResponseDto,
     });
   }

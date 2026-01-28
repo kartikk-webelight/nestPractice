@@ -78,8 +78,8 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIAL);
     }
 
-    const refreshToken = generateRefreshToken({ id: user.id });
-    const accessToken = generateAccessToken({ id: user.id });
+    const refreshToken = generateRefreshToken({ id: user.id, role: user.role });
+    const accessToken = generateAccessToken({ id: user.id, role: user.role });
 
     return {
       refreshToken,
@@ -109,7 +109,7 @@ export class AuthService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const newAccessToken = generateAccessToken({ id: user.id });
+    const newAccessToken = generateAccessToken({ id: user.id, role: user.role });
 
     return {
       newAccessToken,
