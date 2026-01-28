@@ -6,7 +6,7 @@ import { OrderBy } from "enums";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CategoryEntity } from "./category.entity";
-import { CreateCategory, GetCategoriesQuery, UpdateCategory } from "./category.types";
+import { CreateCategoryDto, GetCategoriesQueryDto, UpdateCategoryDto } from "./dto/category.dto";
 
 @Injectable()
 export class CategoryService {
@@ -16,7 +16,7 @@ export class CategoryService {
     private readonly slugService: SlugService,
   ) {}
 
-  async createCategory(body: CreateCategory) {
+  async createCategory(body: CreateCategoryDto) {
     const { name, description } = body;
 
     const existingCategory = await this.categoryRepository.findOne({ where: { name } });
@@ -38,7 +38,7 @@ export class CategoryService {
     return savedCategory;
   }
 
-  async updateCategory(body: UpdateCategory, categoryId: string) {
+  async updateCategory(body: UpdateCategoryDto, categoryId: string) {
     const { name, description } = body;
 
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
@@ -81,7 +81,7 @@ export class CategoryService {
     return category;
   }
 
-  async getCategories(query: GetCategoriesQuery) {
+  async getCategories(query: GetCategoriesQueryDto) {
     const { page, limit, search, fromDate, order = OrderBy.DESC, toDate } = query;
 
     const qb = this.categoryRepository.createQueryBuilder("category");

@@ -6,7 +6,7 @@ import { ERROR_MESSAGES } from "constants/messages";
 import { UserRole } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CommentEntity } from "./comment.entity";
-import { CreateComment, ReplyComment, UpdateComment } from "./comment.types";
+import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import type { User } from "types/types";
 
 @Injectable()
@@ -17,7 +17,7 @@ export class CommentsService {
     private readonly postService: PostService,
   ) {}
 
-  async createComment(body: CreateComment, userId: string) {
+  async createComment(body: CreateCommentDto, userId: string) {
     const { postId, content } = body;
 
     const post = await this.postService.findById(postId);
@@ -38,7 +38,7 @@ export class CommentsService {
     return savedComment;
   }
 
-  async replyComment(body: ReplyComment, userId: string) {
+  async replyComment(body: ReplyCommentDto, userId: string) {
     const { postId, content, parentCommentId } = body;
 
     const post = await this.postService.findById(postId);
@@ -95,7 +95,7 @@ export class CommentsService {
     return comment;
   }
 
-  async updateComment(commentId: string, body: UpdateComment, userId: string) {
+  async updateComment(commentId: string, body: UpdateCommentDto, userId: string) {
     const { content } = body;
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
