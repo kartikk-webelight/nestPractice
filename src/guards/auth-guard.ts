@@ -29,12 +29,12 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    if (!decodedToken.payload) {
+    if (!decodedToken.id) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     const user = await this.userRepo.findOne({
-      where: { id: decodedToken.payload },
+      where: { id: decodedToken.id },
       select: { password: false },
     });
     if (!user) {

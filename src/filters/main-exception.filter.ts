@@ -7,7 +7,7 @@ import { AnyType } from "types/types";
 
 @Catch(HttpException)
 export class MainExceptionFilter implements ExceptionFilter {
-  constructor(private httpAdapterHost: HttpAdapterHost) {}
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
   catch(exception: Error, host: ArgumentsHost) {
     const { message, stack, response } = exception as AnyType;
     const { httpAdapter } = this.httpAdapterHost;
