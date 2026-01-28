@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { UserEntity } from "modules/users/users.entity";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { User } from "types/types";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
@@ -20,11 +20,11 @@ export class RoleService {
 
   async createRoleRequest(user: User, requestedRole: UserRole) {
     if (user.role === requestedRole) {
-      throw new BadRequestException("You already have this role");
+      throw new BadRequestException(ERROR_MESSAGES.ROLE_ALREADY_ASSIGNED);
     }
 
     if (requestedRole === UserRole.ADMIN) {
-      throw new ForbiddenException("You cannot request admin role");
+      throw new ForbiddenException(ERROR_MESSAGES.ADMIN_ROLE_FORBIDDEN);
     }
 
     const existingRequest = await this.roleRepository.findOne({
@@ -35,7 +35,7 @@ export class RoleService {
     });
 
     if (existingRequest) {
-      throw new BadRequestException("You already have a pending role request");
+      throw new BadRequestException(ERROR_MESSAGES.PENDING_REQUEST_EXISTS);
     }
 
     const roleRequest = this.roleRepository.create({
@@ -63,17 +63,17 @@ export class RoleService {
 
       // 1. Only pending requests can be reviewed
       if (roleRequest.status !== RoleStatus.PENDING) {
-        throw new BadRequestException("Role request already reviewed");
+        throw new BadRequestException(ERROR_MESSAGES.REQUEST_ALREADY_REVIEWED);
       }
 
       if (roleRequest.user.id === adminId) {
-        throw new ForbiddenException("You cannot approve your own request");
+        throw new ForbiddenException(ERROR_MESSAGES.SELF_APPROVE_FORBIDDEN);
       }
 
       const isApproved = action === RoleRequestAction.APPROVE;
 
       // 3. If approved → update user role
-      if (action === RoleRequestAction.APPROVE) {
+      if (isApproved) {
         await userRepository.update(roleRequest.user.id, { role: roleRequest.requestedRole });
       }
 
@@ -81,8 +81,6 @@ export class RoleService {
         status: isApproved ? RoleStatus.APPROVED : RoleStatus.REJECTED,
         reviewedBy: { id: adminId },
       });
-
-      return;
     });
   }
 

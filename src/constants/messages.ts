@@ -51,4 +51,9 @@ export const ERROR_MESSAGES = {
   CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed",
   PREFIX_REQUIRED: "Prefix is required to create a slug",
   INVALID_CATEGORY_ID: "Category id is invalid",
+  ROLE_ALREADY_ASSIGNED: "You already have this role",
+  ADMIN_ROLE_FORBIDDEN: "You cannot request admin role",
+  PENDING_REQUEST_EXISTS: "You already have a pending role request",
+  REQUEST_ALREADY_REVIEWED: "Role request already reviewed",
+  SELF_APPROVE_FORBIDDEN: "You cannot approve your own request",
 };
