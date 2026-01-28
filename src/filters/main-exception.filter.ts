@@ -1,7 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
 import { HttpAdapterHost } from "@nestjs/core";
 import { captureException } from "@sentry/node";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { logger } from "services/logger.service";
 import { AnyType } from "types/types";
 

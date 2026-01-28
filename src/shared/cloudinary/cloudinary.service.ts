@@ -2,7 +2,7 @@ import { Readable } from "stream";
 import { Injectable, InternalServerErrorException, ServiceUnavailableException } from "@nestjs/common";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import { secretConfig } from "config/secret.config";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 
 @Injectable()
 export class CloudinaryService {
@@ -37,7 +37,7 @@ export class CloudinaryService {
   async deleteFromCloudinary(publicId: string): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId);
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException("Cloudinary delete failed");
     }
   }
@@ -48,7 +48,7 @@ export class CloudinaryService {
       uploadedFile = await this.uploadBufferToCloudinary(file);
 
       return uploadedFile;
-    } catch (error) {
+    } catch {
       throw new ServiceUnavailableException(ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED);
     }
   }

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/co
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
-import { ERROR_MESSAGES } from "constants/messages.constants";
+import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
@@ -23,7 +23,7 @@ export class PostService {
   async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
     return this.dataSource.transaction(async (manager) => {
       const { title, content } = body;
-      const slug = await this.slugService.buildSlug(title);
+      const slug = this.slugService.buildSlug(title);
 
       const post = manager.create(PostEntity, {
         title,
@@ -196,7 +196,7 @@ export class PostService {
   }
 
   async getPosts(query: GetPostsQuery, currentUser: User) {
-    const { q, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
+    const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
     const qb = this.postRepository.createQueryBuilder("post");
 
@@ -228,8 +228,8 @@ export class PostService {
     }
 
     // Search title + content
-    if (q) {
-      qb.andWhere("(post.title ILIKE :q OR post.content ILIKE :q)", { q: `%${q}%` });
+    if (search) {
+      qb.andWhere("(post.title ILIKE :search OR post.content ILIKE :search)", { search: `%${search}%` });
     }
 
     // Date range filter
@@ -245,7 +245,7 @@ export class PostService {
     const SORT_MAP: Record<SortBy, string> = {
       [SortBy.CREATED_AT]: "post.createdAt",
       [SortBy.LIKES]: "post.likes",
-      [SortBy.VIEWS]: "post.views",
+      [SortBy.VIEWCOUNT]: "post.viewCount",
     };
 
     qb.orderBy(SORT_MAP[sortBy ?? SortBy.CREATED_AT], order);

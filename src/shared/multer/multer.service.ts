@@ -1,6 +1,6 @@
 import { MulterOptions } from "@nestjs/platform-express/multer/interfaces/multer-options.interface";
 import multer from "multer";
-import { FILE_CONSTANTS } from "constants/file.constants";
+import { FILE_CONSTANTS } from "constants/file";
 
 export const multerMemoryOptions: MulterOptions = {
   storage: multer.memoryStorage(),
