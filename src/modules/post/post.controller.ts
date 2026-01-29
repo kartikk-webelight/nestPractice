@@ -73,7 +73,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetMyPostsResponseDto,
     });
   }
@@ -92,7 +91,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
       transformWith: UpdatePostResponseDto,
     });
   }
@@ -105,7 +103,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.DELETED },
-      status: StatusCodes.OK,
     });
   }
 
@@ -118,7 +115,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
       transformWith: PublishPostResponseDto,
     });
   }
@@ -132,7 +128,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
       transformWith: UnpublishPostResponseDto,
     });
   }
@@ -144,7 +139,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.POST_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetPostBySlugResponseDto,
     });
   }
@@ -156,7 +150,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.POST_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetPostByIdResponseDto,
     });
   }
@@ -168,7 +161,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
-      status: StatusCodes.OK,
       transformWith: PaginatedPostResponseDto,
     });
   }

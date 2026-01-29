@@ -7,8 +7,8 @@ import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
+import { CreatePostDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import { PostEntity } from "./post.entity";
-import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
 import type { User } from "types/types";
 
 @Injectable()
@@ -23,7 +23,7 @@ export class PostService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
+  async createPost(body: CreatePostDto, userId: string, files: Express.Multer.File[]) {
     return this.dataSource.transaction(async (manager) => {
       const categoryRepository = manager.getRepository(CategoryEntity);
       const { title, content, categoryIds } = body;
@@ -113,7 +113,7 @@ export class PostService {
     };
   }
 
-  async updatePost(body: UpdatePost, userId: string, postId: string) {
+  async updatePost(body: UpdatePostDto, userId: string, postId: string) {
     const { title, content, categoryIds } = body;
 
     const post = await this.postRepository.findOne({
@@ -232,7 +232,7 @@ export class PostService {
     return postWithAttachment;
   }
 
-  async getPosts(query: GetPostsQuery, currentUser: User) {
+  async getPosts(query: GetPostsQueryDto, currentUser: User) {
     const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
     const qb = this.postRepository.createQueryBuilder("post");

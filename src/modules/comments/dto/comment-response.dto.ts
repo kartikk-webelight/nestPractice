@@ -1,6 +1,6 @@
 import { Expose, Type } from "class-transformer";
 import { PostResponse } from "modules/post/dto/posts-response.dto";
-import { MessageResponseDto, PaginationDataDto, UsersResponse } from "dto/common-response.dto";
+import { MessageResponseDto, PaginationDataDto, UserResponse } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CommentResponse {
@@ -40,12 +40,12 @@ export class CommentResponse {
   dislikes: number;
 
   @ApiPropertyWritable({
-    type: UsersResponse,
+    type: UserResponse,
     description: "Author of the comment",
   })
   @Expose()
-  @Type(() => UsersResponse)
-  author: UsersResponse;
+  @Type(() => UserResponse)
+  author: UserResponse;
 
   @ApiPropertyWritable({
     type: PostResponse,
@@ -78,7 +78,7 @@ export class ReplyCommentResponseDto extends CommentResponseDto {}
 export class GetCommentByIdResponseDto extends CommentResponseDto {}
 export class UpdateCommentResponseDto extends CommentResponseDto {}
 
-export class CommentsPaginationDataDto extends PaginationDataDto {
+export class CommentsPaginationResponseDto extends PaginationDataDto {
   @ApiPropertyWritable({ type: [CommentResponse] })
   @Type(() => CommentResponse)
   @Expose()
@@ -86,10 +86,10 @@ export class CommentsPaginationDataDto extends PaginationDataDto {
 }
 
 export class PaginatedCommentResonseDto extends MessageResponseDto {
-  @ApiPropertyWritable({ type: CommentsPaginationDataDto })
-  @Type(() => CommentsPaginationDataDto)
+  @ApiPropertyWritable({ type: CommentsPaginationResponseDto })
+  @Type(() => CommentsPaginationResponseDto)
   @Expose()
-  data: CommentsPaginationDataDto;
+  data: CommentsPaginationResponseDto;
 }
 
 export class GetAllCommentsResponseDto extends PaginatedCommentResonseDto {}

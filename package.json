@@ -26,7 +26,8 @@
     "migration:run": "pnpm typeorm migration:run",
     "migration:revert": "pnpm typeorm migration:revert",
     "sonar": "node ./sonar-analysis.js",
-    "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\""
+    "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
+    "docs": "typedoc --out docs src/index.ts"
   },
   "dependencies": {
     "@google/genai": "^1.37.0",
@@ -100,6 +101,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "typedoc": "^0.28.16",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
