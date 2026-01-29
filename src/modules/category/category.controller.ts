@@ -27,7 +27,7 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
-  @ApiSwaggerResponse(CreateCategoryResponseDto)
+  @ApiSwaggerResponse(CreateCategoryResponseDto, { status: StatusCodes.CREATED })
   async createCategory(@Body() body: CreateCategoryDto, @Res() res: Response) {
     const data = await this.categoryService.createCategory(body);
 
