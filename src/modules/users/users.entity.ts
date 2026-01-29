@@ -26,7 +26,7 @@ export class UserEntity extends BaseEntity {
     type: "timestamp with time zone",
     nullable: true,
   })
-  emailVerifiedAt: Date;
+  emailVerifiedAt: Date | null;
 
   @Column({
     type: "enum",

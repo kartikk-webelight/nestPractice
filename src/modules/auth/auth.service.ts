@@ -1,12 +1,13 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, Not, Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
@@ -25,6 +26,8 @@ export class AuthService {
     private readonly attachmentService: AttachmentService,
 
     private readonly emailService: EmailService,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async getCurrentUser(userId: string) {
@@ -40,25 +43,35 @@ export class AuthService {
   }
 
   async create(body: CreateUser, file: Express.Multer.File) {
-    const { name, email, password } = body;
+    return await this.dataSource.transaction(async (manager) => {
+      const userRepository = manager.getRepository(UserEntity);
 
-    const newUser = this.userRepository.create({
-      name,
-      email,
+      const { name, email, password } = body;
+
+      const existingUser = await userRepository.findOne({ where: { email } });
+
+      if (existingUser) {
+        throw new ConflictException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
+      }
+
+      const newUser = userRepository.create({
+        name,
+        email,
+      });
+      await newUser.setPassword(password);
+      const savedUser = await userRepository.save(newUser);
+
+      await this.emailService.sendVerificationEmail(email, savedUser.id, name);
+
+      let attachmentArray: AttachmentEntity[] = [];
+
+      if (file) {
+        const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER, manager);
+        attachmentArray = [attachment];
+      }
+
+      return { ...savedUser, attachment: attachmentArray };
     });
-    await newUser.setPassword(password);
-    const savedUser = await this.userRepository.save(newUser);
-
-    await this.emailService.sendVerificationEmail(email, savedUser.id, name);
-
-    let attachmentArray: AttachmentEntity[] = [];
-
-    if (file) {
-      const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
-      attachmentArray = [attachment];
-    }
-
-    return { ...savedUser, attachment: attachmentArray };
   }
 
   async login(body: LoginUser) {
@@ -132,18 +145,22 @@ export class AuthService {
     }
 
     if (name !== undefined && name.trim() !== "") {
-      user.name = name.toLowerCase();
+      user.name = name;
     }
 
     if (email !== undefined && email.trim() !== "") {
+      const duplicateUser = await this.userRepository.findOne({ where: { email, id: Not(userId) } });
+
+      if (duplicateUser) {
+        throw new ConflictException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
+      }
       user.email = email;
+      user.isEmailVerified = false;
+      user.emailVerifiedAt = null;
+      await this.emailService.sendVerificationEmail(user.email, user.id, user.name);
     }
 
-    await this.userRepository.save(user);
-    const savedUser = await this.userRepository.findOne({ where: { id: user.id } });
-    if (!savedUser) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const savedUser = await this.userRepository.save(user);
 
     return savedUser;
   }
