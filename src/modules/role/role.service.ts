@@ -6,8 +6,8 @@ import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { User } from "types/types";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
+import { GetRoleRequestsQueryDto } from "./dto/role.dto";
 import { RoleEntity } from "./role.entity";
-import { GetRoleRequestsQuery } from "./role.types";
 
 @Injectable()
 export class RoleService {
@@ -96,7 +96,7 @@ export class RoleService {
     return roleRequest;
   }
 
-  async getRoleRequests(query: GetRoleRequestsQuery) {
+  async getRoleRequests(query: GetRoleRequestsQueryDto) {
     const { page = 1, limit = 10, search, status, order = OrderBy.DESC, fromDate, toDate } = query;
 
     const qb = this.roleRepository.createQueryBuilder("role").leftJoinAndSelect("role.user", "user");
