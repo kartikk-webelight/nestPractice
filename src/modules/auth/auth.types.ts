@@ -1,4 +1,5 @@
 import { JwtPayload } from "jsonwebtoken";
+import { UserRole } from "enums";
 
 export interface CreateUser {
   name: string;
@@ -10,7 +11,8 @@ export interface LoginUser {
   password: string;
 }
 export interface DecodedToken extends JwtPayload {
-  payload: string;
+  id: string;
+  role: UserRole;
 }
 
 export interface UpdateDetails {

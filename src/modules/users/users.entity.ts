@@ -19,6 +19,15 @@ export class UserEntity extends BaseEntity {
   @Column()
   password: string;
 
+  @Column({ default: false })
+  isEmailVerified: boolean;
+
+  @Column({
+    type: "timestamp with time zone",
+    nullable: true,
+  })
+  emailVerifiedAt: Date | null;
+
   @Column({
     type: "enum",
     enum: UserRole,

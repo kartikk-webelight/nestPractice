@@ -1,11 +1,19 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, Not, Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType } from "enums";
+import { EmailService } from "shared/email/email.service";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
 import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
 
@@ -16,6 +24,10 @@ export class AuthService {
     private readonly userRepository: Repository<UserEntity>,
 
     private readonly attachmentService: AttachmentService,
+
+    private readonly emailService: EmailService,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async getCurrentUser(userId: string) {
@@ -31,24 +43,35 @@ export class AuthService {
   }
 
   async create(body: CreateUser, file: Express.Multer.File) {
-    const { name, email, password } = body;
+    return await this.dataSource.transaction(async (manager) => {
+      const userRepository = manager.getRepository(UserEntity);
 
-    const newUser = this.userRepository.create({
-      name,
-      email,
+      const { name, email, password } = body;
+
+      const existingUser = await userRepository.findOne({ where: { email } });
+
+      if (existingUser) {
+        throw new ConflictException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
+      }
+
+      const newUser = userRepository.create({
+        name,
+        email,
+      });
+      await newUser.setPassword(password);
+      const savedUser = await userRepository.save(newUser);
+
+      await this.emailService.sendVerificationEmail(email, savedUser.id, name);
+
+      let attachmentArray: AttachmentEntity[] = [];
+
+      if (file) {
+        const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER, manager);
+        attachmentArray = [attachment];
+      }
+
+      return { ...savedUser, attachment: attachmentArray };
     });
-    await newUser.setPassword(password);
-
-    const savedUser = await this.userRepository.save(newUser);
-
-    let attachmentArray: AttachmentEntity[] = [];
-
-    if (file) {
-      const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
-      attachmentArray = [attachment];
-    }
-
-    return { ...savedUser, attachment: attachmentArray };
   }
 
   async login(body: LoginUser) {
@@ -58,14 +81,18 @@ export class AuthService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException(ERROR_MESSAGES.VERIFY_YOUR_EMAIL);
+    }
+
     const isPasswordCorrect = await user.isPasswordCorrect(password);
 
     if (!isPasswordCorrect) {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIAL);
     }
 
-    const refreshToken = generateRefreshToken({ payload: user.id });
-    const accessToken = generateAccessToken({ payload: user.id });
+    const refreshToken = generateRefreshToken({ id: user.id, role: user.role });
+    const accessToken = generateAccessToken({ id: user.id, role: user.role });
 
     return {
       refreshToken,
@@ -85,17 +112,17 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    if (!decodedToken.payload) {
+    if (!decodedToken.id) {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    const user = await this.userRepository.findOne({ where: { id: decodedToken.payload } });
+    const user = await this.userRepository.findOne({ where: { id: decodedToken.id } });
 
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const newAccessToken = generateAccessToken({ payload: user.id });
+    const newAccessToken = generateAccessToken({ id: user.id, role: user.role });
 
     return {
       newAccessToken,
@@ -108,7 +135,7 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     const isPasswordCorrect = await user.isPasswordCorrect(password);
@@ -118,18 +145,22 @@ export class AuthService {
     }
 
     if (name !== undefined && name.trim() !== "") {
-      user.name = name.toLowerCase();
+      user.name = name;
     }
 
     if (email !== undefined && email.trim() !== "") {
+      const duplicateUser = await this.userRepository.findOne({ where: { email, id: Not(userId) } });
+
+      if (duplicateUser) {
+        throw new ConflictException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
+      }
       user.email = email;
+      user.isEmailVerified = false;
+      user.emailVerifiedAt = null;
+      await this.emailService.sendVerificationEmail(user.email, user.id, user.name);
     }
 
-    await this.userRepository.save(user);
-    const savedUser = await this.userRepository.findOne({ where: { id: user.id } });
-    if (!savedUser) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const savedUser = await this.userRepository.save(user);
 
     return savedUser;
   }
@@ -140,7 +171,42 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
+  }
 
-    return {};
+  async verifyEmail(token: string) {
+    const userId = await this.emailService.verifyEmail(token);
+
+    if (!userId) {
+      throw new BadRequestException(ERROR_MESSAGES.EMAIL_VERIFICATION_LINK_INVALID);
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    if (user.isEmailVerified) {
+      return;
+    }
+
+    await this.userRepository.update(userId, {
+      isEmailVerified: true,
+      emailVerifiedAt: new Date(),
+    });
+  }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException(ERROR_MESSAGES.EMAIL_ALREADY_VERIFIED);
+    }
+
+    await this.emailService.resendVerificationEmail(user.email, user.id, user.name);
   }
 }
