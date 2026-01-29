@@ -145,7 +145,7 @@ export class PostResponseDto extends MessageResponseDto {
   data: PostResponse;
 }
 
-export class PostsPaginationDataDto extends PaginationDataDto {
+export class PostsPaginationResponseDto extends PaginationDataDto {
   @ApiPropertyWritable({
     type: [PostResponse],
     description: "List of posts for the current page",
@@ -157,12 +157,12 @@ export class PostsPaginationDataDto extends PaginationDataDto {
 
 export class PaginatedPostResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({
-    type: PostsPaginationDataDto,
+    type: PostsPaginationResponseDto,
     description: "Paginated posts response with metadata",
   })
-  @Type(() => PostsPaginationDataDto)
+  @Type(() => PostsPaginationResponseDto)
   @Expose()
-  data: PostsPaginationDataDto;
+  data: PostsPaginationResponseDto;
 }
 
 export class CreatePostResponseDto extends PostResponseDto {}

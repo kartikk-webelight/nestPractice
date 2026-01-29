@@ -27,7 +27,7 @@
     "migration:revert": "pnpm typeorm migration:revert",
     "sonar": "node ./sonar-analysis.js",
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
-    "docs": "typedoc --out docs src/index.ts"
+    "docs": "typedoc --out docs --entryPointStrategy expand ./src"
   },
   "dependencies": {
     "@google/genai": "^1.37.0",

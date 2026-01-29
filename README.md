@@ -111,12 +111,12 @@ Each module encapsulates its own controllers, services, entities, and DTOs.
 6. Refresh token endpoint issues a new access token
 
 ### Auth Endpoints
-- `POST /auth/create`
+- `POST /auth/`
 - `POST /auth/login`
 - `POST /auth/logout`
 - `POST /auth/refresh-token`
-- `GET /auth/current`
-- `PATCH /auth/update`
+- `GET /auth/`
+- `PATCH /auth/`
 
 ### Cookie Configuration
 - `accessToken`
@@ -196,12 +196,11 @@ Each module encapsulates its own controllers, services, entities, and DTOs.
 | View drafts | ❌ | ❌ | ✅ | ✅ |
 
 ### Post APIs
-- `POST /posts/create`
+- `POST /posts/`
 - `PATCH /posts/:id`
 - `DELETE /posts/:id`
 - `GET /posts/:slug`
 - `GET /posts/my`
-- `GET /posts/published`
 - `PATCH /posts/:id/publish`
 - `PATCH /posts/:id/unpublish`
 - `GET /posts/search`
