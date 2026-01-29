@@ -1,12 +1,12 @@
 import { Expose } from "class-transformer";
-import { MessageResponseDto, UsersResponseDto } from "dto/common-response.dto";
+import { MessageResponseDto, UserResponseDto } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
-export class CreateUserResponseDto extends UsersResponseDto {}
+export class CreateUserResponseDto extends UserResponseDto {}
 
-export class UpdateUserResponseDto extends UsersResponseDto {}
+export class UpdateUserResponseDto extends UserResponseDto {}
 
-export class CurrentUserResponseDto extends UsersResponseDto {}
+export class CurrentUserResponseDto extends UserResponseDto {}
 
 export class LogoutUserResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({
@@ -42,7 +42,7 @@ export class LoginResponseDto extends MessageResponseDto {
   data: LoginResponse;
 }
 
-export class RefreshResponse {
+export class RefreshTokenResponse {
   @ApiPropertyWritable({
     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.newAccess",
     description: "Newly issued JWT access token",
@@ -51,11 +51,11 @@ export class RefreshResponse {
   newAccessToken: string;
 }
 
-export class RefreshResponseDto extends MessageResponseDto {
+export class RefreshTokenResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({
-    type: RefreshResponse,
+    type: RefreshTokenResponse,
     description: "New authentication tokens returned after refreshing",
   })
   @Expose()
-  data: RefreshResponse;
+  data: RefreshTokenResponse;
 }

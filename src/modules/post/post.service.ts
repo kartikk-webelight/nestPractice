@@ -7,10 +7,21 @@ import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
+import { CreatePostDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
+import { PostResponse, PostsPaginationResponseDto } from "./dto/posts-response.dto";
 import { PostEntity } from "./post.entity";
-import { CreatePost, GetPostsQuery, UpdatePost } from "./post.types";
 import type { User } from "types/types";
 
+/**
+ * Provides comprehensive operations for managing blog posts, including publishing workflows and media integration.
+ *
+ * @remarks
+ * This service manages the full lifecycle of content, utilizing the {@link DataSource} for
+ * transactional safety when handling attachments and categories. It implements complex
+ * visibility logic based on user roles and post status.
+ *
+ * @group Content Management Services
+ */
 @Injectable()
 export class PostService {
   constructor(
@@ -23,7 +34,17 @@ export class PostService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createPost(body: CreatePost, userId: string, files: Express.Multer.File[]) {
+  /**
+   * Processes the creation of a new post within a database transaction, including slug generation and media uploads.
+   *
+   * @param body - The {@link CreatePostDto} containing content and category identifiers.
+   * @param userId - The identifier of the author creating the post.
+   * @param files - An array of uploaded files to be persisted as attachments.
+   * @returns A promise resolving to the {@link PostResponse} with populated categories and attachments.
+   * @throws BadRequestException if provided category IDs are invalid.
+   * @throws NotFoundException if the post cannot be retrieved after creation.
+   */
+  async createPost(body: CreatePostDto, userId: string, files: Express.Multer.File[]): Promise<PostResponse> {
     return this.dataSource.transaction(async (manager) => {
       const categoryRepository = manager.getRepository(CategoryEntity);
       const { title, content, categoryIds } = body;
@@ -67,7 +88,14 @@ export class PostService {
     });
   }
 
-  async getPostById(postId: string) {
+  /**
+   * Retrieves a single post and its associated media by its unique identifier.
+   *
+   * @param postId - The ID of the post to retrieve.
+   * @returns A promise resolving to the {@link PostResponse} including its attachment metadata.
+   * @throws NotFoundException if the post does not exist.
+   */
+  async getPostById(postId: string): Promise<PostResponse> {
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -87,7 +115,15 @@ export class PostService {
     return postWithAttachment;
   }
 
-  async getMyPosts(userId: string, page: number, limit: number) {
+  /**
+   * Retrieves a paginated collection of posts authored by a specific user.
+   *
+   * @param userId - The identifier of the author.
+   * @param page - The current page number.
+   * @param limit - The number of records per page.
+   * @returns A promise resolving to a paginated object containing posts and media {@link PostsPaginationResponseDto}.
+   */
+  async getMyPosts(userId: string, page: number, limit: number): Promise<PostsPaginationResponseDto> {
     const [posts, total] = await this.postRepository.findAndCount({
       where: { author: { id: userId } },
       relations: { author: true, categories: true },
@@ -113,7 +149,17 @@ export class PostService {
     };
   }
 
-  async updatePost(body: UpdatePost, userId: string, postId: string) {
+  /**
+   * Updates an existing post's details and regenerates the slug if the title is modified.
+   *
+   * @param body - The {@link UpdatePostDto} containing updated fields.
+   * @param userId - The ID of the user attempting the update.
+   * @param postId - The ID of the post to be modified.
+   * @returns A promise resolving to the updated {@link PostResponse}.
+   * @throws UnauthorizedException if the user is not the original author.
+   * @throws NotFoundException if the post is not found.
+   */
+  async updatePost(body: UpdatePostDto, userId: string, postId: string): Promise<PostResponse> {
     const { title, content, categoryIds } = body;
 
     const post = await this.postRepository.findOne({
@@ -157,7 +203,15 @@ export class PostService {
     return updatedPost;
   }
 
-  async publishPost(postId: string, user: User) {
+  /**
+   * Transitions a post's status to published and records the timestamp.
+   *
+   * @param postId - The ID of the post to publish.
+   * @param user - The {@link User} performing the action, checked for authorship or admin roles.
+   * @returns A promise resolving to the published {@link PostResponse}.
+   * @throws UnauthorizedException if permissions are insufficient.
+   */
+  async publishPost(postId: string, user: User): Promise<PostResponse> {
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -178,7 +232,14 @@ export class PostService {
     return publishedPost;
   }
 
-  async unPublishPost(postId: string, user: User) {
+  /**
+   * Reverts a post's status to draft mode, removing it from public visibility.
+   *
+   * @param postId - The ID of the post to unpublish.
+   * @param user - The {@link User} performing the action.
+   * @returns A promise resolving to the drafted {@link PostResponse}.
+   */
+  async unPublishPost(postId: string, user: User): Promise<PostResponse> {
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -198,7 +259,15 @@ export class PostService {
     return unPublishedPost;
   }
 
-  async deletePost(postId: string, user: User) {
+  /**
+   * Executes a soft delete for a post resource after verifying permissions.
+   *
+   * @param postId - The ID of the post to remove.
+   * @param user - The {@link User} performing the deletion.
+   * @returns void
+   * @throws NotFoundException if the post is not found.
+   */
+  async deletePost(postId: string, user: User): Promise<void> {
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
@@ -208,11 +277,15 @@ export class PostService {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
     await this.postRepository.softDelete({ id: postId });
-
-    return {};
   }
 
-  async getPostBySlug(slug: string) {
+  /**
+   * Retrieves a post using its unique URL-friendly slug.
+   *
+   * @param slug - The slug string generated from the title.
+   * @returns A promise resolving to the {@link PostResponse} and its attachments.
+   */
+  async getPostBySlug(slug: string): Promise<PostResponse> {
     const post = await this.postRepository.findOne({
       where: { slug },
       relations: { author: true, categories: true },
@@ -232,7 +305,14 @@ export class PostService {
     return postWithAttachment;
   }
 
-  async getPosts(query: GetPostsQuery, currentUser: User) {
+  /**
+   * Performs a complex filtered search of posts with visibility logic tailored to the user's role.
+   *
+   * @param query - The {@link GetPostsQueryDto} containing search, sort, and filter parameters.
+   * @param currentUser - The {@link User} requesting the data, used to determine accessible statuses.
+   * @returns A promise resolving to a paginated list of posts and their attachments.
+   */
+  async getPosts(query: GetPostsQueryDto, currentUser: User): Promise<PostsPaginationResponseDto> {
     const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
     const qb = this.postRepository.createQueryBuilder("post");
@@ -312,7 +392,7 @@ export class PostService {
     };
   }
 
-  async findById(postId: string) {
+  async findById(postId: string): Promise<PostEntity | null> {
     return await this.postRepository.findOne({ where: { id: postId } });
   }
 }

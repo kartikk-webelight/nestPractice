@@ -3,12 +3,22 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { PostService } from "modules/post/post.service";
 import { ERROR_MESSAGES } from "constants/messages";
-import { UserRole } from "enums";
+import { OrderBy, UserRole } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CommentEntity } from "./comment.entity";
-import { CreateComment, ReplyComment, UpdateComment } from "./comment.types";
+import { CommentResponse, CommentsPaginationResponseDto } from "./dto/comment-response.dto";
+import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import type { User } from "types/types";
 
+/**
+ * Provides operations for managing user interactions through comments and threaded replies.
+ *
+ * @remarks
+ * This service handles the lifecycle of comments, including parent-child relationships for
+ * nested discussions and integration with the {@link PostService} to validate content targets.
+ *
+ * @group Social & Interaction Services
+ */
 @Injectable()
 export class CommentsService {
   constructor(
@@ -17,7 +27,15 @@ export class CommentsService {
     private readonly postService: PostService,
   ) {}
 
-  async createComment(body: CreateComment, userId: string) {
+  /**
+   * Creates a new top-level comment on a specific post.
+   *
+   * @param body - The {@link CreateCommentDto} containing the post ID and content.
+   * @param userId - The identifier of the user authoring the comment.
+   * @returns A promise resolving to {@link CommentResponse}.
+   * @throws NotFoundException if the target post does not exist.
+   */
+  async createComment(body: CreateCommentDto, userId: string): Promise<CommentResponse> {
     const { postId, content } = body;
 
     const post = await this.postService.findById(postId);
@@ -38,7 +56,15 @@ export class CommentsService {
     return savedComment;
   }
 
-  async replyComment(body: ReplyComment, userId: string) {
+  /**
+   * Creates a nested reply to an existing comment.
+   *
+   * @param body - The {@link ReplyCommentDto} containing parent comment and post context.
+   * @param userId - The identifier of the user authoring the reply.
+   * @returns A promise resolving to reply as {@link CommentResponse}.
+   * @throws NotFoundException if the post or parent comment is not found.
+   */
+  async replyComment(body: ReplyCommentDto, userId: string): Promise<CommentResponse> {
     const { postId, content, parentCommentId } = body;
 
     const post = await this.postService.findById(postId);
@@ -67,10 +93,18 @@ export class CommentsService {
     return savedComment;
   }
 
-  async getComments(page: number, limit: number) {
+  /**
+   * Retrieves a paginated collection of all comments across the system.
+   *
+   * @param page - The current page number for pagination.
+   * @param limit - The maximum number of records to return.
+   * @returns A promise resolving to a paginated object containing comment data and metadata {@link CommentsPaginationResponseDto}.
+   */
+  async getComments(page: number, limit: number): Promise<CommentsPaginationResponseDto> {
     const [comments, total] = await this.commentRepository.findAndCount({
       skip: calculateOffset(page, limit),
       take: limit,
+      order: { createdAt: OrderBy.DESC },
     });
 
     return {
@@ -82,10 +116,18 @@ export class CommentsService {
     };
   }
 
-  async getCommentById(commentId: string) {
+  /**
+   * Retrieves a specific comment's details including its author and associated post.
+   *
+   * @param commentId - The unique identifier of the comment.
+   * @returns A promise resolving to the {@link CommentResponse}.
+   * @throws NotFoundException if the comment does not exist.
+   */
+  async getCommentById(commentId: string): Promise<CommentResponse> {
     const comment = await this.commentRepository.findOne({
       where: { id: commentId },
       relations: { author: true, post: true },
+      order: { createdAt: OrderBy.DESC },
     });
 
     if (!comment) {
@@ -95,7 +137,17 @@ export class CommentsService {
     return comment;
   }
 
-  async updateComment(commentId: string, body: UpdateComment, userId: string) {
+  /**
+   * Updates the content of an existing comment after verifying authorship.
+   *
+   * @param commentId - The ID of the comment to update.
+   * @param body - The {@link UpdateCommentDto} containing the new content.
+   * @param userId - The ID of the user attempting the update.
+   * @returns A promise resolving to the updated {@link CommentResponse}.
+   * @throws NotFoundException if the comment is not found.
+   * @throws UnauthorizedException if the user is not the original author.
+   */
+  async updateComment(commentId: string, body: UpdateCommentDto, userId: string): Promise<CommentResponse> {
     const { content } = body;
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
@@ -115,7 +167,16 @@ export class CommentsService {
     return updatedComment;
   }
 
-  async deleteComment(commentId: string, user: User) {
+  /**
+   * Performs a soft delete on a comment if the user is the author or has elevated privileges.
+   *
+   * @param commentId - The ID of the comment to remove.
+   * @param user - The {@link User} object containing ID and role for authorization.
+   * @returns void
+   * @throws NotFoundException if the comment does not exist.
+   * @throws UnauthorizedException if the user lacks the necessary permissions.
+   */
+  async deleteComment(commentId: string, user: User): Promise<void> {
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
     if (!comment) {
@@ -126,18 +187,24 @@ export class CommentsService {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    await this.commentRepository.softDelete({ id: commentId });
-
-    return {};
+    await this.commentRepository.softDelete(commentId);
   }
 
-  async getCommentByPostId(page: number, limit: number, postId: string) {
+  /**
+   * Retrieves a paginated list of comments specifically associated with a single post.
+   *
+   * @param page - The current page number.
+   * @param limit - The maximum number of records.
+   * @param postId - The identifier of the post.
+   * @returns A promise resolving to the paginated collection of post-specific comments {@link CommentsPaginationResponseDto}.
+   */
+  async getCommentByPostId(page: number, limit: number, postId: string): Promise<CommentsPaginationResponseDto> {
     const [comments, total] = await this.commentRepository.findAndCount({
       where: {
         post: { id: postId },
       },
       relations: { author: true },
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
@@ -146,7 +213,7 @@ export class CommentsService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 }

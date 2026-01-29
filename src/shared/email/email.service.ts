@@ -7,6 +7,16 @@ import { ERROR_MESSAGES } from "constants/messages";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
 
+/**
+ * Provides automated email communication and secure account verification workflows.
+ *
+ * @remarks
+ * This service integrates with an SMTP transport (Nodemailer) and {@link RedisService}
+ * to manage the lifecycle of verification tokens. It ensures that account security
+ * actions are cryptographically signed and statefully tracked for single-use validation.
+ *
+ * @group Identity & Access Services
+ */
 @Injectable()
 export class EmailService {
   private readonly transporter: nodemailer.Transporter;
@@ -23,14 +33,23 @@ export class EmailService {
   }
 
   /**
-   * Generate verification token for email verification
+   * Generates a signed JWT specific to email verification.
+   *
+   * @param userId - The ID of the user requesting verification.
+   * @returns A cryptographically signed token string.
    */
   private generateVerificationToken(userId: string): string {
     return generateEmailToken({ userId, type: "email_verification" });
   }
 
   /**
-   * Send verification email to user
+   * Orchestrates the delivery of a verification email and stores the session in Redis.
+   *
+   * @param email - Recipient's email address.
+   * @param userId - Associated user identifier.
+   * @param name - Optional display name for email personalization.
+   * @returns A promise that resolves when the email is successfully handed off to the SMTP server.
+   * @throws InternalServerErrorException if the SMTP transport fails or Redis is unreachable.
    */
   async sendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
     try {
@@ -54,7 +73,13 @@ export class EmailService {
   }
 
   /**
-   * Verify email token from Redis
+   * Validates a verification token against both JWT signature and Redis existence.
+   *
+   * @param token - The token string provided via the email link.
+   * @returns The user's ID if verification is successful; otherwise, null.
+   * @remarks
+   * This method follows a "consume-on-success" pattern, deleting the token from
+   * Redis once validated to prevent reuse.
    */
   async verifyEmail(token: string) {
     try {
@@ -82,7 +107,12 @@ export class EmailService {
   }
 
   /**
-   * Resend verification email
+   * Revokes existing verification sessions and initiates a fresh verification workflow.
+   *
+   * @param email - Recipient's email address.
+   * @param userId - User identifier.
+   * @param name - Optional display name.
+   * @returns A promise that resolves when the new email is sent.
    */
   async resendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
     // Delete old token if exists
@@ -94,7 +124,11 @@ export class EmailService {
   }
 
   /**
-   * Get HTML email template for verification
+   * Generates a responsive HTML template for account verification.
+   *
+   * @param name - User's name for personalization.
+   * @param verificationLink - The absolute URL for the verification endpoint.
+   * @returns A string containing the full HTML document.
    */
   private getVerificationEmailTemplate(name: string, verificationLink: string): string {
     return `

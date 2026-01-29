@@ -70,6 +70,4 @@ export class UpdateCategoryResponseDto extends CategoryResponseDto {}
 
 export class GetCategoryByIdResponseDto extends CategoryResponseDto {}
 
-export class GetCategoryBySlugResponseDto extends CategoryResponseDto {}
-
 export class GetCategoriesResponseDto extends PaginatedCategoryResponseDto {}

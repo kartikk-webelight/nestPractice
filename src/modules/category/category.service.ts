@@ -6,8 +6,18 @@ import { OrderBy } from "enums";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CategoryEntity } from "./category.entity";
-import { CreateCategory, GetCategoriesQuery, UpdateCategory } from "./category.types";
+import { CategoriesPaginationResponseDto, CategoryResponse } from "./dto/category-response.dto";
+import { CreateCategoryDto, GetCategoriesQueryDto, UpdateCategoryDto } from "./dto/category.dto";
 
+/**
+ * Provides operations for managing content classifications and taxonomies.
+ *
+ * @remarks
+ * This service handles the lifecycle of category entities, including automatic
+ * slug generation via {@link SlugService} and complex filtered querying.
+ *
+ * @group Content Management Services
+ */
 @Injectable()
 export class CategoryService {
   constructor(
@@ -16,7 +26,13 @@ export class CategoryService {
     private readonly slugService: SlugService,
   ) {}
 
-  async createCategory(body: CreateCategory) {
+  /**
+   * Creates a new category and generates a unique URL-friendly slug.
+   *
+   * @param body - The {@link CreateCategoryDto} data containing name and description.
+   * @returns A promise resolving to the newly persisted {@link CategoryResponse}.
+   */
+  async createCategory(body: CreateCategoryDto): Promise<CategoryResponse> {
     const { name, description } = body;
 
     const slug = this.slugService.buildSlug(name);
@@ -32,7 +48,15 @@ export class CategoryService {
     return savedCategory;
   }
 
-  async updateCategory(body: UpdateCategory, categoryId: string) {
+  /**
+   * Updates an existing category's details and regenerates the slug if the name changes.
+   *
+   * @param body - The {@link UpdateCategoryDto} data.
+   * @param categoryId - The unique identifier of the category to update.
+   * @returns A promise resolving to the updated {@link CategoryResponse}.
+   * @throws NotFoundException if no category exists with the provided ID.
+   */
+  async updateCategory(body: UpdateCategoryDto, categoryId: string): Promise<CategoryResponse> {
     const { name, description } = body;
 
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
@@ -55,7 +79,14 @@ export class CategoryService {
     return updatedCategory;
   }
 
-  async getCategoryById(categoryId: string) {
+  /**
+   * Retrieves a single category by its unique identifier.
+   *
+   * @param categoryId - The ID of the category to retrieve.
+   * @returns A promise resolving to the {@link CategoryResponse}.
+   * @throws NotFoundException if the category is not found.
+   */
+  async getCategoryById(categoryId: string): Promise<CategoryResponse> {
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
 
     if (!category) {
@@ -64,17 +95,14 @@ export class CategoryService {
 
     return category;
   }
-  async getCategoryBySlug(categorySlug: string) {
-    const category = await this.categoryRepository.findOne({ where: { slug: categorySlug } });
 
-    if (!category) {
-      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
-    }
-
-    return category;
-  }
-
-  async getCategories(query: GetCategoriesQuery) {
+  /**
+   * Performs a paginated search and filter operation to retrieve a collection of categories.
+   *
+   * @param query - The {@link GetCategoriesQueryDto} containing search terms and date filters.
+   * @returns A promise resolving to a paginated object containing the data and metadata {@link CategoriesPaginationResponseDto}.
+   */
+  async getCategories(query: GetCategoriesQueryDto): Promise<CategoriesPaginationResponseDto> {
     const { page, limit, search, fromDate, order = OrderBy.DESC, toDate } = query;
 
     const qb = this.categoryRepository.createQueryBuilder("category");
@@ -106,7 +134,14 @@ export class CategoryService {
     };
   }
 
-  async deleteCategory(categoryId: string) {
+  /**
+   * Performs a soft delete on a category resource.
+   *
+   * @param categoryId - The ID of the category to remove.
+   * @returns void
+   * @throws NotFoundException if the category does not exist.
+   */
+  async deleteCategory(categoryId: string): Promise<void> {
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
 
     if (!category) {

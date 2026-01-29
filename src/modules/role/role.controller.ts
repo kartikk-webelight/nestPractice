@@ -14,12 +14,30 @@ import { CreateRoleRequestDto, GetRoleRequestsQueryDto, UpdateRoleRequestDto } f
 import { RoleService } from "./role.service";
 import type { Request, Response } from "express";
 
+/**
+ * Handles HTTP requests for managing user role elevation workflows and administrative reviews.
+ *
+ * @remarks
+ * This controller provides endpoints for users to request role changes and for
+ * administrators to manage those requests. Access is controlled via {@link AuthGuard}
+ * and {@link RolesGuard} to ensure secure permission handling.
+ *
+ * @group Identity & Access Controllers
+ */
 @ApiTags("Roles")
 @Controller("roles")
 @UseGuards(AuthGuard)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
+  /**
+   * Processes a new request from an authenticated user to change their system role.
+   *
+   * @param req - The {@link Request} object containing the identity established by {@link AuthGuard}.
+   * @param body - The {@link CreateRoleRequestDto} specifying the target {@link UserRole}.
+   * @param res - The Express response object.
+   * @returns A success message confirming the request has been submitted.
+   */
   @Post()
   @ApiSwaggerResponse(MessageResponseDto)
   async createRoleRequest(@Req() req: Request, @Body() body: CreateRoleRequestDto, @Res() res: Response) {
@@ -32,6 +50,15 @@ export class RoleController {
     });
   }
 
+  /**
+   * Updates the status of a role request (Approve/Reject) after administrative review.
+   *
+   * @param req - The request object containing the admin's established identity.
+   * @param requestId - The unique ID of the request being reviewed.
+   * @param body - The {@link UpdateRoleRequestDto} containing the review action.
+   * @param res - The Express response object.
+   * @returns A success message confirming the role request update.
+   */
   @Patch(":id")
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
@@ -50,6 +77,13 @@ export class RoleController {
     });
   }
 
+  /**
+   * Retrieves the current status of the authenticated user's most recent role request.
+   *
+   * @param req - The request object containing the user's established identity.
+   * @param res - The Express response object.
+   * @returns A success response containing the {@link GetRequestedRoleStatusResponseDto}.
+   */
   @Get("my")
   @ApiSwaggerResponse(GetRequestedRoleStatusResponseDto)
   async getRequestedRoleStatus(@Req() req: Request, @Res() res: Response) {
@@ -61,6 +95,13 @@ export class RoleController {
     });
   }
 
+  /**
+   * Retrieves a filtered, paginated list of all role requests for administrative oversight.
+   *
+   * @param query - The {@link GetRoleRequestsQueryDto} for filtering and pagination.
+   * @param res - The Express response object.
+   * @returns A success response containing the {@link GetRoleRequestsResponseDto}.
+   */
   @Get()
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)

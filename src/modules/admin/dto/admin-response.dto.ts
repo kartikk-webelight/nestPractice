@@ -1,5 +1,5 @@
-import { PaginatedUserResponseDto, UsersResponseDto } from "dto/common-response.dto";
+import { PaginatedUserResponseDto, UserResponseDto } from "dto/common-response.dto";
 
 export class GetUsersResponseDto extends PaginatedUserResponseDto {}
 
-export class getUserByIdResponseDto extends UsersResponseDto {}
+export class GetUserByIdResponseDto extends UserResponseDto {}
