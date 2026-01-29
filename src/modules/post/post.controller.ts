@@ -16,6 +16,7 @@ import {
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
+import { FILE_CONSTANTS } from "constants/file";
 import { SUCCESS_MESSAGES } from "constants/messages";
 import { Roles } from "decorators/role";
 import { UserRole } from "enums/index";
@@ -24,8 +25,17 @@ import { RolesGuard } from "guards/role-guard";
 import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
-import { CreatePostDto, GetMyPostsDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
-import { PaginatedPostResponseDto, PostResponseDto } from "./dto/posts-response.dto";
+import { CreatePostDto, GetMyPostsQueryDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
+import {
+  CreatePostResponseDto,
+  GetMyPostsResponseDto,
+  GetPostByIdResponseDto,
+  GetPostBySlugResponseDto,
+  PaginatedPostResponseDto,
+  PublishPostResponseDto,
+  UnpublishPostResponseDto,
+  UpdatePostResponseDto,
+} from "./dto/posts-response.dto";
 import { PostService } from "./post.service";
 import type { Request, Response } from "express";
 
@@ -38,8 +48,8 @@ export class PostController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.AUTHOR)
-  @UseInterceptors(FilesInterceptor("files", 5, multerMemoryOptions))
-  @ApiSwaggerResponse(PostResponseDto, { status: StatusCodes.CREATED })
+  @UseInterceptors(FilesInterceptor("files", FILE_CONSTANTS.MAX_FILE_COUNT, multerMemoryOptions))
+  @ApiSwaggerResponse(CreatePostResponseDto, { status: StatusCodes.CREATED })
   async createPost(
     @Req() req: Request,
     @UploadedFiles() files: Express.Multer.File[],
@@ -51,26 +61,25 @@ export class PostController {
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.CREATED,
-      transformWith: PostResponseDto,
+      transformWith: CreatePostResponseDto,
     });
   }
 
   @Get("my")
-  @ApiSwaggerResponse(PaginatedPostResponseDto)
-  async getMyPosts(@Req() req: Request, @Query() query: GetMyPostsDto, @Res() res: Response) {
+  @ApiSwaggerResponse(GetMyPostsResponseDto)
+  async getMyPosts(@Req() req: Request, @Query() query: GetMyPostsQueryDto, @Res() res: Response) {
     const { page, limit } = query;
-    const data = await this.postService.getMyposts(req.user.id, page, limit);
+    const data = await this.postService.getMyPosts(req.user.id, page, limit);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
-      status: StatusCodes.OK,
-      transformWith: PaginatedPostResponseDto,
+      transformWith: GetMyPostsResponseDto,
     });
   }
 
   @Roles(UserRole.ADMIN, UserRole.AUTHOR, UserRole.EDITOR)
   @UseGuards(RolesGuard)
-  @ApiSwaggerResponse(PostResponseDto)
+  @ApiSwaggerResponse(UpdatePostResponseDto)
   @Patch(":id")
   async updatePost(
     @Req() req: Request,
@@ -81,9 +90,8 @@ export class PostController {
     const data = await this.postService.updatePost(body, req.user.id, postId);
 
     return responseUtils.success(res, {
-      data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
-      status: StatusCodes.OK,
-      transformWith: PostResponseDto,
+      data: { data, message: SUCCESS_MESSAGES.UPDATED },
+      transformWith: UpdatePostResponseDto,
     });
   }
 
@@ -94,60 +102,55 @@ export class PostController {
     const data = await this.postService.deletePost(postId, req.user);
 
     return responseUtils.success(res, {
-      data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
+      data: { data, message: SUCCESS_MESSAGES.DELETED },
     });
   }
 
   @Roles(UserRole.ADMIN, UserRole.AUTHOR, UserRole.EDITOR)
   @UseGuards(RolesGuard)
-  @ApiSwaggerResponse(PostResponseDto)
+  @ApiSwaggerResponse(PublishPostResponseDto)
   @Patch(":id/publish")
   async publishPost(@Req() req: Request, @Param("id") postId: string, @Res() res: Response) {
     const data = await this.postService.publishPost(postId, req.user);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
-      transformWith: PostResponseDto,
+      transformWith: PublishPostResponseDto,
     });
   }
 
   @Roles(UserRole.ADMIN, UserRole.AUTHOR, UserRole.EDITOR)
   @UseGuards(RolesGuard)
-  @ApiSwaggerResponse(PostResponseDto)
+  @ApiSwaggerResponse(UnpublishPostResponseDto)
   @Patch(":id/unpublish")
   async unPublishPost(@Req() req: Request, @Param("id") postId: string, @Res() res: Response) {
     const data = await this.postService.unPublishPost(postId, req.user);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
-      transformWith: PostResponseDto,
+      transformWith: UnpublishPostResponseDto,
     });
   }
 
-  @Get("slug/:slug")
-  @ApiSwaggerResponse(PostResponseDto)
+  @Get(":slug/slug")
+  @ApiSwaggerResponse(GetPostBySlugResponseDto)
   async getPostBySlug(@Param("slug") slug: string, @Res() res: Response) {
     const data = await this.postService.getPostBySlug(slug);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.POST_FETCHED },
-      status: StatusCodes.OK,
-      transformWith: PostResponseDto,
+      transformWith: GetPostBySlugResponseDto,
     });
   }
 
   @Get(":id")
-  @ApiSwaggerResponse(PostResponseDto)
+  @ApiSwaggerResponse(GetPostByIdResponseDto)
   async getPostById(@Param("id") postId: string, @Res() res: Response) {
     const data = await this.postService.getPostById(postId);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.POST_FETCHED },
-      status: StatusCodes.OK,
-      transformWith: PostResponseDto,
+      transformWith: GetPostByIdResponseDto,
     });
   }
 
@@ -158,7 +161,6 @@ export class PostController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_POSTS_FETCHED },
-      status: StatusCodes.OK,
       transformWith: PaginatedPostResponseDto,
     });
   }

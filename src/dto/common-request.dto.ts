@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
-import { IsDateString, IsEnum, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsEnum, IsISO8601, IsOptional, IsString, Max, Min } from "class-validator";
 import { IsAfter } from "decorators/date-range.decorator";
 import { TrimString } from "decorators/trim-string.decorator";
 import { OrderBy } from "enums";
@@ -39,12 +39,12 @@ export class BaseQueryDto extends PaginationQueryDto {
 
   @ApiPropertyOptional({ example: "2024-01-01", description: "Filter from this date" })
   @IsOptional()
-  @IsDateString()
+  @IsISO8601()
   fromDate?: string;
 
   @ApiPropertyOptional({ example: "2024-12-31", description: "Filter up to this date" })
   @IsOptional()
-  @IsDateString()
+  @IsISO8601()
   @IsAfter("fromDate", { message: "toDate must be after fromDate" })
   toDate?: string;
 

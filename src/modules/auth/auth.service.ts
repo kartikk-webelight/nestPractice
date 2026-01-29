@@ -1,12 +1,14 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType } from "enums";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
-import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
+import { DecodedToken } from "./auth.types";
+import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
 
 @Injectable()
 export class AuthService {
@@ -29,7 +31,7 @@ export class AuthService {
     return { ...user, attachment: attachmentMap[user.id] ?? [] };
   }
 
-  async create(body: CreateUser, file: Express.Multer.File) {
+  async create(body: CreateUserDto, file: Express.Multer.File) {
     const { name, email, password } = body;
 
     const newUser = this.userRepository.create({
@@ -40,12 +42,17 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(newUser);
 
-    const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
+    let attachmentArray: AttachmentEntity[] = [];
 
-    return { ...savedUser, attachment: [attachment] };
+    if (file) {
+      const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
+      attachmentArray = [attachment];
+    }
+
+    return { ...savedUser, attachment: attachmentArray };
   }
 
-  async login(body: LoginUser) {
+  async login(body: LoginDto) {
     const { email, password } = body;
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -96,7 +103,7 @@ export class AuthService {
     };
   }
 
-  async updateDetails(body: UpdateDetails, userId: string) {
+  async updateDetails(body: UpdateDetailsDto, userId: string) {
     const { email, name, password } = body;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
