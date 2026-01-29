@@ -1,7 +1,7 @@
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
+import { SUCCESS_MESSAGES } from "constants/messages";
 import { Roles } from "decorators/role";
 import { MessageResponseDto } from "dto/common-response.dto";
 import { UserRole } from "enums";
@@ -21,7 +21,7 @@ export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @Post()
-  @ApiSwaggerResponse(MessageResponseDto)
+  @ApiSwaggerResponse(MessageResponseDto, { status: StatusCodes.CREATED })
   async createRoleRequest(@Req() req: Request, @Body() body: CreateRoleRequestDto, @Res() res: Response) {
     await this.roleService.createRoleRequest(req.user, body.requestedRole);
 
