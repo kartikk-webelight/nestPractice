@@ -2,10 +2,7 @@ import { Expose, Type } from "class-transformer";
 import { UserRole } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
-/**
- * Standard response wrapper containing a status message.
- * @group Common DTOs
- */
+// Standard response wrapper with a status message
 export class MessageResponseDto {
   @ApiPropertyWritable({
     example: "User fetched successfully",
@@ -15,10 +12,7 @@ export class MessageResponseDto {
   message: string;
 }
 
-/**
- * Represents a file attachment (image, document, etc.) associated with an entity.
- * @group Media
- */
+// Data shape for file attachments
 export class AttachmentResponseDto {
   @ApiPropertyWritable({ description: "Attachment id", example: "a_123xyz" })
   @Expose()
@@ -41,10 +35,7 @@ export class AttachmentResponseDto {
   originalName?: string;
 }
 
-/**
- * Data shape for a User entity.
- * @group User Management
- */
+// Core user data structure
 export class UserResponse {
   @ApiPropertyWritable({ example: "user_mxmsoisx123", description: "Unique identifier of the user" })
   @Expose()
@@ -62,9 +53,6 @@ export class UserResponse {
   @Expose()
   role: UserRole;
 
-  /**
-   * Collection of profile attachments.
-   */
   @ApiPropertyWritable({ description: "Profile image of the user", required: false, type: [AttachmentResponseDto] })
   @Expose()
   @Type(() => AttachmentResponseDto)
@@ -79,10 +67,7 @@ export class UserResponse {
   updatedAt: Date;
 }
 
-/**
- * Wrapped response for a single user fetch.
- * @group User Management
- */
+// Wrapper for a single user response
 export class UserResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({ type: UserResponse, description: "User details" })
   @Expose()
@@ -90,10 +75,7 @@ export class UserResponseDto extends MessageResponseDto {
   data: UserResponse;
 }
 
-/**
- * Metadata for paginated collections.
- * @group Common DTOs
- */
+// Metadata for paginated results
 export class PaginationDataDto {
   @Expose() total: number;
   @Expose() page: number;
@@ -101,10 +83,7 @@ export class PaginationDataDto {
   @Expose() totalPages: number;
 }
 
-/**
- * Container for a paginated list of users.
- * @group User Management
- */
+// Payload structure for a list of users
 export class UsersPaginationResponseDto extends PaginationDataDto {
   @ApiPropertyWritable({ type: [UserResponse], description: "List of users" })
   @Type(() => UserResponse)
@@ -112,10 +91,7 @@ export class UsersPaginationResponseDto extends PaginationDataDto {
   data: UserResponse[];
 }
 
-/**
- * Final response structure for paginated user requests.
- * @group User Management
- */
+// Final response for paginated user requests
 export class PaginatedUserResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({ type: UsersPaginationResponseDto, description: "Paginated users payload" })
   @Expose()

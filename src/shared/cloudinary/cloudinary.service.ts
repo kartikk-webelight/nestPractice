@@ -4,6 +4,9 @@ import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import { secretConfig } from "config/secret.config";
 import { ERROR_MESSAGES } from "constants/messages";
 
+const {
+  cloudinaryConfigs: { cloudName, apiKey, apiSecret },
+} = secretConfig;
 /**
  * Provides an interface for managing media assets on Cloudinary's cloud storage.
  *
@@ -18,9 +21,9 @@ import { ERROR_MESSAGES } from "constants/messages";
 export class CloudinaryService {
   constructor() {
     cloudinary.config({
-      cloud_name: secretConfig.cloudinaryConfigs.cloudName,
-      api_key: secretConfig.cloudinaryConfigs.apiKey,
-      api_secret: secretConfig.cloudinaryConfigs.apiSecret,
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
       secure: true,
     });
   }
