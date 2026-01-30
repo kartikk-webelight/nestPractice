@@ -79,7 +79,6 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Get()
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
-    logger.info("CURRENT USER");
     const data = await this.authService.getCurrentUser(req.user.id);
 
     return responseUtils.success<CurrentUserResponseDto>(res, {
