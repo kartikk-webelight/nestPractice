@@ -1,16 +1,23 @@
-import { User } from "../modules/users/users.entity";
+import { UserEntity } from "modules/users/users.entity";
+import { OrderBy } from "enums";
 
 export type AnyType = any;
 
-interface SearchType {
-  key: string;
-  value: string;
+export type User = Omit<UserEntity, "password">;
+
+export interface BaseQuery {
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
+  order?: OrderBy;
+  page: number;
+  limit: number;
 }
 
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user: Omit<UserEntity, "password">;
     }
   }
 }

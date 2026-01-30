@@ -1,20 +1,14 @@
-import {
-  ForbiddenException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
 import { Repository } from "typeorm";
-
-import { AuthHelperService } from "../auth/auth.helper.service";
-import { UserEntity } from "../users/users.entity";
-import { CreateUser, DecodedToken, LoginUser, UpdateDetails } from "./auth.types";
-import { CloudinaryService } from "shared/cloudinary/cloudinary.service";
-import { UploadApiResponse } from "cloudinary";
-import { AttachmentEntity } from "modules/post/entities/attachment.entity";
+import { AttachmentEntity } from "modules/attachment/attachment.entity";
+import { AttachmentService } from "modules/attachment/attachment.service";
+import { UserEntity } from "modules/users/users.entity";
+import { ERROR_MESSAGES } from "constants/messages";
+import { EntityType } from "enums";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
+import { DecodedToken } from "./auth.types";
+import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
 
 @Injectable()
 export class AuthService {
@@ -22,11 +16,8 @@ export class AuthService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
 
-    @InjectRepository(AttachmentEntity)
-    private readonly attachmentRepository: Repository<AttachmentEntity>,
-    private readonly authHelperService: AuthHelperService,
-    private readonly cloudinaryService: CloudinaryService,
-  ) { }
+    private readonly attachmentService: AttachmentService,
+  ) {}
 
   async getCurrentUser(userId: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -35,45 +26,33 @@ export class AuthService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    return user;
+    const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([user.id], EntityType.USER);
+
+    return { ...user, attachment: attachmentMap[user.id] ?? [] };
   }
 
-  async create(body: CreateUser, file: Express.Multer.File): Promise<UserEntity> {
+  async create(body: CreateUserDto, file: Express.Multer.File) {
     const { name, email, password } = body;
-    let uploadedFile: UploadApiResponse;
-    let attachment
-    try {
-      uploadedFile = await this.cloudinaryService.uploadBufferToCloudinary(file);
 
-       attachment = this.attachmentRepository.create({
-        url: uploadedFile.secure_url,
-        mimeType: uploadedFile.format,
-        size: uploadedFile.bytes,
-        originalName: uploadedFile.original_filename,
-      })
-
-
-    } catch (error) {
-      throw new InternalServerErrorException(ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED);
-    }
     const newUser = this.userRepository.create({
-      name: name,
-      email: email,
-      profileImage:attachment
+      name,
+      email,
     });
     await newUser.setPassword(password);
 
-
     const savedUser = await this.userRepository.save(newUser);
 
-    if (!savedUser) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+    let attachmentArray: AttachmentEntity[] = [];
+
+    if (file) {
+      const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER);
+      attachmentArray = [attachment];
     }
 
-    return savedUser;
+    return { ...savedUser, attachment: attachmentArray };
   }
 
-  async login(body: LoginUser) {
+  async login(body: LoginDto) {
     const { email, password } = body;
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
@@ -86,8 +65,8 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIAL);
     }
 
-    const refreshToken = this.authHelperService.generateRefreshToken({ payload: user.id });
-    const accessToken = this.authHelperService.generateAccessToken({ payload: user.id });
+    const refreshToken = generateRefreshToken({ payload: user.id });
+    const accessToken = generateAccessToken({ payload: user.id });
 
     return {
       refreshToken,
@@ -102,8 +81,8 @@ export class AuthService {
 
     let decodedToken: DecodedToken;
     try {
-      decodedToken = this.authHelperService.verifyRefreshToken(refreshToken);
-    } catch (error) {
+      decodedToken = verifyRefreshToken(refreshToken);
+    } catch {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
@@ -111,21 +90,20 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-
-    const user = await this.userRepository.findOne({ where: { id: decodedToken.payload} });
+    const user = await this.userRepository.findOne({ where: { id: decodedToken.payload } });
 
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    const newAccessToken = this.authHelperService.generateAccessToken({ payload: user.id });
+    const newAccessToken = generateAccessToken({ payload: user.id });
 
     return {
       newAccessToken,
     };
   }
 
-  async updateDetails(body: UpdateDetails, userId: string) {
+  async updateDetails(body: UpdateDetailsDto, userId: string) {
     const { email, name, password } = body;
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -153,6 +131,7 @@ export class AuthService {
     if (!savedUser) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
+
     return savedUser;
   }
 
@@ -162,8 +141,6 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
-
-    await this.userRepository.save(user);
 
     return {};
   }

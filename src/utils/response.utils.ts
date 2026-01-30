@@ -1,7 +1,8 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { type ClassConstructor, plainToInstance } from "class-transformer";
-import type { Response } from "express";
 import { StatusCodes } from "http-status-codes";
+import type { Response } from "express";
+
 export interface CommonResponseType<T> {
   data: T | T[];
   status?: number;
@@ -29,6 +30,7 @@ class ResponseUtils {
         excludeExtraneousValues: true,
       });
     }
+
     return resp.status(status).send({ data: responseData, status });
   }
   public error({ res, error, statusCode, additionalErrors }: ErrorResponseType) {
@@ -40,6 +42,7 @@ class ResponseUtils {
     if (additionalErrors && additionalErrors.length > 0) {
       errorResponse.errors = additionalErrors;
     }
+
     return res.status(errorStatus).send(errorResponse);
   }
 }

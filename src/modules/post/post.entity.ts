@@ -1,17 +1,19 @@
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import { CategoryEntity } from "modules/category/category.entity";
+import { UserEntity } from "modules/users/users.entity";
 import { BaseEntity } from "database/base-entity";
 import { PostStatus } from "enums/index";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
-
-import { UserEntity } from "../users/users.entity";
 
 @Entity("Posts")
 export class PostEntity extends BaseEntity {
   idPrefix = "p";
 
   @Column()
+  @Index()
   title: string;
 
   @Column()
+  @Index()
   content: string;
 
   @Column({
@@ -22,13 +24,17 @@ export class PostEntity extends BaseEntity {
   status: PostStatus;
 
   @Column({ default: 0 })
-  viewCount!: number;
+  viewCount: number;
 
   @Column({ default: 0 })
-  upvotesCount!: number;
+  likes: number;
 
   @Column({ default: 0 })
-  downvotesCount!: number;
+  dislikes: number;
+
+  @Column({ unique: true })
+  @Index()
+  slug: string;
 
   @Column({ type: "timestamp", nullable: true })
   publishedAt?: Date;
@@ -36,4 +42,8 @@ export class PostEntity extends BaseEntity {
   @ManyToOne(() => UserEntity, { nullable: false, onDelete: "CASCADE" })
   @JoinColumn({ name: "authorId" })
   author: UserEntity;
+
+  @ManyToMany(() => CategoryEntity)
+  @JoinTable({ name: "post_categories" })
+  categories: CategoryEntity[];
 }

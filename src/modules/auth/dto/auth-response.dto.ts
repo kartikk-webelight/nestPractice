@@ -1,5 +1,5 @@
 import { Expose } from "class-transformer";
-import { UsersResponseDto } from "dto/common-response.dto";
+import { MessageResponseDto, UsersResponseDto } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreateUserResponseDto extends UsersResponseDto {}
@@ -8,52 +8,54 @@ export class UpdateUserResponseDto extends UsersResponseDto {}
 
 export class CurrentUserResponseDto extends UsersResponseDto {}
 
-export class LogoutUserResponseDto {
-  @ApiPropertyWritable()
+export class LogoutUserResponseDto extends MessageResponseDto {
+  @ApiPropertyWritable({
+    example: {},
+    description: "Empty data object returned after successful logout",
+  })
   @Expose()
-  data: {};
-
-  @ApiPropertyWritable()
-  @Expose()
-  message: string;
+  data: object;
 }
 
 export class LoginResponse {
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access",
+    description: "JWT access token used for authenticating API requests",
+  })
   @Expose()
   accessToken: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh",
+    description: "JWT refresh token used to obtain a new access token",
+  })
   @Expose()
   refreshToken: string;
 }
 
-export class LoginResponseDto {
-  @ApiPropertyWritable({ type: LoginResponse })
+export class LoginResponseDto extends MessageResponseDto {
+  @ApiPropertyWritable({
+    type: LoginResponse,
+    description: "Authentication tokens returned after successful login",
+  })
   @Expose()
   data: LoginResponse;
-
-  @ApiPropertyWritable()
-  @Expose()
-  message: string;
 }
 
 export class RefreshResponse {
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.newAccess",
+    description: "Newly issued JWT access token",
+  })
   @Expose()
   newAccessToken: string;
-
-  @ApiPropertyWritable()
-  @Expose()
-  newRefreshToken: string;
 }
 
-export class RefreshResponseDto {
-  @ApiPropertyWritable({ type: RefreshResponse })
+export class RefreshResponseDto extends MessageResponseDto {
+  @ApiPropertyWritable({
+    type: RefreshResponse,
+    description: "New authentication tokens returned after refreshing",
+  })
   @Expose()
   data: RefreshResponse;
-
-  @ApiPropertyWritable()
-  @Expose()
-  message: string;
 }

@@ -1,6 +1,5 @@
 import { createLogger, format, transports } from "winston";
-
-import { appConfig } from "../config/app.config";
+import { appConfig } from "config/app.config";
 
 const { combine, timestamp, splat, prettyPrint, printf, colorize } = format;
 
@@ -38,8 +37,8 @@ export const logger = createLogger({
 });
 
 export enum metaType {
-  Object = "%O",
-  String = "%s",
   Json = "%j",
   Number = "%d",
+  Object = "%O",
+  String = "%s",
 }

@@ -1,31 +1,24 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ERROR_MESSAGES } from "constants/messages.constants";
-import { UserRole } from "enums";
 import { Repository } from "typeorm";
-
-import { PostService } from "../post/post.service";
-import { UsersService } from "../users/users.service";
+import { PostService } from "modules/post/post.service";
+import { ERROR_MESSAGES } from "constants/messages";
+import { UserRole } from "enums";
+import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CommentEntity } from "./comment.entity";
-import { CreateComment, ReplyComment, UpdateComment } from "./comment.types";
+import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
+import type { User } from "types/types";
 
 @Injectable()
 export class CommentsService {
   constructor(
     @InjectRepository(CommentEntity)
     private readonly commentRepository: Repository<CommentEntity>,
-    private readonly userService: UsersService,
     private readonly postService: PostService,
   ) {}
 
-  async createComment(body: CreateComment, userId: string) {
+  async createComment(body: CreateCommentDto, userId: string) {
     const { postId, content } = body;
-
-    const user = await this.userService.findById(userId);
-
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
 
     const post = await this.postService.findById(postId);
 
@@ -36,27 +29,17 @@ export class CommentsService {
     const comment = this.commentRepository.create({
       content,
       post,
-      author: user,
+      author: { id: userId },
       parentComment: null,
     });
 
     const savedComment = await this.commentRepository.save(comment);
 
-    if (!savedComment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
-
     return savedComment;
   }
 
-  async replyComment(body: ReplyComment, userId: string) {
+  async replyComment(body: ReplyCommentDto, userId: string) {
     const { postId, content, parentCommentId } = body;
-
-    const user = await this.userService.findById(userId);
-
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
 
     const post = await this.postService.findById(postId);
 
@@ -64,7 +47,9 @@ export class CommentsService {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    const parentComment = await this.commentRepository.findOne({ where: { id: parentCommentId } });
+    const parentComment = await this.commentRepository.findOne({
+      where: { id: parentCommentId, post: { id: postId } },
+    });
 
     if (!parentComment) {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
@@ -73,22 +58,18 @@ export class CommentsService {
     const comment = this.commentRepository.create({
       content,
       post,
-      author: user,
-      parentComment: parentComment,
+      author: { id: userId },
+      parentComment,
     });
 
     const savedComment = await this.commentRepository.save(comment);
 
-    if (!savedComment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
-
     return savedComment;
   }
 
-  async getAllComments(page: number, limit: number) {
+  async getComments(page: number, limit: number) {
     const [comments, total] = await this.commentRepository.findAndCount({
-      skip: (page - 1) * limit,
+      skip: calculateOffset(page, limit),
       take: limit,
     });
 
@@ -97,7 +78,7 @@ export class CommentsService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     };
   }
 
@@ -114,7 +95,7 @@ export class CommentsService {
     return comment;
   }
 
-  async updateComment(commentId: string, body: UpdateComment, userId: string) {
+  async updateComment(commentId: string, body: UpdateCommentDto, userId: string) {
     const { content } = body;
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
@@ -131,26 +112,39 @@ export class CommentsService {
 
     const updatedComment = await this.commentRepository.save(comment);
 
-    if (!updatedComment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
-
     return updatedComment;
   }
 
-  async deleteComment(commentId: string, user: any) {
+  async deleteComment(commentId: string, user: User) {
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
     if (!comment) {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
 
-    if (comment.author.id !== user && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    if (comment.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
     await this.commentRepository.softDelete({ id: commentId });
+  }
 
-    return {};
+  async getCommentByPostId(page: number, limit: number, postId: string) {
+    const [comments, total] = await this.commentRepository.findAndCount({
+      where: {
+        post: { id: postId },
+      },
+      relations: { author: true },
+      skip: calculateOffset(page, limit),
+      take: limit,
+    });
+
+    return {
+      data: comments,
+      total,
+      page,
+      limit,
+      totalPages: calculateTotalPages(total, limit),
+    };
   }
 }

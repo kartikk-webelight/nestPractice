@@ -1,23 +1,22 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
-import type { Request, Response } from "express";
-import { AuthGuard } from "guards/auth-guard";
 import { StatusCodes } from "http-status-codes";
+import { SUCCESS_MESSAGES } from "constants/messages";
+import { PaginationQueryDto } from "dto/common-request.dto";
+import { AuthGuard } from "guards/auth-guard";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
-
 import { CommentsService } from "./comments.service";
-import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
 import {
   CreateCommentResponseDto,
   GetAllCommentsResponseDto,
   GetCommentByIdResponseDto,
-  PaginatedCommentResonseDto,
+  GetCommentByPostIdResponseDto,
   ReplyCommentResponseDto,
   UpdateCommentResponseDto,
 } from "./dto/comment-response.dto";
-import { PaginationQueryDto } from "dto/common-request.dto";
+import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
+import type { Request, Response } from "express";
 
 @ApiTags("Comments")
 @Controller("comments")
@@ -26,7 +25,7 @@ export class CommentsController {
 
   @UseGuards(AuthGuard)
   @ApiSwaggerResponse(CreateCommentResponseDto, { status: StatusCodes.CREATED })
-  @Post("create")
+  @Post()
   async createComment(@Body() body: CreateCommentDto, @Req() req: Request, @Res() res: Response) {
     const data = await this.commentsService.createComment(body, req.user.id);
 
@@ -52,14 +51,25 @@ export class CommentsController {
 
   @Get()
   @ApiSwaggerResponse(GetAllCommentsResponseDto)
-  async getAllComment(@Query() query: PaginationQueryDto, @Res() res: Response) {
+  async getComments(@Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
-    const data = await this.commentsService.getAllComments(page, limit);
+    const data = await this.commentsService.getComments(page, limit);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetAllCommentsResponseDto,
+    });
+  }
+
+  @Get("post/:id")
+  @ApiSwaggerResponse(GetCommentByPostIdResponseDto)
+  async getCommentByPostId(@Param("id") postId: string, @Query() query: PaginationQueryDto, @Res() res: Response) {
+    const { page, limit } = query;
+    const data = await this.commentsService.getCommentByPostId(page, limit, postId);
+
+    return responseUtils.success(res, {
+      data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
+      transformWith: GetCommentByPostIdResponseDto,
     });
   }
 
@@ -70,7 +80,6 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.COMMENT_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetCommentByIdResponseDto,
     });
   }
@@ -88,7 +97,6 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
       transformWith: UpdateCommentResponseDto,
     });
   }
@@ -100,7 +108,6 @@ export class CommentsController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.DELETED },
-      status: StatusCodes.OK,
     });
   }
 }

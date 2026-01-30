@@ -1,27 +1,14 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Patch,
-  Post,
-  Req,
-  Res,
-  UploadedFile,
-  UploadedFiles,
-  UseGuards,
-  UseInterceptors,
-} from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
-import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
-import { SUCCESS_MESSAGES } from "constants/messages.constants";
-import type { Request, Response } from "express";
-import { AuthGuard } from "guards/auth-guard";
 import { StatusCodes } from "http-status-codes";
-import responseUtils from "utils/response.utils";
-
+import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
+import { SUCCESS_MESSAGES } from "constants/messages";
+import { AuthGuard } from "guards/auth-guard";
+import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
+import responseUtils from "utils/response.utils";
 import { AuthService } from "./auth.service";
-import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
 import {
   CreateUserResponseDto,
   CurrentUserResponseDto,
@@ -30,8 +17,8 @@ import {
   RefreshResponseDto,
   UpdateUserResponseDto,
 } from "./dto/auth-response.dto";
-import { multerMemoryOptions } from "shared/multer/multer.service";
-import { FileInterceptor } from "@nestjs/platform-express";
+import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
+import type { Request, Response } from "express";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -40,9 +27,10 @@ export class AuthController {
 
   @ApiSwaggerResponse(CreateUserResponseDto, { status: StatusCodes.CREATED })
   @UseInterceptors(FileInterceptor("file", multerMemoryOptions))
-  @Post("create")
+  @Post()
   async create(@Res() res: Response, @Body() body: CreateUserDto, @UploadedFile() file: Express.Multer.File) {
     const data = await this.authService.create(body, file);
+
     return responseUtils.success<CreateUserResponseDto>(res, {
       data: { data, message: SUCCESS_MESSAGES.CREATED },
       status: StatusCodes.CREATED,
@@ -52,36 +40,34 @@ export class AuthController {
 
   @ApiSwaggerResponse(CurrentUserResponseDto)
   @UseGuards(AuthGuard)
-  @Get("current")
+  @Get()
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
     const data = await this.authService.getCurrentUser(req.user.id);
 
     return responseUtils.success<CurrentUserResponseDto>(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_FETCHED },
-      status: StatusCodes.OK,
       transformWith: CurrentUserResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(LoginResponseDto, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(LoginResponseDto)
   @Post("login")
   async login(@Body() body: LoginDto, @Res() res: Response) {
     const data = await this.authService.login(body);
 
     res.cookie("refreshToken", data.refreshToken, refreshCookieOptions);
     res.cookie("accessToken", data.accessToken, accessCookieOptions);
+
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_LOGGED_IN },
-      status: StatusCodes.OK,
       transformWith: LoginResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(RefreshResponseDto, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(RefreshResponseDto)
   @Post("refresh-token")
   async refreshToken(@Req() req: Request, @Res() res: Response) {
     const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
-
 
     const data = await this.authService.refreshToken(incomingRefreshToken);
 
@@ -89,14 +75,13 @@ export class AuthController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.TOKEN_REFRESHED },
-      status: StatusCodes.OK,
       transformWith: RefreshResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UpdateUserResponseDto, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(UpdateUserResponseDto)
   @UseGuards(AuthGuard)
-  @Patch("update")
+  @Patch()
   async updateDetails(@Req() req: Request, @Body() body: UpdateDetailsDto, @Res() res: Response) {
     const data = await this.authService.updateDetails(body, req.user.id);
 

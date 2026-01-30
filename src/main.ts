@@ -1,16 +1,13 @@
 import { ValidationPipe, VersioningType } from "@nestjs/common";
-import { HttpAdapterHost } from "@nestjs/core";
-import { NestFactory } from "@nestjs/core";
+import { HttpAdapterHost, NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { init } from "@sentry/node";
-import { allowedOrigins, globalPrefix } from "constants/app.constants";
 import cookieParser from "cookie-parser";
 import { json as expressJson, urlencoded as expressUrlencoded } from "express";
+import { allowedOrigins, globalPrefix, swaggerInfo } from "constants/app";
 import { MainExceptionFilter } from "filters/main-exception.filter";
-
 import { AppModule } from "./app.module";
 import { appConfig } from "./config/app.config";
-import { swaggerInfo } from "./constants/app.constants";
 import { QueryCountInterceptor } from "./interceptors/query-counter-interceptor";
 
 async function bootstrap() {
@@ -57,8 +54,21 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("docs", app, document);
+  SwaggerModule.setup("docs", app, document, {
+    customCss: `
+    body {
+      background-color: #000000ff;
+      color: #db7c08ff;
+    }
+    .swagger-ui .topbar { background-color: #000000ff; }
+    .swagger-ui .opblock { background-color: #000000ff; }
+    .swagger-ui .opblock-summary { color: #e4780cff; }
+    /* add more styles as needed */
+  `,
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+bootstrap().catch(() => {
+  process.exit(1);
+});

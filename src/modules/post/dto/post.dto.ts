@@ -1,55 +1,52 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty } from "class-validator";
+import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
+import { IsEnum, IsNotEmpty, IsOptional } from "class-validator";
+import { TrimArrayString } from "decorators/trim-array-string.decorator";
 import { TrimString } from "decorators/trim-string.decorator";
-import { PaginationQueryDto } from "dto/common-request.dto";
-import {} from "dto/common-response.dto";
+import { BaseQueryDto, PaginationQueryDto } from "dto/common-request.dto";
+import { PostStatus, SortBy } from "enums";
+import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CreatePostDto {
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "Post title",
-    description: "title of the post",
+    description: "Title of the post",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Post title is required" })
   @TrimString()
   title: string;
 
-  @ApiProperty({
+  @ApiPropertyWritable({
     example: "Post content",
-    description: "content of the post",
+    description: "Content/body of the post",
   })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Post content is required" })
   @TrimString()
   content: string;
+
+  @ApiPropertyWritable({
+    example: "c_UOEWH23DH5OHC",
+    description: "Ids of categories",
+  })
+  @TrimArrayString()
+  categoryIds: string[];
 }
 
-export class UpdatePostDto {
-  @ApiProperty({
-    example: "Post title",
-    description: "title of the post",
-  })
-  @IsNotEmpty()
-  @TrimString()
-  postId: string;
+export class GetPostsQueryDto extends BaseQueryDto {
+  @ApiPropertyOptional({ example: PostStatus.PUBLISHED })
+  @IsOptional()
+  @IsEnum(PostStatus)
+  status?: PostStatus;
 
-  @ApiProperty({
-    example: "Post title",
-    description: "title of the post",
-  })
-  @IsNotEmpty()
-  @TrimString()
-  title?: string;
-
-  @ApiProperty({
-    example: "Post content",
-    description: "content of the post",
-  })
-  @IsNotEmpty()
-  @TrimString()
-  content?: string;
+  @ApiPropertyOptional({ example: SortBy.LIKES })
+  @IsOptional()
+  @IsEnum(SortBy)
+  sortBy?: SortBy;
 }
+
+export class UpdatePostDto extends PartialType(CreatePostDto) {}
 
 export class GetAllPostsDto extends PaginationQueryDto {}
 
 export class GetPublishedPostsDto extends PaginationQueryDto {}
 
-export class GetMyPostsDto extends PaginationQueryDto {}
+export class GetMyPostsQueryDto extends PaginationQueryDto {}

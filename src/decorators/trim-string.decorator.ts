@@ -8,6 +8,7 @@ export function TrimString() {
       if (value === null || value === undefined || value === "") {
         return undefined;
       }
+
       return typeof value === "string" ? value.trim() : value;
     }),
     IsString(),

@@ -1,58 +1,76 @@
 import { Expose, Type } from "class-transformer";
-import { PaginationDataDto, UsersResponse } from "dto/common-response.dto";
 import { PostResponse } from "modules/post/dto/posts-response.dto";
+import { MessageResponseDto, PaginationDataDto, UsersResponse } from "dto/common-response.dto";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
 export class CommentResponse {
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "cmt_123abc",
+    description: "Unique identifier of the comment",
+  })
   @Expose()
   id: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "2024-01-10T12:30:45.000Z",
+    description: "Date and time when the comment was created",
+  })
   @Expose()
   createdAt: Date;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: "This is a comment on the post",
+    description: "Content/body of the comment",
+  })
   @Expose()
   content: string;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: 12,
+    description: "Number of likes received by the comment",
+  })
   @Expose()
-  status: string;
+  likes: number;
 
-  @ApiPropertyWritable()
+  @ApiPropertyWritable({
+    example: 2,
+    description: "Number of dislikes received by the comment",
+  })
   @Expose()
-  upvotes: number;
+  dislikes: number;
 
-  @ApiPropertyWritable()
-  @Expose()
-  downvotes: number;
-
-  @ApiPropertyWritable({ type: UsersResponse })
+  @ApiPropertyWritable({
+    type: UsersResponse,
+    description: "Author of the comment",
+  })
   @Expose()
   @Type(() => UsersResponse)
   author: UsersResponse;
 
-  @ApiPropertyWritable({ type: PostResponse })
+  @ApiPropertyWritable({
+    type: PostResponse,
+    description: "Post to which this comment belongs",
+  })
   @Expose()
   @Type(() => PostResponse)
   post: PostResponse;
 
-  @ApiPropertyWritable({ nullable: true })
+  @ApiPropertyWritable({
+    nullable: true,
+    type: CommentResponse,
+    example: null,
+    description: "Parent comment if this is a reply; null if it is a top-level comment",
+  })
   @Expose()
   @Type(() => CommentResponse)
   parentComment: CommentResponse | null;
 }
 
-export class CommentResponseDto {
+export class CommentResponseDto extends MessageResponseDto {
   @ApiPropertyWritable({ type: CommentResponse })
   @Type(() => CommentResponse)
   @Expose()
   data: CommentResponse;
-
-  @ApiPropertyWritable({ type: CommentResponse })
-  @Expose()
-  message: string;
 }
 
 export class CreateCommentResponseDto extends CommentResponseDto {}
@@ -67,15 +85,12 @@ export class CommentsPaginationDataDto extends PaginationDataDto {
   data: CommentResponse[];
 }
 
-export class PaginatedCommentResonseDto {
+export class PaginatedCommentResonseDto extends MessageResponseDto {
   @ApiPropertyWritable({ type: CommentsPaginationDataDto })
   @Type(() => CommentsPaginationDataDto)
   @Expose()
   data: CommentsPaginationDataDto;
-
-  @Expose()
-  @ApiPropertyWritable()
-  message: string;
 }
 
 export class GetAllCommentsResponseDto extends PaginatedCommentResonseDto {}
+export class GetCommentByPostIdResponseDto extends PaginatedCommentResonseDto {}
