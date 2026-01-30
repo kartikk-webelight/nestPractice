@@ -8,13 +8,13 @@ import { AnyType } from "types/types";
 export class QueryCountInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<AnyType> {
     // Reset counter before request
-    Reflect.defineMetadata("queryCount", 0, global);
+    Reflect.defineMetadata("queryCount", 0, globalThis);
 
     const now = Date.now();
 
     return next.handle().pipe(
       tap(() => {
-        const count = Reflect.getMetadata("queryCount", global) || 0;
+        const count = Reflect.getMetadata("queryCount", globalThis) || 0;
         const time = Date.now() - now;
         logger.info(
           `Request to ${context.switchToHttp().getRequest().url} took ${time}ms and made ${count} database queries.`,

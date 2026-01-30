@@ -39,7 +39,7 @@ export class AttachmentService {
 
       return savedAttachment;
     } catch {
-      if (uploadedResult && uploadedResult.public_id) {
+      if (uploadedResult?.public_id) {
         await this.cloudinaryService.deleteFromCloudinary(uploadedResult.public_id);
       }
       throw new ServiceUnavailableException(ERROR_MESSAGES.UPLOAD_FAILED_RETRY);

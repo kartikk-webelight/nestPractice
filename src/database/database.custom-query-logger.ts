@@ -6,8 +6,8 @@ export class CustomQueryLogger implements TypeOrmLogger {
   private readonly logger = new Logger(CustomQueryLogger.name);
 
   logQuery(query: string, parameters?: AnyType[]) {
-    const count = Reflect.getMetadata("queryCount", global) || 0;
-    Reflect.defineMetadata("queryCount", count + 1, global);
+    const count = Reflect.getMetadata("queryCount", globalThis) || 0;
+    Reflect.defineMetadata("queryCount", count + 1, globalThis);
 
     this.logger.debug(`Executed Query: ${query}`);
     if (parameters) {
