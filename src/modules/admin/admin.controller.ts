@@ -8,7 +8,7 @@ import { RolesGuard } from "guards/role-guard";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
 import { AdminService } from "./admin.service";
-import { GetUsersResponseDto, getUserByIdResponseDto } from "./dto/admin-response.dto";
+import { GetUsersResponseDto, GetUserByIdResponseDto } from "./dto/admin-response.dto";
 import { GetUsersQueryDto } from "./dto/admin.dto";
 import type { Response } from "express";
 
@@ -30,14 +30,14 @@ export class AdminController {
     });
   }
 
-  @ApiSwaggerResponse(getUserByIdResponseDto)
+  @ApiSwaggerResponse(GetUserByIdResponseDto)
   @Get(":id/users")
   async getUserById(@Res() res: Response, @Param("id") userId: string) {
     const data = await this.adminService.getUserById(userId);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_FETCHED },
-      transformWith: getUserByIdResponseDto,
+      transformWith: GetUserByIdResponseDto,
     });
   }
 }
