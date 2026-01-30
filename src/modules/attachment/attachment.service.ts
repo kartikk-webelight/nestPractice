@@ -7,6 +7,13 @@ import { EntityType } from "enums";
 import { CloudinaryService } from "shared/cloudinary/cloudinary.service";
 import { AttachmentEntity } from "./attachment.entity";
 
+/**
+ * Performs file upload to cloud storage and persists metadata to the database.
+ * * @remarks
+ * Handles the logic for interacting with Cloudinary and ensuring database records
+ * stay in sync with cloud storage, including cleanup on failure.
+ * * @group File Management
+ */
 @Injectable()
 export class AttachmentService {
   constructor(
@@ -15,6 +22,16 @@ export class AttachmentService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  /**
+   * Performs file upload to cloud storage and persists metadata to the database.
+   *
+   * @param file - The raw file from Multer.
+   * @param externalId - The ID of the parent entity (e.g., User ID or Post ID).
+   * @param entityType - The category of the entity from {@link EntityType}.
+   * @param manager - Optional {@link EntityManager} for database transactions.
+   * @returns A promise resolving to the saved {@link AttachmentEntity}.
+   * @throws ServiceUnavailableException if the upload fails or storage is unreachable.
+   */
   async createAttachment(
     file: Express.Multer.File,
     externalId: string,
@@ -46,6 +63,16 @@ export class AttachmentService {
     }
   }
 
+  /**
+   * Executes a batch upload of multiple files and persists their metadata.
+   *
+   * @param files - An array of raw files for bulk processing.
+   * @param externalId - The identifier for the parent entity.
+   * @param entityType - The category of the resource from {@link EntityType}.
+   * @param manager - Optional {@link EntityManager} to ensure batch consistency.
+   * @returns An array of the saved {@link AttachmentEntity} objects.
+   * @throws ServiceUnavailableException if any part of the batch process fails.
+   */
   async createAttachments(
     files: Express.Multer.File[],
     externalId: string,
@@ -81,11 +108,18 @@ export class AttachmentService {
     }
   }
 
-  async getAttachmentsByEntityIds(postIds: string[], entityType: EntityType) {
+  /**
+   * Retrieves and maps attachments to their corresponding parent entity identifiers.
+   *
+   * @param postIds - A collection of IDs to query.
+   * @param entityType - The specific {@link EntityType} to filter by.
+   * @returns A {@link Record} mapping external IDs to their associated {@link AttachmentEntity} arrays.
+   */
+  async getAttachmentsByEntityIds(externalIds: string[], entityType: EntityType) {
     const attachments = await this.attachmentRepository.find({
       where: {
         entityType,
-        externalId: In(postIds),
+        externalId: In(externalIds),
       },
     });
     const attachmentMap: Record<string, AttachmentEntity[]> = {};

@@ -2,12 +2,23 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
+import { PostsPaginationResponseDto } from "modules/post/dto/posts-response.dto";
 import { PostEntity } from "modules/post/post.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { PostStatus } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
 
+/**
+ * Provides transactional operations for managing user reactions on content.
+ *
+ * @remarks
+ * This service coordinates complex state logic for likes and dislikes across
+ * {@link PostEntity} and {@link CommentEntity}. It utilizes the {@link DataSource}
+ * to ensure atomicity when incrementing counts and updating {@link ReactionEntity} records.
+ *
+ * @group Social & Interaction Services
+ */
 @Injectable()
 export class ReactionService {
   constructor(
@@ -17,7 +28,15 @@ export class ReactionService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async likePost(postId: string, userId: string) {
+  /**
+   * Toggles or switches a user's 'Like' reaction on a specific post.
+   *
+   * @param postId - The ID of the post to react to.
+   * @param userId - The ID of the user performing the action.
+   * @returns A promise that resolves when the transaction completes.
+   * @throws NotFoundException if the post does not exist or is not published.
+   */
+  async likePost(postId: string, userId: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const postRepository = manager.getRepository(PostEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
@@ -67,7 +86,15 @@ export class ReactionService {
     });
   }
 
-  async dislikePost(postId: string, userId: string) {
+  /**
+   * Toggles or switches a user's 'Dislike' reaction on a specific post.
+   *
+   * @param postId - The ID of the post to react to.
+   * @param userId - The ID of the user performing the action.
+   * @returns A promise that resolves after the state update.
+   * @throws NotFoundException if the post is not found.
+   */
+  async dislikePost(postId: string, userId: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const postRepository = manager.getRepository(PostEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
@@ -116,7 +143,15 @@ export class ReactionService {
     });
   }
 
-  async likeComment(commentId: string, userId: string) {
+  /**
+   * Manages the 'Like' state for a specific comment, handling first-time likes, switches, and removals.
+   *
+   * @param commentId - The unique identifier of the target comment.
+   * @param userId - The identifier of the user reacting.
+   * @returns A promise that resolves when the comment count and reaction record are synced.
+   * @throws NotFoundException if the comment record is missing.
+   */
+  async likeComment(commentId: string, userId: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const commentRepository = manager.getRepository(CommentEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
@@ -169,7 +204,15 @@ export class ReactionService {
     });
   }
 
-  async dislikeComment(commentId: string, userId: string) {
+  /**
+   * Manages the 'Dislike' state for a specific comment.
+   *
+   * @param commentId - The ID of the comment.
+   * @param userId - The ID of the user.
+   * @returns A promise that resolves upon successful transaction commit.
+   * @throws NotFoundException if the comment record is missing.
+   */
+  async dislikeComment(commentId: string, userId: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const commentRepository = manager.getRepository(CommentEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
@@ -222,11 +265,20 @@ export class ReactionService {
     });
   }
 
-  async getLikedPosts(page: number, limit: number, userId: string) {
+  /**
+   * Retrieves a paginated collection of posts that the specified user has liked.
+   *
+   * @param page - The current results page.
+   * @param limit - The maximum number of posts per page.
+   * @param userId - The user whose liked content is being fetched.
+   * @returns A paginated object containing a list of {@link PostsPaginationResponseDto} records.
+   */
+  async getLikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
         isLiked: true,
         reactedBy: { id: userId },
+        post: { status: PostStatus.PUBLISHED },
       },
       relations: { post: true },
       skip: calculateOffset(page, limit),
@@ -243,11 +295,20 @@ export class ReactionService {
     };
   }
 
-  async getDislikedPosts(page: number, limit: number, userId: string) {
+  /**
+   * Retrieves a paginated collection of posts that the specified user has disliked.
+   *
+   * @param page - The results page number.
+   * @param limit - The results limit.
+   * @param userId - The user identifier.
+   * @returns A paginated object containing the disliked {@link PostsPaginationResponseDto} records.
+   */
+  async getDislikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
         isLiked: false,
         reactedBy: { id: userId },
+        post: { status: PostStatus.PUBLISHED },
       },
       relations: { post: true },
       skip: calculateOffset(page, limit),

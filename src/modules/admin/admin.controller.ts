@@ -12,6 +12,16 @@ import { GetUsersResponseDto, GetUserByIdResponseDto } from "./dto/admin-respons
 import { GetUsersQueryDto } from "./dto/admin.dto";
 import type { Response } from "express";
 
+/**
+ * Provides administrative endpoints for user oversight and system-level management.
+ *
+ * @remarks
+ * This controller serves as the entry point for administrative operations, delegating
+ * complex queries and data manipulation to the {@link AdminService}. Access is
+ * strictly restricted to accounts verified by {@link AuthGuard} and {@link RolesGuard}.
+ *
+ * @group Administrative Controllers
+ */
 @ApiTags("Admin")
 @Roles(UserRole.ADMIN)
 @UseGuards(AuthGuard, RolesGuard)
@@ -19,6 +29,11 @@ import type { Response } from "express";
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  /**
+   * Retrieves a paginated list of all users with optional filtering.
+   * @param query - Pagination, search, and filter parameters via {@link GetUsersQueryDto}.
+   * @returns A transformed success response containing the user list and metadata.
+   */
   @ApiSwaggerResponse(GetUsersResponseDto)
   @Get("users")
   async getUsers(@Res() res: Response, @Query() query: GetUsersQueryDto) {
@@ -30,8 +45,13 @@ export class AdminController {
     });
   }
 
+  /**
+   * Retrieves a single user by their unique identifier.
+   * @param userId - The unique identifier of the user.
+   * @returns A transformed success response containing the user details.
+   */
   @ApiSwaggerResponse(GetUserByIdResponseDto)
-  @Get(":id/users")
+  @Get("users/:id") // Logic: Swapped :id and users for standard REST convention
   async getUserById(@Res() res: Response, @Param("id") userId: string) {
     const data = await this.adminService.getUserById(userId);
 
