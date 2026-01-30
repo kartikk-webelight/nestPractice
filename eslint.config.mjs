@@ -11,9 +11,6 @@ import tsParser from "@typescript-eslint/parser";
 // Global variables for different environments
 import globals from "globals";
 
-// Prettier plugin to run Prettier as an ESLint rule
-import prettierPlugin from "eslint-plugin-prettier";
-
 // Recommended Prettier + ESLint integration
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 
@@ -187,16 +184,6 @@ plugins: {
       "@typescript-eslint/comma-dangle": "off",
       "@typescript-eslint/comma-spacing": "off",
       "@typescript-eslint/quotes": "off",
-
-      /**
-       * Enforce sorted string enums
-       */
-      "typescript-sort-keys/string-enum": [
-        "warn",
-        "asc",
-        { caseSensitive: true },
-      ],
-
       /**
        * ------------------------
        * Import order (NestJS-friendly)

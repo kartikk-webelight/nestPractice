@@ -18,7 +18,6 @@ import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config"
 import { SUCCESS_MESSAGES } from "constants/messages";
 import { MessageResponseDto } from "dto/common-response.dto";
 import { AuthGuard } from "guards/auth-guard";
-import { logger } from "services/logger.service";
 import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";

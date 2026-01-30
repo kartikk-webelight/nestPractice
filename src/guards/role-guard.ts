@@ -35,7 +35,7 @@ export class RolesGuard implements CanActivate {
     const { user } = request;
 
     // Ensure user exists to prevent runtime TypeErrors
-    if (!user || !user.role) {
+    if (!user?.role) {
       throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
     }
 
