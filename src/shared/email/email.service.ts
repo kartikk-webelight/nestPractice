@@ -7,6 +7,9 @@ import { ERROR_MESSAGES } from "constants/messages";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
 
+const {
+  mailtrapConfigs: { host, port, sandboxUsername, sandboxPassword },
+} = secretConfig;
 /**
  * Provides automated email communication and secure account verification workflows.
  *
@@ -23,11 +26,11 @@ export class EmailService {
 
   constructor(private readonly redisService: RedisService) {
     this.transporter = nodemailer.createTransport({
-      host: secretConfig.mailtrapConfigs.host,
-      port: Number(secretConfig.mailtrapConfigs.port),
+      host,
+      port: Number(port),
       auth: {
-        user: secretConfig.mailtrapConfigs.sandboxUsername,
-        pass: secretConfig.mailtrapConfigs.sandboxPassword,
+        user: sandboxUsername,
+        pass: sandboxPassword,
       },
     } as SMTPTransport.Options);
   }

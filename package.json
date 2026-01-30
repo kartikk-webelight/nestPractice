@@ -27,10 +27,12 @@
     "migration:revert": "pnpm typeorm migration:revert",
     "sonar": "node ./sonar-analysis.js",
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
-    "docs": "typedoc --out docs --entryPointStrategy expand ./src"
+    "docs": "typedoc --out docs --entryPointStrategy expand ./src",
+    "compo:docs": "dlx @compodoc/compodoc -p tsconfig.json -s"
   },
   "dependencies": {
     "@google/genai": "^1.37.0",
+    "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
@@ -63,6 +65,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@compodoc/compodoc": "^1.2.1",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",

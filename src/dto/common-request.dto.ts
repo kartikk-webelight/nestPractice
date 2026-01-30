@@ -6,15 +6,8 @@ import { TrimString } from "decorators/trim-string.decorator";
 import { OrderBy } from "enums";
 import { ApiPropertyWritable } from "swagger/swagger.writable.decorator";
 
-/**
- * Basic pagination parameters for list requests.
- * @group Common DTOs
- */
+// Basic pagination parameters for list requests
 export class PaginationQueryDto {
-  /**
-   * The page index to retrieve.
-   * @defaultValue 1
-   */
   @ApiPropertyWritable({
     example: 1,
     description: "Page number to retrieve (starts from 1)",
@@ -22,13 +15,8 @@ export class PaginationQueryDto {
   @Expose()
   @Type(() => Number)
   @Min(1)
-  page = 1;
+  page = 1; // The page index to retrieve
 
-  /**
-   * Maximum number of records to return per page.
-   * @defaultValue 10
-   * @maximum 50
-   */
   @ApiPropertyWritable({
     example: 10,
     description: "Number of records to return per page",
@@ -37,17 +25,11 @@ export class PaginationQueryDto {
   @Type(() => Number)
   @Min(1)
   @Max(50)
-  limit = 10;
+  limit = 10; // Maximum records per page
 }
 
-/**
- * Standard query parameters for filtering, searching, and sorting.
- * @group Common DTOs
- */
+// Standard query parameters for filtering, searching, and sorting
 export class BaseQueryDto extends PaginationQueryDto {
-  /**
-   * A fuzzy search string applied across multiple database columns.
-   */
   @ApiPropertyOptional({
     example: "nestjs",
     description: "Search term applied to multiple fields",
@@ -55,31 +37,21 @@ export class BaseQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   @TrimString()
-  search?: string;
+  search?: string; // Fuzzy search string
 
-  /**
-   * Start date for filtering records (ISO 8601 format).
-   */
   @ApiPropertyOptional({ example: "2024-01-01", description: "Filter from this date" })
   @IsOptional()
   @IsISO8601()
-  fromDate?: string;
+  fromDate?: string; // ISO 8601 start date filter
 
-  /**
-   * End date for filtering records. Must be chronologically after {@link fromDate}.
-   */
   @ApiPropertyOptional({ example: "2024-12-31", description: "Filter up to this date" })
   @IsOptional()
   @IsISO8601()
   @IsAfter("fromDate", { message: "toDate must be after fromDate" })
-  toDate?: string;
+  toDate?: string; // ISO 8601 end date filter
 
-  /**
-   * Direction of the sort.
-   * @see {@link OrderBy}
-   */
   @ApiPropertyOptional({ example: OrderBy.DESC, description: "Order of sorting" })
   @IsOptional()
   @IsEnum(OrderBy)
-  order?: OrderBy;
+  order?: OrderBy; // Sort direction (ASC/DESC)
 }

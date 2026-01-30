@@ -36,3 +36,8 @@ export enum RoleRequestAction {
   APPROVE = "approve",
   REJECT = "reject",
 }
+
+export enum ReactionCounter {
+  DISLIKE = "dislikes",
+  LIKE = "likes",
+}
