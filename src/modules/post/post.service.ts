@@ -58,7 +58,7 @@ export class PostService {
         throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
       }
 
-      const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST);
+      const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST, manager);
 
       return {
         ...postWithCategories,

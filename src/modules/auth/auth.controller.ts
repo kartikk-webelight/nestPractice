@@ -1,10 +1,24 @@
-import { Body, Controller, Get, Patch, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiTags } from "@nestjs/swagger";
 import { StatusCodes } from "http-status-codes";
 import { accessCookieOptions, refreshCookieOptions } from "config/cookie.config";
 import { SUCCESS_MESSAGES } from "constants/messages";
+import { MessageResponseDto } from "dto/common-response.dto";
 import { AuthGuard } from "guards/auth-guard";
+import { logger } from "services/logger.service";
 import { multerMemoryOptions } from "shared/multer/multer.service";
 import { ApiSwaggerResponse } from "swagger/swagger.decorator";
 import responseUtils from "utils/response.utils";
@@ -17,7 +31,7 @@ import {
   RefreshResponseDto,
   UpdateUserResponseDto,
 } from "./dto/auth-response.dto";
-import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
+import { CreateUserDto, LoginDto, ResendVerificationEmailDto, UpdateDetailsDto } from "./dto/auth.dto";
 import type { Request, Response } from "express";
 
 @ApiTags("Auth")
@@ -42,6 +56,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Get()
   async getCurrentUser(@Req() req: Request, @Res() res: Response) {
+    logger.info("CURRENT USER");
     const data = await this.authService.getCurrentUser(req.user.id);
 
     return responseUtils.success<CurrentUserResponseDto>(res, {
@@ -105,6 +120,28 @@ export class AuthController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_LOGGED_OUT },
+    });
+  }
+
+  @ApiSwaggerResponse(MessageResponseDto)
+  @Get("verify-email")
+  async verifyEmail(@Query("token") token: string, @Res() res: Response) {
+    await this.authService.verifyEmail(token);
+
+    return responseUtils.success(res, {
+      data: { message: SUCCESS_MESSAGES.ACCOUNT_VERIFIED },
+      transformWith: MessageResponseDto,
+    });
+  }
+
+  @ApiSwaggerResponse(MessageResponseDto)
+  @Post("resend-verification-email")
+  async resendVerificationEmail(@Body() body: ResendVerificationEmailDto, @Res() res: Response) {
+    await this.authService.resendVerificationEmail(body.email);
+
+    return responseUtils.success(res, {
+      data: { message: SUCCESS_MESSAGES.EMAIL_SENT },
+      transformWith: MessageResponseDto,
     });
   }
 }

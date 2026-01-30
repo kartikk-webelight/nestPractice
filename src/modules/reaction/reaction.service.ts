@@ -64,8 +64,6 @@ export class ReactionService {
 
       existingReaction.isLiked = true;
       await reactionRepository.save(existingReaction);
-
-      return;
     });
   }
 
@@ -115,8 +113,6 @@ export class ReactionService {
 
       existingReaction.isLiked = false;
       await reactionRepository.save(existingReaction);
-
-      return;
     });
   }
 
@@ -170,8 +166,6 @@ export class ReactionService {
 
       existingReaction.isLiked = true;
       await reactionRepository.save(existingReaction);
-
-      return;
     });
   }
 
@@ -225,8 +219,6 @@ export class ReactionService {
 
       existingReaction.isLiked = false;
       await reactionRepository.save(existingReaction);
-
-      return;
     });
   }
 
