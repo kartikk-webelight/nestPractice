@@ -1,4 +1,4 @@
-import { Readable } from "stream";
+import { Readable } from "node:stream";
 import { Injectable, InternalServerErrorException, ServiceUnavailableException } from "@nestjs/common";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import { secretConfig } from "config/secret.config";

@@ -44,7 +44,7 @@ export class CategoryController {
    * @returns A success response containing the created {@link CreateCategoryResponseDto}.
    */
   @Post()
-  @ApiSwaggerResponse(CreateCategoryResponseDto)
+  @ApiSwaggerResponse(CreateCategoryResponseDto, { status: StatusCodes.CREATED })
   async createCategory(@Body() body: CreateCategoryDto, @Res() res: Response) {
     const data = await this.categoryService.createCategory(body);
 

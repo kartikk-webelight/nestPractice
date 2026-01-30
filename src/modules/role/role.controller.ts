@@ -39,7 +39,7 @@ export class RoleController {
    * @returns A success message confirming the request has been submitted.
    */
   @Post()
-  @ApiSwaggerResponse(MessageResponseDto)
+  @ApiSwaggerResponse(MessageResponseDto, { status: StatusCodes.CREATED })
   async createRoleRequest(@Req() req: Request, @Body() body: CreateRoleRequestDto, @Res() res: Response) {
     await this.roleService.createRoleRequest(req.user, body.requestedRole);
 

@@ -17,7 +17,7 @@ async function bootstrap() {
   if (appConfig.sentryDsn) {
     init({
       dsn: appConfig.sentryDsn,
-      tracesSampleRate: 1.0,
+      tracesSampleRate: 1,
       debug: false,
     });
   }
@@ -69,6 +69,3 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap().catch(() => {
-  process.exit(1);
-});

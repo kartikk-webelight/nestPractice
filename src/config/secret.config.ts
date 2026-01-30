@@ -45,4 +45,8 @@ export const secretConfig = {
     host: getOsEnv("MAILTRAP_HOST"),
     port: getOsEnv("MAILTRAP_PORT"),
   },
+
+  sonarConfigs: {
+    token: getOsEnv("SONAR_TOKEN"),
+  },
 };
