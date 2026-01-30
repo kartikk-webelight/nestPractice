@@ -61,12 +61,11 @@ export class AuthController {
 
     return responseUtils.success<CurrentUserResponseDto>(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_FETCHED },
-      status: StatusCodes.OK,
       transformWith: CurrentUserResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(LoginResponseDto, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(LoginResponseDto)
   @Post("login")
   async login(@Body() body: LoginDto, @Res() res: Response) {
     const data = await this.authService.login(body);
@@ -76,12 +75,11 @@ export class AuthController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_LOGGED_IN },
-      status: StatusCodes.OK,
       transformWith: LoginResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(RefreshResponseDto, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(RefreshResponseDto)
   @Post("refresh-token")
   async refreshToken(@Req() req: Request, @Res() res: Response) {
     const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
@@ -92,12 +90,11 @@ export class AuthController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.TOKEN_REFRESHED },
-      status: StatusCodes.OK,
       transformWith: RefreshResponseDto,
     });
   }
 
-  @ApiSwaggerResponse(UpdateUserResponseDto, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(UpdateUserResponseDto)
   @UseGuards(AuthGuard)
   @Patch()
   async updateDetails(@Req() req: Request, @Body() body: UpdateDetailsDto, @Res() res: Response) {

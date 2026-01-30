@@ -14,7 +14,6 @@ import {
   CreateCategoryResponseDto,
   GetCategoriesResponseDto,
   GetCategoryByIdResponseDto,
-  GetCategoryBySlugResponseDto,
   UpdateCategoryResponseDto,
 } from "./dto/category-response.dto";
 import { CreateCategoryDto, GetCategoriesQueryDto, UpdateCategoryDto } from "./dto/category.dto";
@@ -28,7 +27,7 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
-  @ApiSwaggerResponse(CreateCategoryResponseDto)
+  @ApiSwaggerResponse(CreateCategoryResponseDto, { status: StatusCodes.CREATED })
   async createCategory(@Body() body: CreateCategoryDto, @Res() res: Response) {
     const data = await this.categoryService.createCategory(body);
 
@@ -38,6 +37,7 @@ export class CategoryController {
       transformWith: CreateCategoryResponseDto,
     });
   }
+
   @Get()
   @ApiSwaggerResponse(GetCategoriesResponseDto)
   async getCategories(@Query() query: GetCategoriesQueryDto, @Res() res: Response) {
@@ -45,7 +45,6 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_CATEGORIES_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetCategoriesResponseDto,
     });
   }
@@ -57,22 +56,10 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.UPDATED },
-      status: StatusCodes.OK,
       transformWith: UpdateCategoryResponseDto,
     });
   }
 
-  @Get(":slug/slug")
-  @ApiSwaggerResponse(GetCategoryBySlugResponseDto)
-  async getCategoryBySlug(@Param("slug") categorySlug: string, @Res() res: Response) {
-    const data = await this.categoryService.getCategoryBySlug(categorySlug);
-
-    return responseUtils.success(res, {
-      data: { data, message: SUCCESS_MESSAGES.CATEGORY_FETCHED },
-      status: StatusCodes.OK,
-      transformWith: GetCategoryBySlugResponseDto,
-    });
-  }
   @Get(":id")
   @ApiSwaggerResponse(GetCategoryByIdResponseDto)
   async getCategoryById(@Param("id") categoryId: string, @Res() res: Response) {
@@ -80,7 +67,6 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.CATEGORY_FETCHED },
-      status: StatusCodes.OK,
       transformWith: GetCategoryByIdResponseDto,
     });
   }
@@ -92,7 +78,6 @@ export class CategoryController {
 
     return responseUtils.success(res, {
       data: { message: SUCCESS_MESSAGES.DELETED },
-      status: StatusCodes.OK,
       transformWith: MessageResponseDto,
     });
   }

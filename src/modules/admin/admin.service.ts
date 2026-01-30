@@ -6,7 +6,7 @@ import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy } from "enums";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
-import { GetUsersQuery } from "./admin.types";
+import { GetUsersQueryDto } from "./dto/admin.dto";
 
 @Injectable()
 export class AdminService {
@@ -16,7 +16,7 @@ export class AdminService {
     private readonly attachmentService: AttachmentService,
   ) {}
 
-  async getUsers(query: GetUsersQuery) {
+  async getUsers(query: GetUsersQueryDto) {
     const { page, limit, search, role, fromDate, toDate, order = OrderBy.DESC } = query;
 
     const qb = this.userRepository.createQueryBuilder("user");

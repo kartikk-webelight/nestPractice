@@ -95,4 +95,5 @@ export const ERROR_MESSAGES = {
   // --- Cookie & Session Errors ---
   USER_ID_NOT_FOUND_IN_COOKIES_ERROR: "User ID not found in cookies.",
   REQUIRED_COOKIE_NOT_FOUND: "Required cookie/s not found.",
+  CATEGORY_ALREADY_EXISTS: "Category with same name already exists",
 };

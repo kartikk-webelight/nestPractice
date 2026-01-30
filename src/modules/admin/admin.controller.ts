@@ -1,6 +1,5 @@
 import { Controller, Get, Param, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { StatusCodes } from "http-status-codes";
 import { SUCCESS_MESSAGES } from "constants/messages";
 import { Roles } from "decorators/role";
 import { UserRole } from "enums";
@@ -31,7 +30,7 @@ export class AdminController {
     });
   }
 
-  @ApiSwaggerResponse(getUserByIdResponseDto, { status: StatusCodes.OK })
+  @ApiSwaggerResponse(getUserByIdResponseDto)
   @Get(":id/users")
   async getUserById(@Res() res: Response, @Param("id") userId: string) {
     const data = await this.adminService.getUserById(userId);
