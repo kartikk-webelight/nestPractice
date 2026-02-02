@@ -1,6 +1,8 @@
+import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { bullConfig } from "config/bullMq.config";
 import { AuthModule } from "modules/auth/auth.module";
 import { SharedModule } from "shared/shared.module";
 import { AppController } from "./app.controller";
@@ -26,6 +28,7 @@ import { UsersModule } from "./modules/users/users.module";
         },
       ],
     }),
+    BullModule.forRoot(bullConfig),
     DatabaseModule,
     UsersModule,
     PostModule,
