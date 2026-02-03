@@ -14,6 +14,7 @@ import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse } from "dto/common-response.dto";
 import { EntityType } from "enums";
+import { EmailQueue } from "shared/email/email.queue";
 import { EmailService } from "shared/email/email.service";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
 import { DecodedToken } from "./auth.types";
@@ -35,6 +36,8 @@ export class AuthService {
     private readonly userRepository: Repository<UserEntity>,
 
     private readonly attachmentService: AttachmentService,
+
+    private readonly emailQueue: EmailQueue,
 
     private readonly emailService: EmailService,
 
@@ -69,7 +72,7 @@ export class AuthService {
    * @throws ConflictException if the email address is already registered.
    */
   async create(body: CreateUserDto, file: Express.Multer.File): Promise<UserResponse> {
-    return await this.dataSource.transaction(async (manager) => {
+    const savedUser = await this.dataSource.transaction(async (manager) => {
       const userRepository = manager.getRepository(UserEntity);
 
       const { name, email, password } = body;
@@ -85,19 +88,20 @@ export class AuthService {
         email,
       });
       await newUser.setPassword(password);
-      const savedUser = await userRepository.save(newUser);
-
-      await this.emailService.sendVerificationEmail(email, savedUser.id, name);
-
+      const saved = await userRepository.save(newUser);
       let attachmentArray: AttachmentEntity[] = [];
 
       if (file) {
-        const attachment = await this.attachmentService.createAttachment(file, savedUser.id, EntityType.USER, manager);
+        const attachment = await this.attachmentService.createAttachment(file, saved.id, EntityType.USER, manager);
         attachmentArray = [attachment];
       }
 
-      return { ...savedUser, attachment: attachmentArray };
+      return { ...saved, attachment: attachmentArray };
     });
+
+    await this.emailQueue.enqueueVerification(savedUser.email, savedUser.id, savedUser.name);
+
+    return savedUser;
   }
 
   /**
@@ -200,6 +204,8 @@ export class AuthService {
       user.name = name;
     }
 
+    let emailChanged = false;
+
     if (email !== undefined && email.trim() !== "") {
       const duplicateUser = await this.userRepository.findOne({ where: { email, id: Not(userId) } });
 
@@ -209,10 +215,14 @@ export class AuthService {
       user.email = email;
       user.isEmailVerified = false;
       user.emailVerifiedAt = null;
-      await this.emailService.sendVerificationEmail(user.email, user.id, user.name);
+      emailChanged = true;
     }
 
     const savedUser = await this.userRepository.save(user);
+
+    if (emailChanged) {
+      await this.emailQueue.enqueueVerification(user.email, user.id, user.name);
+    }
 
     return savedUser;
   }
@@ -265,6 +275,6 @@ export class AuthService {
       throw new BadRequestException(ERROR_MESSAGES.EMAIL_ALREADY_VERIFIED);
     }
 
-    await this.emailService.resendVerificationEmail(user.email, user.id, user.name);
+    await this.emailQueue.enqueueVerification(user.email, user.id, user.name);
   }
 }

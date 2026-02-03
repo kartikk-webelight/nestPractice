@@ -1,6 +1,5 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
-import * as nodemailer from "nodemailer"; // Import nodemailer
-import SMTPTransport from "nodemailer/lib/smtp-transport";
+import { MailerService } from "@nestjs-modules/mailer";
 import { secretConfig } from "config/secret.config";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
@@ -8,7 +7,8 @@ import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
 
 const {
-  mailtrapConfigs: { host, port, sandboxUsername, sandboxPassword },
+  emailConfigs: { senderEmail, senderName },
+  serverConfigs: { baseUrl },
 } = secretConfig;
 /**
  * Provides automated email communication and secure account verification workflows.
@@ -22,18 +22,10 @@ const {
  */
 @Injectable()
 export class EmailService {
-  private readonly transporter: nodemailer.Transporter;
-
-  constructor(private readonly redisService: RedisService) {
-    this.transporter = nodemailer.createTransport({
-      host,
-      port: Number(port),
-      auth: {
-        user: sandboxUsername,
-        pass: sandboxPassword,
-      },
-    } as SMTPTransport.Options);
-  }
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly mailerService: MailerService,
+  ) {}
 
   /**
    * Generates a signed JWT specific to email verification.
@@ -60,11 +52,11 @@ export class EmailService {
       const redisKey = `verification:${userId}`;
       await this.redisService.set(redisKey, token, DURATION_CONSTANTS.ONE_DAY_IN_SEC);
 
-      const verificationLink = `${secretConfig.serverConfigs.baseUrl}/auth/verify-email?token=${token}`;
+      const verificationLink = `${baseUrl}/auth/verify-email?token=${token}`;
 
       // Send email using Transporter
-      await this.transporter.sendMail({
-        from: `"${secretConfig.emailConfigs.senderName}" <${secretConfig.emailConfigs.senderEmail}>`,
+      await this.mailerService.sendMail({
+        from: `"${senderName}" <${senderEmail}>`,
         to: email,
         subject: "Verify Your Email Address",
         text: `Hello ${name || "User"},\n\nPlease verify your email: ${verificationLink}`,
