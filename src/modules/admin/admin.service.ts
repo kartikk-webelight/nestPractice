@@ -39,7 +39,7 @@ export class AdminService {
 
     const qb = this.userRepository.createQueryBuilder("user");
 
-    // Step 1: Initialize QueryBuilder and apply conditional filters
+    // Step 1: Build the base user query with optional admin search and filter criteria
 
     if (search) {
       qb.andWhere("user.name ILIKE :search OR user.email ILIKE :search", { search: `%${search}%` });
@@ -59,14 +59,15 @@ export class AdminService {
 
     qb.orderBy("user.createdAt", order);
 
-    // Step 2: Apply pagination offset and limit
+    // Step 2: Apply sorting and pagination, then execute the query to retrieve users with the total count
+
     qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [users, total] = await qb.getManyAndCount();
 
     logger.debug("Found %d total users matching criteria", total);
 
-    // Step 3: We fetch all attachments in a single batch query.
+    // Step 4: Fetch related attachments in bulk to avoid N+1 queries
 
     const userIds = users.map((user) => user.id);
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(userIds, EntityType.USER);
@@ -78,7 +79,7 @@ export class AdminService {
       };
     });
 
-    logger.info("Successfully retrieved page %d of users", page);
+    logger.info("Successfully retrieved page %d of users (limit: %d)", page, limit);
 
     return {
       data: usersWithAttachment,
@@ -99,7 +100,7 @@ export class AdminService {
   async getUserById(userId: string): Promise<UserResponse> {
     logger.info("Fetching user details for ID: %s", userId);
 
-    // Step 1: fetch user exclude sensitive data
+    // Step 1: Retrieve user while excluding sensitive fields
 
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -112,7 +113,7 @@ export class AdminService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    // Step 2: Fetch associated attachments for the user
+    // Step 2: Fetch and map related attachments for the user
 
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([user.id], EntityType.USER);
 

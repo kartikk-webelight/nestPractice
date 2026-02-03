@@ -4,6 +4,7 @@ import { Repository } from "typeorm";
 import { PostService } from "modules/post/post.service";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, UserRole } from "enums";
+import { logger } from "services/logger.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CommentEntity } from "./comment.entity";
 import { CommentResponse, CommentsPaginationResponseDto } from "./dto/comment-response.dto";
@@ -36,6 +37,10 @@ export class CommentsService {
    * @throws NotFoundException if the target post does not exist.
    */
   async createComment(body: CreateCommentDto, userId: string): Promise<CommentResponse> {
+    logger.info("Comment creation initiated by user %s for post %s", userId, body.postId);
+
+    // Step 1: Validate target post existence before attaching a comment
+
     const { postId, content } = body;
 
     const post = await this.postService.findById(postId);
@@ -53,6 +58,8 @@ export class CommentsService {
 
     const savedComment = await this.commentRepository.save(comment);
 
+    logger.info("Comment created successfully. ID: %s", savedComment.id);
+
     return savedComment;
   }
 
@@ -65,6 +72,10 @@ export class CommentsService {
    * @throws NotFoundException if the post or parent comment is not found.
    */
   async replyComment(body: ReplyCommentDto, userId: string): Promise<CommentResponse> {
+    logger.info("User %s is replying to comment %s", userId, body.parentCommentId);
+
+    // Step 1: Validate both the target post and the parent comment existence
+
     const { postId, content, parentCommentId } = body;
 
     const post = await this.postService.findById(postId);
@@ -80,6 +91,7 @@ export class CommentsService {
     if (!parentComment) {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
+    // Step 2: Map the hierarchical relationship and save the reply
 
     const comment = this.commentRepository.create({
       content,
@@ -89,6 +101,8 @@ export class CommentsService {
     });
 
     const savedComment = await this.commentRepository.save(comment);
+
+    logger.info("Reply successfully saved. ID: %s", savedComment.id);
 
     return savedComment;
   }
@@ -101,11 +115,15 @@ export class CommentsService {
    * @returns A promise resolving to a paginated object containing comment data and metadata {@link CommentsPaginationResponseDto}.
    */
   async getComments(page: number, limit: number): Promise<CommentsPaginationResponseDto> {
+    logger.info("Fetching paginated comments. Page: %d, Limit: %d", page, limit);
+
     const [comments, total] = await this.commentRepository.findAndCount({
       skip: calculateOffset(page, limit),
       take: limit,
       order: { createdAt: OrderBy.DESC },
     });
+
+    logger.info("Retrieved %d comments successfully", comments.length);
 
     return {
       data: comments,
@@ -124,6 +142,8 @@ export class CommentsService {
    * @throws NotFoundException if the comment does not exist.
    */
   async getCommentById(commentId: string): Promise<CommentResponse> {
+    logger.info("Fetching details for comment: %s", commentId);
+
     const comment = await this.commentRepository.findOne({
       where: { id: commentId },
       relations: { author: true, post: true },
@@ -133,6 +153,8 @@ export class CommentsService {
     if (!comment) {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
+
+    logger.info("Retrieved comment with id: %s", commentId);
 
     return comment;
   }
@@ -148,6 +170,10 @@ export class CommentsService {
    * @throws UnauthorizedException if the user is not the original author.
    */
   async updateComment(commentId: string, body: UpdateCommentDto, userId: string): Promise<CommentResponse> {
+    logger.info("Update request for comment %s by user %s", commentId, userId);
+
+    // Step 1: Verify existence and ownership permissions before updating
+
     const { content } = body;
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
@@ -164,6 +190,8 @@ export class CommentsService {
 
     const updatedComment = await this.commentRepository.save(comment);
 
+    logger.info("Comment %s successfully updated", commentId);
+
     return updatedComment;
   }
 
@@ -177,6 +205,8 @@ export class CommentsService {
    * @throws UnauthorizedException if the user lacks the necessary permissions.
    */
   async deleteComment(commentId: string, user: User): Promise<void> {
+    logger.info("Delete request for comment %s by user %s", commentId, user.id);
+
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
 
     if (!comment) {
@@ -188,6 +218,8 @@ export class CommentsService {
     }
 
     await this.commentRepository.softDelete(commentId);
+
+    logger.info("Comment %s has been soft-deleted", commentId);
   }
 
   /**
@@ -199,6 +231,8 @@ export class CommentsService {
    * @returns A promise resolving to the paginated collection of post-specific comments {@link CommentsPaginationResponseDto}.
    */
   async getCommentByPostId(page: number, limit: number, postId: string): Promise<CommentsPaginationResponseDto> {
+    logger.info("Fetching comments for Post ID: %s (Page: %d, Limit: %d)", postId, page, limit);
+
     const [comments, total] = await this.commentRepository.findAndCount({
       where: {
         post: { id: postId },
@@ -207,6 +241,8 @@ export class CommentsService {
       skip: calculateOffset(page, limit),
       take: limit,
     });
+
+    logger.info("Found %d comments for post %s", comments.length, postId);
 
     return {
       data: comments,

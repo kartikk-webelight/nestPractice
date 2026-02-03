@@ -3,7 +3,9 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { DecodedToken } from "modules/auth/auth.types";
 import { UserEntity } from "modules/users/users.entity";
+import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
+import { RedisService } from "shared/redis/redis.service";
 import { verifyAccessToken } from "utils/jwt";
 
 /**
@@ -19,6 +21,8 @@ export class AuthGuard implements CanActivate {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
+
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -49,6 +53,17 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
+    const authCacheKey = `auth:${decodedToken.id}`;
+
+    const cachedUser = await this.redisService.get(authCacheKey);
+
+    if (cachedUser) {
+      const userFromCache = JSON.parse(cachedUser);
+      request.user = userFromCache;
+
+      return true;
+    }
+
     const user = await this.userRepo.findOne({
       where: { id: decodedToken.id },
       select: { password: false }, // Security: ensure password is never leaked to the request object
@@ -57,6 +72,8 @@ export class AuthGuard implements CanActivate {
     if (!user) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
+
+    await this.redisService.set(authCacheKey, JSON.stringify(user), DURATION_CONSTANTS.ONE_HOUR_IN_SEC);
 
     // Attach user to request for use in @GetUser() decorators or controllers
     request.user = user;

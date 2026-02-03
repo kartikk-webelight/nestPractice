@@ -5,6 +5,7 @@ import { AttachmentService } from "modules/attachment/attachment.service";
 import { CategoryEntity } from "modules/category/category.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
+import { logger } from "services/logger.service";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CreatePostDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
@@ -45,7 +46,11 @@ export class PostService {
    * @throws NotFoundException if the post cannot be retrieved after creation.
    */
   async createPost(body: CreatePostDto, userId: string, files: Express.Multer.File[]): Promise<PostResponse> {
+    logger.info("Starting post creation for user: %s", userId);
+
     return this.dataSource.transaction(async (manager) => {
+      // Step 1: Validate category IDs and generate a unique URL slug
+
       const categoryRepository = manager.getRepository(CategoryEntity);
       const { title, content, categoryIds } = body;
       let categories: CategoryEntity[] = [];
@@ -68,6 +73,8 @@ export class PostService {
         categories,
       });
 
+      // Step 2: Persist post entity and handle media attachments within transaction
+
       const savedPost = await manager.save(post);
 
       const postWithCategories = await manager.findOne(PostEntity, {
@@ -80,6 +87,8 @@ export class PostService {
       }
 
       const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST, manager);
+
+      logger.info("Post created successfully. ID: %s, Slug: %s", savedPost.id, slug);
 
       return {
         ...postWithCategories,
@@ -96,6 +105,8 @@ export class PostService {
    * @throws NotFoundException if the post does not exist.
    */
   async getPostById(postId: string): Promise<PostResponse> {
+    logger.info("Fetching post by ID: %s", postId);
+
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -160,6 +171,10 @@ export class PostService {
    * @throws NotFoundException if the post is not found.
    */
   async updatePost(body: UpdatePostDto, userId: string, postId: string): Promise<PostResponse> {
+    logger.info("Update request for Post %s by user %s", postId, userId);
+
+    // Step 1: Validate post ownership and existence before processing updates
+
     const { title, content, categoryIds } = body;
 
     const post = await this.postRepository.findOne({
@@ -200,6 +215,8 @@ export class PostService {
 
     const updatedPost = await this.postRepository.save(post);
 
+    logger.info("Post %s updated successfully", postId);
+
     return updatedPost;
   }
 
@@ -212,6 +229,10 @@ export class PostService {
    * @throws UnauthorizedException if permissions are insufficient.
    */
   async publishPost(postId: string, user: User): Promise<PostResponse> {
+    logger.info("Status transition requested for Post %s to %s", postId, PostStatus.PUBLISHED);
+
+    // Step 1: Verify permissions and transition post status
+
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -229,6 +250,8 @@ export class PostService {
 
     const publishedPost = await this.postRepository.save(post);
 
+    logger.info("Post %s is now %s", postId, post.status);
+
     return publishedPost;
   }
 
@@ -240,6 +263,10 @@ export class PostService {
    * @returns A promise resolving to the drafted {@link PostResponse}.
    */
   async unPublishPost(postId: string, user: User): Promise<PostResponse> {
+    logger.info("Status transition requested for Post %s to %s", postId, PostStatus.PUBLISHED);
+
+    // Step 1: Verify permissions and transition post status
+
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -256,6 +283,8 @@ export class PostService {
 
     const unPublishedPost = await this.postRepository.save(post);
 
+    logger.info("Post %s is now %s", postId, post.status);
+
     return unPublishedPost;
   }
 
@@ -268,6 +297,8 @@ export class PostService {
    * @throws NotFoundException if the post is not found.
    */
   async deletePost(postId: string, user: User): Promise<void> {
+    logger.info("Deletion requested for Post: %s", postId);
+
     const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
     if (!post) {
@@ -277,6 +308,8 @@ export class PostService {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
     await this.postRepository.softDelete({ id: postId });
+
+    logger.info("Post %s successfully soft-deleted", postId);
   }
 
   /**
@@ -286,6 +319,8 @@ export class PostService {
    * @returns A promise resolving to the {@link PostResponse} and its attachments.
    */
   async getPostBySlug(slug: string): Promise<PostResponse> {
+    logger.info("Fetching post with slug: %s", slug);
+
     const post = await this.postRepository.findOne({
       where: { slug },
       relations: { author: true, categories: true },
@@ -295,12 +330,16 @@ export class PostService {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
+    // Fetch and map attachments associated with the found post
+
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([post.id], EntityType.POST);
 
     const postWithAttachment = {
       ...post,
       attachments: attachmentMap[post.id] || [],
     };
+
+    logger.info("Successfully retrieved post: %s", post.id);
 
     return postWithAttachment;
   }
@@ -313,11 +352,17 @@ export class PostService {
    * @returns A promise resolving to a paginated list of posts and their attachments.
    */
   async getPosts(query: GetPostsQueryDto, currentUser: User): Promise<PostsPaginationResponseDto> {
+    logger.info("Processing paginated post search for user: %s", currentUser.id);
+
+    // Step 1: Initialize QueryBuilder and apply role-based visibility logic
+
     const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
     const qb = this.postRepository.createQueryBuilder("post");
 
     qb.leftJoinAndSelect("post.author", "author");
+
+    // Step 2: Apply specific status filters based on user role permissions
 
     if (currentUser.role === UserRole.READER) {
       qb.andWhere("post.status = :published", { published: PostStatus.PUBLISHED });
@@ -343,6 +388,8 @@ export class PostService {
         qb.andWhere("post.status = :status", { status });
       }
     }
+
+    // Step 3: Integrate text search, date range filters, and sorting parameters
 
     // Search title + content
     if (search) {
@@ -370,6 +417,8 @@ export class PostService {
     // Pagination
     qb.skip(calculateOffset(page, limit)).take(limit);
 
+    // Step 4: Execute database query and map multi-entity attachments
+
     const [posts, total] = await qb.getManyAndCount();
 
     const postIds = posts.map((post) => post.id);
@@ -382,6 +431,8 @@ export class PostService {
         attachments: attachmentMap[post.id] || [],
       };
     });
+
+    logger.info("Retrieved %d posts for the current page", posts.length);
 
     return {
       data: postsWithAttachments,

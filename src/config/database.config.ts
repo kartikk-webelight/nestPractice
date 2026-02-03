@@ -16,6 +16,6 @@ export const databaseConfig: TypeOrmModuleOptions = {
   migrations: isLocal ? ["src/migrations/*.ts"] : ["dist/migrations/*.js"],
 
   migrationsRun: !isLocal,
-  logging: isLocal,
+  logging: false,
   autoLoadEntities: true,
 };

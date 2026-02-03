@@ -61,7 +61,7 @@ export const ERROR_MESSAGES = {
   INVALID_EMAIL: "Invalid email address.",
 
   // --- User Registration & Validation ---
-  USER_ALREADY_EXISTS: "User with same email alrady exists.",
+  USER_ALREADY_EXISTS: "User with same email already exists.",
   ALREADY_EXISTS_ACCOUNT: "Account Already Exists.",
   USER_NOT_FOUND: "User not found.",
   PASSWORD_WEAK:
