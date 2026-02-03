@@ -43,7 +43,7 @@ export function makeRedisKey(prefix: string, data: object | string): string {
   } else {
     keyPart = JSON.stringify(
       Object.keys(data)
-        .sort()
+        .sort((a, b) => a.localeCompare(b))
         .reduce(
           (acc, k) => {
             acc[k] = data[k];
