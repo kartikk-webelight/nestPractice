@@ -1,13 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, In, Repository } from "typeorm";
+import { DataSource, In, Repository, SelectQueryBuilder } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { CategoryEntity } from "modules/category/category.entity";
+import { REDIS_PREFIX } from "constants/cache-prefixes";
+import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { logger } from "services/logger.service";
+import { RedisService } from "shared/redis/redis.service";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
+import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 import { CreatePostDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import { PostResponse, PostsPaginationResponseDto } from "./dto/posts-response.dto";
 import { PostEntity } from "./post.entity";
@@ -32,6 +36,7 @@ export class PostService {
     @InjectRepository(CategoryEntity)
     private readonly categoryRepository: Repository<CategoryEntity>,
     private readonly slugService: SlugService,
+    private readonly redisService: RedisService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -48,7 +53,7 @@ export class PostService {
   async createPost(body: CreatePostDto, userId: string, files: Express.Multer.File[]): Promise<PostResponse> {
     logger.info("Starting post creation for user: %s", userId);
 
-    return this.dataSource.transaction(async (manager) => {
+    const savedPost = await this.dataSource.transaction(async (manager) => {
       // Step 1: Validate category IDs and generate a unique URL slug
 
       const categoryRepository = manager.getRepository(CategoryEntity);
@@ -95,17 +100,32 @@ export class PostService {
         attachments,
       };
     });
+    await this.invalidatePostCaches(savedPost.id);
+
+    return savedPost;
   }
 
   /**
-   * Retrieves a single post and its associated media by its unique identifier.
+   * Retrieves a single post by its identifier along with its attachments.
    *
-   * @param postId - The ID of the post to retrieve.
-   * @returns A promise resolving to the {@link PostResponse} including its attachment metadata.
+   * The result is cached in Redis using the post ID.
+   *
+   * @param postId - Identifier of the post.
+   * @returns The post with attachments.
    * @throws NotFoundException if the post does not exist.
    */
   async getPostById(postId: string): Promise<PostResponse> {
     logger.info("Fetching post by ID: %s", postId);
+
+    const postCacheKey = makeRedisKey("post", postId);
+
+    const cachedPost = await getCachedJson<PostResponse>(postCacheKey, this.redisService);
+
+    if (cachedPost) {
+      logger.info("Cache hit for post with ID: %s", postId);
+
+      return cachedPost;
+    }
 
     const post = await this.postRepository.findOne({
       where: { id: postId },
@@ -123,18 +143,31 @@ export class PostService {
       attachments: attachmentMap[post.id] || [],
     };
 
+    await this.redisService.set(postCacheKey, JSON.stringify(postWithAttachment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
+
     return postWithAttachment;
   }
 
   /**
-   * Retrieves a paginated collection of posts authored by a specific user.
+   * Retrieves a paginated collection of posts authored by a specific user,
+   * including attachments, and caches the result in Redis.
    *
-   * @param userId - The identifier of the author.
-   * @param page - The current page number.
-   * @param limit - The number of records per page.
-   * @returns A promise resolving to a paginated object containing posts and media {@link PostsPaginationResponseDto}.
+   * @param userId - The ID of the author.
+   * @param page - Current page number.
+   * @param limit - Number of records per page.
+   * @returns Paginated posts with attachments {@link PostsPaginationResponseDto}.
    */
   async getMyPosts(userId: string, page: number, limit: number): Promise<PostsPaginationResponseDto> {
+    const postsCacheKey = makeRedisKey("posts", { userId, page, limit });
+
+    const cachedPosts = await getCachedJson<PostsPaginationResponseDto>(postsCacheKey, this.redisService);
+
+    if (cachedPosts) {
+      logger.info("Cache hit for posts list of user with ID %s", userId);
+
+      return cachedPosts;
+    }
+
     const [posts, total] = await this.postRepository.findAndCount({
       where: { author: { id: userId } },
       relations: { author: true, categories: true },
@@ -151,13 +184,17 @@ export class PostService {
       attachments: attachmentMap[post.id] || [],
     }));
 
-    return {
+    const paginatedResponse = {
       data: postsWithAttachments,
       total,
       page,
       limit,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    await this.redisService.set(postsCacheKey, JSON.stringify(paginatedResponse), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
+
+    return paginatedResponse;
   }
 
   /**
@@ -215,6 +252,8 @@ export class PostService {
 
     const updatedPost = await this.postRepository.save(post);
 
+    await this.invalidatePostCaches(postId);
+
     logger.info("Post %s updated successfully", postId);
 
     return updatedPost;
@@ -250,6 +289,8 @@ export class PostService {
 
     const publishedPost = await this.postRepository.save(post);
 
+    await this.invalidatePostCaches(postId);
+
     logger.info("Post %s is now %s", postId, post.status);
 
     return publishedPost;
@@ -283,6 +324,8 @@ export class PostService {
 
     const unPublishedPost = await this.postRepository.save(post);
 
+    await this.invalidatePostCaches(postId);
+
     logger.info("Post %s is now %s", postId, post.status);
 
     return unPublishedPost;
@@ -313,13 +356,26 @@ export class PostService {
   }
 
   /**
-   * Retrieves a post using its unique URL-friendly slug.
+   * Retrieves a post using its URL-friendly slug.
    *
-   * @param slug - The slug string generated from the title.
-   * @returns A promise resolving to the {@link PostResponse} and its attachments.
+   * The result is cached in Redis using the slug.
+   *
+   * @param slug - URL-friendly post identifier.
+   * @returns The post with attachments.
+   * @throws NotFoundException if the post does not exist.
    */
   async getPostBySlug(slug: string): Promise<PostResponse> {
     logger.info("Fetching post with slug: %s", slug);
+
+    const postCacheKey = makeRedisKey("post", slug);
+
+    const cachedPost = await getCachedJson<PostResponse>(postCacheKey, this.redisService);
+
+    if (cachedPost) {
+      logger.info("Cache hit for post with slug: %s", slug);
+
+      return cachedPost;
+    }
 
     const post = await this.postRepository.findOne({
       where: { slug },
@@ -339,108 +395,137 @@ export class PostService {
       attachments: attachmentMap[post.id] || [],
     };
 
-    logger.info("Successfully retrieved post: %s", post.id);
+    await this.redisService.set(postCacheKey, JSON.stringify(postWithAttachment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
+
+    logger.info("Successfully retrieved post: %s", post.slug);
 
     return postWithAttachment;
   }
 
   /**
-   * Performs a complex filtered search of posts with visibility logic tailored to the user's role.
+   * Retrieves a paginated and filtered list of posts based on user visibility rules.
    *
-   * @param query - The {@link GetPostsQueryDto} containing search, sort, and filter parameters.
-   * @param currentUser - The {@link User} requesting the data, used to determine accessible statuses.
-   * @returns A promise resolving to a paginated list of posts and their attachments.
+   * The result is cached in Redis per user and query parameters.
+   *
+   * @param query - Search, filter, sort, and pagination parameters.
+   * @param currentUser - User requesting the posts, used to apply visibility rules.
+   * @returns A paginated list of posts with attachments.
    */
   async getPosts(query: GetPostsQueryDto, currentUser: User): Promise<PostsPaginationResponseDto> {
     logger.info("Processing paginated post search for user: %s", currentUser.id);
 
-    // Step 1: Initialize QueryBuilder and apply role-based visibility logic
-
     const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
-    const qb = this.postRepository.createQueryBuilder("post");
+    // Step 1: Generate Redis key and attempt to fetch cached response
+    const postsCacheKey = makeRedisKey("posts", { ...query, userId: currentUser.id });
+    const cachedPosts = await getCachedJson<PostsPaginationResponseDto>(postsCacheKey, this.redisService);
+    if (cachedPosts) {
+      logger.info("Cache hit for posts list (query: %j)", query);
 
-    qb.leftJoinAndSelect("post.author", "author");
-
-    // Step 2: Apply specific status filters based on user role permissions
-
-    if (currentUser.role === UserRole.READER) {
-      qb.andWhere("post.status = :published", { published: PostStatus.PUBLISHED });
-    } else if (currentUser.role === UserRole.AUTHOR) {
-      if (status === PostStatus.PUBLISHED) {
-        qb.andWhere("post.status = :published", { published: PostStatus.PUBLISHED });
-      } else if (status === PostStatus.DRAFT) {
-        qb.andWhere("post.status = :draft AND  author.id = :userId", {
-          draft: PostStatus.DRAFT,
-          userId: currentUser.id,
-        });
-      } else {
-        // default if no status provided: all published + own drafts
-        qb.andWhere("(post.status = :published OR (post.status = :draft AND  author.id = :userId))", {
-          published: PostStatus.PUBLISHED,
-          draft: PostStatus.DRAFT,
-          userId: currentUser.id,
-        });
-      }
-    } else if (currentUser.role === UserRole.EDITOR || currentUser.role === UserRole.ADMIN) {
-      // Editors and admins can see all posts
-      if (status) {
-        qb.andWhere("post.status = :status", { status });
-      }
+      return cachedPosts;
     }
 
-    // Step 3: Integrate text search, date range filters, and sorting parameters
+    // Step 2: Initialize query builder and apply visibility rules based on user role
+    const qb = this.postRepository.createQueryBuilder("post").leftJoinAndSelect("post.author", "author");
+    this.applyPostVisibilityFilters(qb, currentUser, status);
 
-    // Search title + content
+    // Step 3: Apply filters (search, date range)
     if (search) {
       qb.andWhere("(post.title ILIKE :search OR post.content ILIKE :search)", { search: `%${search}%` });
     }
+    if (fromDate) qb.andWhere("post.createdAt >= :fromDate", { fromDate });
+    if (toDate) qb.andWhere("post.createdAt <= :toDate", { toDate });
 
-    // Date range filter
-    if (fromDate) {
-      qb.andWhere("post.createdAt >= :fromDate", { fromDate });
-    }
+    // Step 4: Apply sorting and pagination
+    qb.orderBy(`post.${sortBy}`, order).skip(calculateOffset(page, limit)).take(limit);
 
-    if (toDate) {
-      qb.andWhere("post.createdAt <= :toDate", { toDate });
-    }
-
-    // Sorting
-    const SORT_MAP: Record<SortBy, string> = {
-      [SortBy.CREATED_AT]: "post.createdAt",
-      [SortBy.LIKES]: "post.likes",
-      [SortBy.VIEWCOUNT]: "post.viewCount",
-    };
-
-    qb.orderBy(SORT_MAP[sortBy ?? SortBy.CREATED_AT], order);
-
-    // Pagination
-    qb.skip(calculateOffset(page, limit)).take(limit);
-
-    // Step 4: Execute database query and map multi-entity attachments
-
+    // Step 5: Execute query and fetch related attachments
     const [posts, total] = await qb.getManyAndCount();
-
     const postIds = posts.map((post) => post.id);
-
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(postIds, EntityType.POST);
 
-    const postsWithAttachments = posts.map((post) => {
-      return {
-        ...post,
-        attachments: attachmentMap[post.id] || [],
-      };
-    });
+    const postsWithAttachments = posts.map((post) => ({
+      ...post,
+      attachments: attachmentMap[post.id] ?? [],
+    }));
 
-    logger.info("Retrieved %d posts for the current page", posts.length);
-
-    return {
+    // Step 6: Build paginated response and cache it in Redis
+    const paginatedResponse: PostsPaginationResponseDto = {
       data: postsWithAttachments,
       total,
       page,
       limit,
       totalPages: calculateTotalPages(total, limit),
     };
+    await this.redisService.set(postsCacheKey, JSON.stringify(paginatedResponse), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
+
+    logger.info("Retrieved %d posts for the current page", posts.length);
+
+    return paginatedResponse;
+  }
+
+  /**
+   * Applies role-based visibility and status filters to the post query.
+   *
+   * Visibility rules:
+   * - Readers → published posts only
+   * - Authors → published posts + own drafts
+   * - Editors/Admins → all posts (optionally filtered by status)
+   *
+   * @param qb - QueryBuilder to apply filters on
+   * @param currentUser - User requesting the posts
+   * @param status - Optional status filter
+   */
+  private applyPostVisibilityFilters(qb: SelectQueryBuilder<PostEntity>, currentUser: User, status?: PostStatus): void {
+    switch (currentUser.role) {
+      case UserRole.READER:
+        // Readers can only see published content
+        qb.andWhere("post.status = :published", {
+          published: PostStatus.PUBLISHED,
+        });
+        break;
+
+      case UserRole.AUTHOR:
+        if (status === PostStatus.PUBLISHED) {
+          qb.andWhere("post.status = :published", {
+            published: PostStatus.PUBLISHED,
+          });
+        } else if (status === PostStatus.DRAFT) {
+          // Authors are restricted to their own drafts
+          qb.andWhere("post.status = :draft AND author.id = :userId", {
+            draft: PostStatus.DRAFT,
+            userId: currentUser.id,
+          });
+        } else {
+          // Default author view: published posts + own drafts
+          qb.andWhere("(post.status = :published OR (post.status = :draft AND author.id = :userId))", {
+            published: PostStatus.PUBLISHED,
+            draft: PostStatus.DRAFT,
+            userId: currentUser.id,
+          });
+        }
+        break;
+
+      case UserRole.EDITOR:
+      case UserRole.ADMIN:
+        // Editors/Admins have full visibility; status filter is optional
+        if (status) {
+          qb.andWhere("post.status = :status", { status });
+        }
+        break;
+    }
+  }
+
+  /**
+   * Clears Redis caches for a post and related post lists.
+   * @param postId - ID of the post to invalidate
+   */
+  private async invalidatePostCaches(postId: string): Promise<void> {
+    const postCacheKey = makeRedisKey(REDIS_PREFIX.POST, postId);
+    const postsCacheKey = makeRedisKey(REDIS_PREFIX.POSTS, "");
+
+    await this.redisService.delete([postCacheKey]);
+    await this.redisService.deleteByPattern(`${postsCacheKey}*`);
   }
 
   async findById(postId: string): Promise<PostEntity | null> {

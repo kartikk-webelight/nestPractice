@@ -11,6 +11,8 @@ import { DataSource, Not, Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
+import { REDIS_PREFIX } from "constants/cache-prefixes";
+import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse } from "dto/common-response.dto";
 import { EntityType } from "enums";
@@ -19,6 +21,7 @@ import { EmailQueue } from "shared/email/email.queue";
 import { EmailService } from "shared/email/email.service";
 import { RedisService } from "shared/redis/redis.service";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
+import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 import { DecodedToken } from "./auth.types";
 import { LoginResponse, RefreshTokenResponse } from "./dto/auth-response.dto";
 import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
@@ -49,7 +52,10 @@ export class AuthService {
   ) {}
 
   /**
-   * Retrieves the currently authenticated user's profile and associated attachments(profile image).
+   * Retrieves the currently authenticated user's profile along with their attachments (e.g., profile image).
+   *
+   * This method first checks Redis cache for the user. If not found, it fetches the user from the database,
+   * maps their attachments, caches the result, and returns it.
    *
    * @param userId - The unique identifier of the user.
    * @returns A promise resolving to the user combined with their attachment data {@link UserResponse}.
@@ -59,6 +65,16 @@ export class AuthService {
     logger.info("Fetching current user profile. ID: %s", userId);
 
     // Step 1: Fetch user by ID
+
+    const userCacheKey = makeRedisKey(REDIS_PREFIX.USER, userId);
+
+    const cachedUser = await getCachedJson<UserResponse>(userCacheKey, this.redisService);
+
+    if (cachedUser) {
+      logger.info("Cache hit for user profile. ID: %s", userId);
+
+      return cachedUser;
+    }
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
@@ -72,7 +88,11 @@ export class AuthService {
 
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([user.id], EntityType.USER);
 
-    return { ...user, attachment: attachmentMap[user.id] ?? [] };
+    const userWithAttachments = { ...user, attachment: attachmentMap[user.id] ?? [] };
+
+    await this.redisService.set(userCacheKey, JSON.stringify(userWithAttachments), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
+
+    return userWithAttachments;
   }
 
   /**
@@ -119,6 +139,8 @@ export class AuthService {
 
       return { ...saved, attachment: attachmentArray };
     });
+
+    await this.invalidateUserCaches(savedUser.id);
 
     // Step 2: User and attachments secured. Queueing verification email.
 
@@ -279,9 +301,7 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(user);
 
-    const authCacheKey = `auth:${savedUser.id}`;
-
-    await this.redisService.delete([authCacheKey]);
+    await this.invalidateUserCaches(userId);
 
     logger.info("Profile updated successfully for UserID: %s. Email changed: %s", userId, emailChanged);
 
@@ -357,5 +377,21 @@ export class AuthService {
 
     await this.emailQueue.enqueueVerification(user.email, user.id, user.name);
     logger.info("Verification email successfully re-queued for: %s", email);
+  }
+
+  /**
+   * Clears Redis caches for a user and related user lists.
+   * @param userId - ID of the user to invalidate
+   */
+  private async invalidateUserCaches(userId: string): Promise<void> {
+    const userCacheKey = makeRedisKey(REDIS_PREFIX.USER, userId);
+    const authCacheKey = makeRedisKey(REDIS_PREFIX.AUTH, userId);
+    const usersCacheKey = makeRedisKey(REDIS_PREFIX.USERS, "");
+
+    // Delete single user and auth caches
+    await this.redisService.delete([userCacheKey, authCacheKey]);
+
+    // Delete all cached user lists
+    await this.redisService.deleteByPattern(`${usersCacheKey}*`);
   }
 }

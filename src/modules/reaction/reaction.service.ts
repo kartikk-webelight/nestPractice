@@ -4,10 +4,14 @@ import { DataSource, Repository } from "typeorm";
 import { CommentEntity } from "modules/comments/comment.entity";
 import { PostsPaginationResponseDto } from "modules/post/dto/posts-response.dto";
 import { PostEntity } from "modules/post/post.entity";
+import { REDIS_PREFIX } from "constants/cache-prefixes";
+import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { PostStatus, ReactionCounter } from "enums";
 import { logger } from "services/logger.service";
+import { RedisService } from "shared/redis/redis.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
+import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 import { ReactionEntity } from "./reaction.entity";
 import { ApplyReactionToComment, ApplyReactionToPost } from "./reaction.types";
 
@@ -26,6 +30,8 @@ export class ReactionService {
   constructor(
     @InjectRepository(ReactionEntity)
     private readonly reactionRepository: Repository<ReactionEntity>,
+
+    private readonly redisService: RedisService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -87,15 +93,28 @@ export class ReactionService {
   }
 
   /**
-   * Retrieves a paginated collection of posts that the specified user has liked.
+   * Retrieves a paginated list of posts liked by a user.
    *
-   * @param page - The current results page.
-   * @param limit - The maximum number of posts per page.
-   * @param userId - The user whose liked content is being fetched.
-   * @returns A paginated object containing a list of {@link PostsPaginationResponseDto} records.
+   * The response is cached in Redis based on the user and pagination parameters.
+   *
+   * @param page - Current page number.
+   * @param limit - Number of posts per page.
+   * @param userId - Identifier of the user.
+   * @returns A paginated response containing liked posts.
    */
+
   async getLikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
     logger.info("Fetching liked posts for user %s", userId);
+
+    const likedPostsCacheKey = makeRedisKey(REDIS_PREFIX.LIKED_POSTS, { page, limit, userId, isLiked: true });
+
+    const cachedLikedPosts = await getCachedJson<PostsPaginationResponseDto>(likedPostsCacheKey, this.redisService);
+
+    if (cachedLikedPosts) {
+      logger.info("Cache hit for liked posts list of user with ID %s", userId);
+
+      return cachedLikedPosts;
+    }
 
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
@@ -109,27 +128,49 @@ export class ReactionService {
     });
     const likedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    logger.info("Retrieved %d liked posts", likedPosts.length);
-
-    return {
+    const paginatedResponse = {
       data: likedPosts,
       page,
       limit,
       total,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    await this.redisService.set(
+      likedPostsCacheKey,
+      JSON.stringify(paginatedResponse),
+      DURATION_CONSTANTS.TWO_MIN_IN_SEC,
+    );
+    logger.info("Retrieved %d liked posts", likedPosts.length);
+
+    return paginatedResponse;
   }
 
   /**
-   * Retrieves a paginated collection of posts that the specified user has disliked.
+   * Retrieves a paginated list of posts disliked by a user.
    *
-   * @param page - The results page number.
-   * @param limit - The results limit.
-   * @param userId - The user identifier.
-   * @returns A paginated object containing the disliked {@link PostsPaginationResponseDto} records.
+   * The response is cached in Redis using the user and pagination parameters.
+   *
+   * @param page - Current page number.
+   * @param limit - Number of posts per page.
+   * @param userId - Identifier of the user.
+   * @returns A paginated response containing disliked posts.
    */
   async getDislikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
     logger.info("Fetching disliked posts for user %s", userId);
+
+    const dislikedPostsCacheKey = makeRedisKey(REDIS_PREFIX.DISLIKED_POSTS, { page, limit, userId, isLiked: false });
+
+    const cachedDislikedPosts = await getCachedJson<PostsPaginationResponseDto>(
+      dislikedPostsCacheKey,
+      this.redisService,
+    );
+
+    if (cachedDislikedPosts) {
+      logger.info("Cache hit for disliked posts list of user with ID %s", userId);
+
+      return cachedDislikedPosts;
+    }
 
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
@@ -144,15 +185,23 @@ export class ReactionService {
 
     const dislikedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    logger.info("Retrieved %d disliked posts", dislikedPosts.length);
-
-    return {
+    const paginatedResponse = {
       data: dislikedPosts,
       page,
       limit,
       total,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    await this.redisService.set(
+      dislikedPostsCacheKey,
+      JSON.stringify(paginatedResponse),
+      DURATION_CONSTANTS.TWO_MIN_IN_SEC,
+    );
+
+    logger.info("Retrieved %d disliked posts", dislikedPosts.length);
+
+    return paginatedResponse;
   }
 
   /**

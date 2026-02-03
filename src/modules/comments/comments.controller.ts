@@ -10,9 +10,8 @@ import responseUtils from "utils/response.utils";
 import { CommentsService } from "./comments.service";
 import {
   CreateCommentResponseDto,
-  GetAllCommentsResponseDto,
   GetCommentByIdResponseDto,
-  GetCommentByPostIdResponseDto,
+  GetCommentsByPostIdResponseDto,
   ReplyCommentResponseDto,
   UpdateCommentResponseDto,
 } from "./dto/comment-response.dto";
@@ -77,25 +76,6 @@ export class CommentsController {
   }
 
   /**
-   * Retrieves a paginated list of all comments across the entire system.
-   *
-   * @param query - The {@link PaginationQueryDto} for controlling data offsets.
-   * @param res - The Express response object.
-   * @returns A success response containing {@link GetAllCommentsResponseDto}.
-   */
-  @Get()
-  @ApiSwaggerResponse(GetAllCommentsResponseDto)
-  async getComments(@Query() query: PaginationQueryDto, @Res() res: Response) {
-    const { page, limit } = query;
-    const data = await this.commentsService.getComments(page, limit);
-
-    return responseUtils.success(res, {
-      data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
-      transformWith: GetAllCommentsResponseDto,
-    });
-  }
-
-  /**
    * Retrieves a paginated list of comments specifically linked to a single post.
    *
    * @param postId - The unique identifier of the target post.
@@ -104,14 +84,14 @@ export class CommentsController {
    * @returns A success response containing {@link GetCommentByPostIdResponseDto}.
    */
   @Get("post/:id")
-  @ApiSwaggerResponse(GetCommentByPostIdResponseDto)
-  async getCommentByPostId(@Param("id") postId: string, @Query() query: PaginationQueryDto, @Res() res: Response) {
+  @ApiSwaggerResponse(GetCommentsByPostIdResponseDto)
+  async getCommentsByPostId(@Param("id") postId: string, @Query() query: PaginationQueryDto, @Res() res: Response) {
     const { page, limit } = query;
-    const data = await this.commentsService.getCommentByPostId(page, limit, postId);
+    const data = await this.commentsService.getCommentsByPostId(page, limit, postId);
 
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.ALL_COMMENTS_FETCHED },
-      transformWith: GetCommentByPostIdResponseDto,
+      transformWith: GetCommentsByPostIdResponseDto,
     });
   }
 
