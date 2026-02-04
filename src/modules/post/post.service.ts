@@ -91,7 +91,12 @@ export class PostService {
         throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
       }
 
-      const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST, manager);
+      const attachments = await this.attachmentService.createAttachments({
+        files,
+        externalId: savedPost.id,
+        entityType: EntityType.POST,
+        manager,
+      });
 
       logger.info("Post created successfully. ID: %s, Slug: %s", savedPost.id, slug);
 
@@ -340,19 +345,29 @@ export class PostService {
    * @throws NotFoundException if the post is not found.
    */
   async deletePost(postId: string, user: User): Promise<void> {
-    logger.info("Deletion requested for Post: %s", postId);
+    await this.dataSource.transaction(async (manager) => {
+      const postRepository = manager.getRepository(PostEntity);
 
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+      logger.info("Deletion requested for Post: %s", postId);
 
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
-    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
-    }
-    await this.postRepository.softDelete({ id: postId });
+      const post = await postRepository.findOne({ where: { id: postId }, relations: { author: true } });
 
-    logger.info("Post %s successfully soft-deleted", postId);
+      if (!post) {
+        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      }
+      if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+        throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+      }
+      await postRepository.softDelete({ id: postId });
+
+      await this.attachmentService.deleteAttachmentsByEntityId({
+        externalId: postId,
+        entityType: EntityType.POST,
+        manager,
+      });
+
+      logger.info("Post %s successfully soft-deleted", postId);
+    });
   }
 
   /**

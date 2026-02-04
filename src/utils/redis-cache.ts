@@ -35,7 +35,7 @@ export const getCachedJson = async <T>(redisCacheKey: string, redisService: Redi
  * @param data - Object or string to generate the key from.
  * @returns A stable Redis key string.
  */
-export function makeRedisKey(prefix: string, data: object | string): string {
+export const makeRedisKey = (prefix: string, data: object | string): string => {
   let keyPart: string;
 
   if (typeof data === "string") {
@@ -56,4 +56,4 @@ export function makeRedisKey(prefix: string, data: object | string): string {
   }
 
   return `${prefix}:${keyPart}`;
-}
+};

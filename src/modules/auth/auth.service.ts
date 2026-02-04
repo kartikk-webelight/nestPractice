@@ -133,7 +133,12 @@ export class AuthService {
       let attachmentArray: AttachmentEntity[] = [];
 
       if (file) {
-        const attachment = await this.attachmentService.createAttachment(file, saved.id, EntityType.USER, manager);
+        const attachment = await this.attachmentService.createAttachment({
+          file,
+          externalId: saved.id,
+          entityType: EntityType.USER,
+          manager,
+        });
         attachmentArray = [attachment];
       }
 
