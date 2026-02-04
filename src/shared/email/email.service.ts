@@ -3,6 +3,7 @@ import { MailerService } from "@nestjs-modules/mailer";
 import { secretConfig } from "config/secret.config";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
+import { logger } from "services/logger.service";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { RedisService } from "../redis/redis.service";
 
@@ -62,7 +63,8 @@ export class EmailService {
         text: `Hello ${name || "User"},\n\nPlease verify your email: ${verificationLink}`,
         html: this.getVerificationEmailTemplate(name || "User", verificationLink),
       });
-    } catch {
+    } catch (error) {
+      logger.error("Email Service Failure Details: %o", error);
       throw new InternalServerErrorException(ERROR_MESSAGES.EMAIL_VERIFICATION_FAILED);
     }
   }
