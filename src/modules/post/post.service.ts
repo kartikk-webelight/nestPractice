@@ -357,16 +357,6 @@ export class PostService {
   async getPostBySlug(slug: string): Promise<PostResponse> {
     logger.info("Fetching post with slug: %s", slug);
 
-    const postCacheKey = makeRedisKey("post", slug);
-
-    const cachedPost = await getCachedJson<PostResponse>(postCacheKey, this.redisService);
-
-    if (cachedPost) {
-      logger.info("Cache hit for post with slug: %s", slug);
-
-      return cachedPost;
-    }
-
     const post = await this.postRepository.findOne({
       where: { slug },
       relations: { author: true, categories: true },
@@ -384,8 +374,6 @@ export class PostService {
       ...post,
       attachments: attachmentMap[post.id] || [],
     };
-
-    await this.redisService.set(postCacheKey, JSON.stringify(postWithAttachment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     logger.info("Successfully retrieved post: %s", post.slug);
 
@@ -406,30 +394,21 @@ export class PostService {
 
     const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
-    // Step 1: Generate Redis key and attempt to fetch cached response
-    const postsCacheKey = makeRedisKey("posts", { ...query, userId: currentUser.id });
-    const cachedPosts = await getCachedJson<PostsPaginationResponseDto>(postsCacheKey, this.redisService);
-    if (cachedPosts) {
-      logger.info("Cache hit for posts list (query: %j)", query);
-
-      return cachedPosts;
-    }
-
-    // Step 2: Initialize query builder and apply visibility rules based on user role
+    // Step 1: Initialize query builder and apply visibility rules based on user role
     const qb = this.postRepository.createQueryBuilder("post").leftJoinAndSelect("post.author", "author");
     this.applyPostVisibilityFilters(qb, currentUser, status);
 
-    // Step 3: Apply filters (search, date range)
+    // Step 2: Apply filters (search, date range)
     if (search) {
       qb.andWhere("(post.title ILIKE :search OR post.content ILIKE :search)", { search: `%${search}%` });
     }
     if (fromDate) qb.andWhere("post.createdAt >= :fromDate", { fromDate });
     if (toDate) qb.andWhere("post.createdAt <= :toDate", { toDate });
 
-    // Step 4: Apply sorting and pagination
+    // Step 3: Apply sorting and pagination
     qb.orderBy(`post.${sortBy}`, order).skip(calculateOffset(page, limit)).take(limit);
 
-    // Step 5: Execute query and fetch related attachments
+    // Step 4: Execute query and fetch related attachments
     const [posts, total] = await qb.getManyAndCount();
     const postIds = posts.map((post) => post.id);
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(postIds, EntityType.POST);
@@ -439,7 +418,7 @@ export class PostService {
       attachments: attachmentMap[post.id] ?? [],
     }));
 
-    // Step 6: Build paginated response and cache it in Redis
+    // Step 5: Build paginated response and cache it in Redis
     const paginatedResponse: PostsPaginationResponseDto = {
       data: postsWithAttachments,
       total,
@@ -447,7 +426,6 @@ export class PostService {
       limit,
       totalPages: calculateTotalPages(total, limit),
     };
-    await this.redisService.set(postsCacheKey, JSON.stringify(paginatedResponse), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     logger.info("Retrieved %d posts for the current page", posts.length);
 

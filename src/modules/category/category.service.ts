@@ -121,31 +121,17 @@ export class CategoryService {
   /**
    * Retrieves a single category by its unique identifier.
    *
-   * This method first checks Redis cache for the category. If not found, it fetches from the database,
-   * caches the result, and returns it.
    *
    * @param categoryId - The unique ID of the category to retrieve.
    * @returns A promise resolving to the {@link CategoryResponse}.
    * @throws NotFoundException if the category does not exist.
    */
   async getCategoryById(categoryId: string): Promise<CategoryResponse> {
-    const categoryCacheKey = makeRedisKey(REDIS_PREFIX.CATEGORY, categoryId);
-
-    const cachedCategory = await getCachedJson<CategoryResponse>(categoryCacheKey, this.redisService);
-
-    if (cachedCategory) {
-      logger.info("Cache hit for category with ID %s", categoryId);
-
-      return cachedCategory;
-    }
-
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
 
     if (!category) {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
-
-    await this.redisService.set(categoryCacheKey, JSON.stringify(category), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     logger.info("Retrieving category details for ID: %s", categoryId);
 
