@@ -236,10 +236,11 @@ export class CategoryService {
     if (!category) {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
+    await this.categoryRepository.softDelete(categoryId);
+
+    await this.invalidateCategoryCaches(categoryId);
 
     logger.info("Category %s soft-deleted successfully", categoryId);
-
-    await this.categoryRepository.softDelete(categoryId);
   }
 
   /**

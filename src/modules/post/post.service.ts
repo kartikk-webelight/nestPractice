@@ -117,16 +117,6 @@ export class PostService {
   async getPostById(postId: string): Promise<PostResponse> {
     logger.info("Fetching post by ID: %s", postId);
 
-    const postCacheKey = makeRedisKey("post", postId);
-
-    const cachedPost = await getCachedJson<PostResponse>(postCacheKey, this.redisService);
-
-    if (cachedPost) {
-      logger.info("Cache hit for post with ID: %s", postId);
-
-      return cachedPost;
-    }
-
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -142,8 +132,6 @@ export class PostService {
       ...post,
       attachments: attachmentMap[post.id] || [],
     };
-
-    await this.redisService.set(postCacheKey, JSON.stringify(postWithAttachment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     return postWithAttachment;
   }
@@ -351,6 +339,8 @@ export class PostService {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
     await this.postRepository.softDelete({ id: postId });
+
+    await this.invalidatePostCaches(postId);
 
     logger.info("Post %s successfully soft-deleted", postId);
   }

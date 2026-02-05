@@ -139,9 +139,6 @@ export class AuthService {
 
       return { ...saved, attachment: attachmentArray };
     });
-
-    await this.invalidateUserCaches(savedUser.id);
-
     // Step 2: User and attachments secured. Queueing verification email.
 
     await this.emailQueue.enqueueVerification(savedUser.email, savedUser.id, savedUser.name);

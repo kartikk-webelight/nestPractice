@@ -126,16 +126,6 @@ export class CommentsService {
   async getCommentById(commentId: string): Promise<CommentResponse> {
     logger.info("Fetching details for comment: %s", commentId);
 
-    const commentCacheKey = makeRedisKey(REDIS_PREFIX.COMMENT, commentId);
-
-    const cachedComment = await getCachedJson<CommentResponse>(commentCacheKey, this.redisService);
-
-    if (cachedComment) {
-      logger.info("Cache hit for comment with ID: %s", commentId);
-
-      return cachedComment;
-    }
-
     const comment = await this.commentRepository.findOne({
       where: { id: commentId },
       relations: { author: true, post: true },
@@ -145,8 +135,6 @@ export class CommentsService {
     if (!comment) {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
-
-    await this.redisService.set(commentCacheKey, JSON.stringify(comment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     logger.info("Retrieved comment with id: %s", commentId);
 
@@ -214,6 +202,8 @@ export class CommentsService {
     }
 
     await this.commentRepository.softDelete(commentId);
+
+    await this.invalidateCommentCaches(commentId);
 
     logger.info("Comment %s has been soft-deleted", commentId);
   }
