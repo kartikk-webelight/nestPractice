@@ -4,6 +4,8 @@ import { DataSource, Repository } from "typeorm";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
+import { logger } from "services/logger.service";
+import { RedisService } from "shared/redis/redis.service";
 import { User } from "types/types";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { RoleRequestPaginationDataDto, RoleRequestResponse } from "./dto/role-response.dto";
@@ -27,6 +29,8 @@ export class RoleService {
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
 
+    private readonly redisService: RedisService,
+
     private readonly dataSource: DataSource,
   ) {}
 
@@ -40,6 +44,10 @@ export class RoleService {
    * @throws ForbiddenException if a user attempts to request the Admin role directly.
    */
   async createRoleRequest(user: User, requestedRole: UserRole): Promise<void> {
+    logger.info("User %s requested role elevation to: %s", user.id, requestedRole);
+
+    // Step 1: Validate request eligibility and prevent duplicate pending requests
+
     if (user.role === requestedRole) {
       throw new BadRequestException(ERROR_MESSAGES.ROLE_ALREADY_ASSIGNED);
     }
@@ -65,6 +73,8 @@ export class RoleService {
       status: RoleStatus.PENDING,
     });
 
+    logger.debug("Persisting new pending role request for user %s", user.id);
+
     await this.roleRepository.save(roleRequest);
   }
 
@@ -80,6 +90,10 @@ export class RoleService {
    * @throws ForbiddenException if an administrator attempts to approve their own request.
    */
   async updateRoleRequest(adminId: string, requestId: string, action: RoleRequestAction): Promise<void> {
+    logger.info("Admin %s is processing request %s with action: %s", adminId, requestId, action);
+
+    // Step 1: Verify request existence, pending status, and prevent self-approval
+
     return this.dataSource.transaction(async (manager) => {
       const userRepository = manager.getRepository(UserEntity);
       const roleRepository = manager.getRepository(RoleEntity);
@@ -98,7 +112,9 @@ export class RoleService {
         throw new BadRequestException(ERROR_MESSAGES.REQUEST_ALREADY_REVIEWED);
       }
 
-      if (roleRequest.user.id === adminId) {
+      const isSelfApproval = roleRequest.user.id === adminId;
+
+      if (isSelfApproval) {
         throw new ForbiddenException(ERROR_MESSAGES.SELF_APPROVE_FORBIDDEN);
       }
 
@@ -107,12 +123,16 @@ export class RoleService {
       // 3. If approved → update user role
       if (isApproved) {
         await userRepository.update(roleRequest.user.id, { role: roleRequest.requestedRole });
+        const authCacheKey = `auth:${roleRequest.user.id}`;
+        await this.redisService.delete([authCacheKey]);
       }
 
       await roleRepository.update(requestId, {
         status: isApproved ? RoleStatus.APPROVED : RoleStatus.REJECTED,
         reviewedBy: { id: adminId },
       });
+
+      logger.info("Role request %s finalized as %s by admin %s", requestId, action, adminId);
     });
   }
 
@@ -124,6 +144,10 @@ export class RoleService {
    * @throws NotFoundException if no requests are found for the user.
    */
   async getRequestedRoleStatus(userId: string): Promise<RoleRequestResponse> {
+    logger.info("Fetching latest role request status for user: %s", userId);
+
+    // Step 1: Retrieve the most recent request record for the user profile
+
     const roleRequest = await this.roleRepository.findOne({
       where: { user: { id: userId } },
       order: { createdAt: OrderBy.DESC },
@@ -142,6 +166,10 @@ export class RoleService {
    * @returns A promise resolving to a paginated collection of role requests {@link RoleRequestPaginationDataDto}.
    */
   async getRoleRequests(query: GetRoleRequestsQueryDto): Promise<RoleRequestPaginationDataDto> {
+    logger.info("Admin role request lookup: %j", query);
+
+    // Step 1: Build dynamic query with user relations and status/date filters
+
     const { page = 1, limit = 10, search, status, order = OrderBy.DESC, fromDate, toDate } = query;
 
     const qb = this.roleRepository.createQueryBuilder("role").leftJoinAndSelect("role.user", "user");
@@ -162,11 +190,15 @@ export class RoleService {
       qb.andWhere("role.createdAt <= :toDate", { toDate });
     }
 
+    // Step 2: Apply pagination and sorting before executing administrative fetch
+
     qb.orderBy("role.createdAt", order);
 
     qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [roleRequests, total] = await qb.getManyAndCount();
+
+    logger.info("Retrieved %d role requests for review", roleRequests.length);
 
     return {
       data: roleRequests,

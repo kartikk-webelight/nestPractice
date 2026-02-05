@@ -6,6 +6,7 @@ import { PostsPaginationResponseDto } from "modules/post/dto/posts-response.dto"
 import { PostEntity } from "modules/post/post.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { PostStatus, ReactionCounter } from "enums";
+import { logger } from "services/logger.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
 import { ApplyReactionToComment, ApplyReactionToPost } from "./reaction.types";
@@ -38,6 +39,8 @@ export class ReactionService {
    * @throws NotFoundException if the post does not exist or is not published.
    */
   async likePost(postId: string, userId: string): Promise<void> {
+    logger.info("User %s requested to like post %s", userId, postId);
+
     await this.applyReactionToPost({ postId, userId, isLiked: true });
   }
 
@@ -50,6 +53,8 @@ export class ReactionService {
    * @throws NotFoundException if the post is not found.
    */
   async dislikePost(postId: string, userId: string): Promise<void> {
+    logger.info("User %s requested to dislike post %s", userId, postId);
+
     await this.applyReactionToPost({ postId, userId, isLiked: false });
   }
 
@@ -62,6 +67,8 @@ export class ReactionService {
    * @throws NotFoundException if the comment record is missing.
    */
   async likeComment(commentId: string, userId: string): Promise<void> {
+    logger.info("User %s requested to like post %s", userId, commentId);
+
     await this.applyReactionToComment({ commentId, userId, isLiked: true });
   }
 
@@ -74,6 +81,8 @@ export class ReactionService {
    * @throws NotFoundException if the comment record is missing.
    */
   async dislikeComment(commentId: string, userId: string): Promise<void> {
+    logger.info("User %s requested to dislike post %s", userId, commentId);
+
     await this.applyReactionToComment({ commentId, userId, isLiked: false });
   }
 
@@ -86,6 +95,8 @@ export class ReactionService {
    * @returns A paginated object containing a list of {@link PostsPaginationResponseDto} records.
    */
   async getLikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
+    logger.info("Fetching liked posts for user %s", userId);
+
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
         isLiked: true,
@@ -97,6 +108,8 @@ export class ReactionService {
       take: limit,
     });
     const likedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
+
+    logger.info("Retrieved %d liked posts", likedPosts.length);
 
     return {
       data: likedPosts,
@@ -116,6 +129,8 @@ export class ReactionService {
    * @returns A paginated object containing the disliked {@link PostsPaginationResponseDto} records.
    */
   async getDislikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
+    logger.info("Fetching disliked posts for user %s", userId);
+
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
         isLiked: false,
@@ -128,6 +143,8 @@ export class ReactionService {
     });
 
     const dislikedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
+
+    logger.info("Retrieved %d disliked posts", dislikedPosts.length);
 
     return {
       data: dislikedPosts,
@@ -154,6 +171,8 @@ export class ReactionService {
     await this.dataSource.transaction(async (manager) => {
       const { postId, userId, isLiked } = reactionDetails;
 
+      logger.info("Processing post reaction transaction for User: %s, Post: %s", userId, postId);
+
       const postRepository = manager.getRepository(PostEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
 
@@ -177,6 +196,8 @@ export class ReactionService {
        * CASE 1: No existing reaction → create one
        */
       if (!existingReaction) {
+        logger.debug("Creating new %s reaction for post %s", isLiked ? "like" : "dislike", postId);
+
         await this.increment(this.getCounter(isLiked), postRepository, postId);
 
         await reactionRepository.save(
@@ -194,6 +215,8 @@ export class ReactionService {
        * CASE 2: Same reaction again → remove reaction
        */
       if (existingReaction.isLiked === isLiked) {
+        logger.debug("Removing existing %s from post %s", isLiked ? "like" : "dislike", postId);
+
         await this.decrement(this.getCounter(isLiked), postRepository, postId);
         await reactionRepository.softDelete(existingReaction.id);
 
@@ -208,6 +231,8 @@ export class ReactionService {
 
       existingReaction.isLiked = isLiked;
       await reactionRepository.save(existingReaction);
+
+      logger.info("Reaction transaction committed for post %s", postId);
     });
   }
 
@@ -226,6 +251,9 @@ export class ReactionService {
   async applyReactionToComment(reactionDetails: ApplyReactionToComment): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const { commentId, userId, isLiked } = reactionDetails;
+
+      logger.info("Processing comment reaction transaction for User: %s, Comment: %s", userId, commentId);
+
       const commentRepository = manager.getRepository(CommentEntity);
       const reactionRepository = manager.getRepository(ReactionEntity);
 
@@ -275,6 +303,8 @@ export class ReactionService {
       await this.decrement(this.getCounter(existingReaction.isLiked), commentRepository, commentId);
       await this.increment(this.getCounter(isLiked), commentRepository, commentId);
       await reactionRepository.save(existingReaction);
+
+      logger.info("Reaction transaction committed for comment %s", commentId);
     });
   }
 

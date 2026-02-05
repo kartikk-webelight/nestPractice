@@ -12,7 +12,7 @@ const levels = {
 };
 
 const level = () => {
-  return appConfig.environment === "production" ? "debug" : "info";
+  return appConfig.environment === "production" ? "info" : "debug";
 };
 
 const formatLogger = combine(

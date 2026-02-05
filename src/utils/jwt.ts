@@ -4,6 +4,7 @@ import { sign, verify, SignOptions } from "jsonwebtoken";
 import { secretConfig } from "config/secret.config";
 import { DecodedToken } from "modules/auth/auth.types";
 import { ERROR_MESSAGES } from "constants/messages";
+import { logger } from "services/logger.service";
 
 const {
   authConfigs: {
@@ -15,6 +16,7 @@ const {
     emailTokenExpiry,
   },
 } = secretConfig;
+
 /**
  * Generate a JWT access token
  */
@@ -42,7 +44,8 @@ export const generateEmailToken = (payload: object): string =>
 export const verifyAccessToken = (token: string): DecodedToken => {
   try {
     return verify(token, accessSecretKey) as DecodedToken;
-  } catch {
+  } catch (error) {
+    logger.error("Access token verification failed: %o", error.stack);
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
 };
@@ -53,14 +56,20 @@ export const verifyAccessToken = (token: string): DecodedToken => {
 export const verifyRefreshToken = (token: string): DecodedToken => {
   try {
     return verify(token, refreshSecretKey) as DecodedToken;
-  } catch {
+  } catch (error) {
+    logger.error("Refresh token verification failed: %o", error.stack);
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
 };
+
+/**
+ * Verify an email token and return decoded payload
+ */
 export const verifyEmailToken = (token: string) => {
   try {
     return verify(token, emailVerificationSecretKey);
-  } catch {
+  } catch (error) {
+    logger.error("Email token verification failed: %o", error);
     throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
   }
 };

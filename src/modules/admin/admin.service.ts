@@ -6,6 +6,7 @@ import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse, UsersPaginationResponseDto } from "dto/common-response.dto";
 import { EntityType, OrderBy } from "enums";
+import { logger } from "services/logger.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { GetUsersQueryDto } from "./dto/admin.dto";
 
@@ -32,11 +33,14 @@ export class AdminService {
    * @returns A promise resolving to the {@link UsersPaginationResponseDto} containing the user list and metadata.
    */
   async getUsers(query: GetUsersQueryDto): Promise<UsersPaginationResponseDto> {
+    logger.info("Fetching users with query: %j", query);
+
     const { page, limit, search, role, fromDate, toDate, order = OrderBy.DESC } = query;
 
     const qb = this.userRepository.createQueryBuilder("user");
 
-    // Full-text search on Name or Email
+    // Step 1: Build the base user query with optional admin search and filter criteria
+
     if (search) {
       qb.andWhere("user.name ILIKE :search OR user.email ILIKE :search", { search: `%${search}%` });
     }
@@ -55,15 +59,16 @@ export class AdminService {
 
     qb.orderBy("user.createdAt", order);
 
-    // Apply pagination offset and limit
+    // Step 2: Apply sorting and pagination, then execute the query to retrieve users with the total count
+
     qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [users, total] = await qb.getManyAndCount();
 
-    /**
-     * Post-processing: Map attachments to users.
-     * We fetch all attachments in a single batch query for performance.
-     */
+    logger.debug("Found %d total users matching criteria", total);
+
+    // Step 4: Fetch related attachments in bulk to avoid N+1 queries
+
     const userIds = users.map((user) => user.id);
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(userIds, EntityType.USER);
 
@@ -73,6 +78,8 @@ export class AdminService {
         attachment: attachmentMap[user.id] || [],
       };
     });
+
+    logger.info("Successfully retrieved page %d of users (limit: %d)", page, limit);
 
     return {
       data: usersWithAttachment,
@@ -91,16 +98,26 @@ export class AdminService {
    * @throws NotFoundException if no user exists with the provided ID.
    */
   async getUserById(userId: string): Promise<UserResponse> {
+    logger.info("Fetching user details for ID: %s", userId);
+
+    // Step 1: Retrieve user while excluding sensitive fields
+
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: { password: false }, // Logic is already here, but explicit typing helps the IDE
+      select: { password: false },
     });
 
     if (!user) {
+      logger.warn("User fetch failed: User with ID %s not found", userId);
+
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
+    // Step 2: Fetch and map related attachments for the user
+
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([user.id], EntityType.USER);
+
+    logger.debug("Successfully mapped attachments for user: %s", user.email);
 
     return {
       ...user,

@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Not, Repository } from "typeorm";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy } from "enums";
+import { logger } from "services/logger.service";
 import { SlugService } from "shared/slug.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CategoryEntity } from "./category.entity";
@@ -33,11 +34,16 @@ export class CategoryService {
    * @returns A promise resolving to the newly persisted {@link CategoryResponse}.
    */
   async createCategory(body: CreateCategoryDto): Promise<CategoryResponse> {
+    logger.info("Category creation initiated for name: %s", body.name);
+
+    // Step 1: Validate category name uniqueness
     const { name, description } = body;
 
     const existingCategory = await this.categoryRepository.findOne({ where: { name } });
 
     if (existingCategory) {
+      logger.warn("Category creation failed: Name '%s' already exists", body.name);
+
       throw new ConflictException(ERROR_MESSAGES.CATEGORY_ALREADY_EXISTS);
     }
 
@@ -51,6 +57,8 @@ export class CategoryService {
 
     const savedCategory = await this.categoryRepository.save(category);
 
+    logger.info("Category created successfully with ID: %s", savedCategory.id);
+
     return savedCategory;
   }
 
@@ -63,6 +71,10 @@ export class CategoryService {
    * @throws NotFoundException if no category exists with the provided ID.
    */
   async updateCategory(body: UpdateCategoryDto, categoryId: string): Promise<CategoryResponse> {
+    logger.info("Update request for Category ID: %s", categoryId);
+
+    // Step 1: Validate existence of the category before processing updates
+
     const { name, description } = body;
 
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
@@ -92,6 +104,8 @@ export class CategoryService {
 
     const updatedCategory = await this.categoryRepository.save(category);
 
+    logger.info("Category %s updated successfully", categoryId);
+
     return updatedCategory;
   }
 
@@ -109,6 +123,8 @@ export class CategoryService {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
 
+    logger.info("Retrieving category details for ID: %s", categoryId);
+
     return category;
   }
 
@@ -119,6 +135,10 @@ export class CategoryService {
    * @returns A promise resolving to a paginated object containing the data and metadata {@link CategoriesPaginationResponseDto}.
    */
   async getCategories(query: GetCategoriesQueryDto): Promise<CategoriesPaginationResponseDto> {
+    logger.info("Fetching categories list with query: %j", query);
+
+    // Step 1: Initialize QueryBuilder and apply search/date filters
+
     const { page, limit, search, fromDate, order = OrderBy.DESC, toDate } = query;
 
     const qb = this.categoryRepository.createQueryBuilder("category");
@@ -135,11 +155,15 @@ export class CategoryService {
       qb.andWhere("category.createdAt <= :toDate", { toDate });
     }
 
+    // Step 2: Apply sorting and pagination logic to the query
+
     qb.orderBy("category.createdAt", order);
 
     qb.skip(calculateOffset(page, limit)).take(limit);
 
     const [categories, total] = await qb.getManyAndCount();
+
+    logger.info("Retrieved %d categories out of %d total", categories.length, total);
 
     return {
       data: categories,
@@ -158,11 +182,16 @@ export class CategoryService {
    * @throws NotFoundException if the category does not exist.
    */
   async deleteCategory(categoryId: string): Promise<void> {
+    logger.info("Soft-delete requested for Category ID: %s", categoryId);
+
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
 
     if (!category) {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
+
+    logger.info("Category %s soft-deleted successfully", categoryId);
+
     await this.categoryRepository.softDelete(categoryId);
   }
 }
