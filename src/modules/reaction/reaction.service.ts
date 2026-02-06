@@ -87,13 +87,14 @@ export class ReactionService {
   }
 
   /**
-   * Retrieves a paginated collection of posts that the specified user has liked.
+   * Retrieves a paginated list of posts liked by a user.
    *
-   * @param page - The current results page.
-   * @param limit - The maximum number of posts per page.
-   * @param userId - The user whose liked content is being fetched.
-   * @returns A paginated object containing a list of {@link PostsPaginationResponseDto} records.
+   * @param page - Current page number.
+   * @param limit - Number of posts per page.
+   * @param userId - Identifier of the user.
+   * @returns A paginated response containing liked posts.
    */
+
   async getLikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
     logger.info("Fetching liked posts for user %s", userId);
 
@@ -109,24 +110,26 @@ export class ReactionService {
     });
     const likedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    logger.info("Retrieved %d liked posts", likedPosts.length);
-
-    return {
+    const paginatedResponse = {
       data: likedPosts,
       page,
       limit,
       total,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    logger.info("Retrieved %d liked posts", likedPosts.length);
+
+    return paginatedResponse;
   }
 
   /**
-   * Retrieves a paginated collection of posts that the specified user has disliked.
+   * Retrieves a paginated list of posts disliked by a user.
    *
-   * @param page - The results page number.
-   * @param limit - The results limit.
-   * @param userId - The user identifier.
-   * @returns A paginated object containing the disliked {@link PostsPaginationResponseDto} records.
+   * @param page - Current page number.
+   * @param limit - Number of posts per page.
+   * @param userId - Identifier of the user.
+   * @returns A paginated response containing disliked posts.
    */
   async getDislikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
     logger.info("Fetching disliked posts for user %s", userId);
@@ -144,15 +147,17 @@ export class ReactionService {
 
     const dislikedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
-    logger.info("Retrieved %d disliked posts", dislikedPosts.length);
-
-    return {
+    const paginatedResponse = {
       data: dislikedPosts,
       page,
       limit,
       total,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    logger.info("Retrieved %d disliked posts", dislikedPosts.length);
+
+    return paginatedResponse;
   }
 
   /**

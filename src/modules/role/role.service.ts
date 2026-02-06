@@ -2,11 +2,13 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { UserEntity } from "modules/users/users.entity";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { logger } from "services/logger.service";
-import { RedisService } from "shared/redis/redis.service";
+import { CacheService } from "shared/cache/cache.service";
 import { User } from "types/types";
+import { getCacheKey } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { RoleRequestPaginationDataDto, RoleRequestResponse } from "./dto/role-response.dto";
 import { GetRoleRequestsQueryDto } from "./dto/role.dto";
@@ -29,7 +31,7 @@ export class RoleService {
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
 
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -123,8 +125,7 @@ export class RoleService {
       // 3. If approved → update user role
       if (isApproved) {
         await userRepository.update(roleRequest.user.id, { role: roleRequest.requestedRole });
-        const authCacheKey = `auth:${roleRequest.user.id}`;
-        await this.redisService.delete([authCacheKey]);
+        await this.invalidateUserAndRoleRequestCaches(roleRequest.user.id);
       }
 
       await roleRepository.update(requestId, {
@@ -198,14 +199,28 @@ export class RoleService {
 
     const [roleRequests, total] = await qb.getManyAndCount();
 
-    logger.info("Retrieved %d role requests for review", roleRequests.length);
-
-    return {
+    const paginatedResponse = {
       data: roleRequests,
       page,
       limit,
       total,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    logger.info("Retrieved %d role requests for review", roleRequests.length);
+
+    return paginatedResponse;
+  }
+
+  /**
+   * Clears Redis caches for a user and their role requests to prevent stale data.
+   * @param userId - ID of the user whose caches should be invalidated
+   */
+
+  private async invalidateUserAndRoleRequestCaches(userId: string): Promise<void> {
+    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
+    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
+
+    await this.cacheService.delete([userCacheKey, authCacheKey]);
   }
 }

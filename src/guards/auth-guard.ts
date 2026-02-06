@@ -3,9 +3,12 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { DecodedToken } from "modules/auth/auth.types";
 import { UserEntity } from "modules/users/users.entity";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
-import { RedisService } from "shared/redis/redis.service";
+import { UserResponse } from "dto/common-response.dto";
+import { CacheService } from "shared/cache/cache.service";
+import { getCachedJson, getCacheKey } from "utils/cache";
 import { verifyAccessToken } from "utils/jwt";
 
 /**
@@ -22,25 +25,25 @@ export class AuthGuard implements CanActivate {
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
 
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
-   * Verifies the authenticity of the incoming request before allowing access to the route.
+   * AuthGuard: Validates the incoming request by verifying the JWT and loading the authenticated user.
    *
-   * @param context - The execution context providing access to the current request.
-   * @returns A promise resolving to true if the session is valid and the user is authenticated.
-   * @throws UnauthorizedException if the token is missing, expired, or the user no longer exists.
+   * The guard checks Redis cache for the user and attaches it to the request if found.
+   * If the user is not cached, it fetches from the database, attaches to the request, and caches it in Redis.
+   *
+   * @param context - Execution context providing access to the current request.
+   * @returns A promise resolving to true if the request is authenticated.
+   * @throws UnauthorizedException if the token is missing, invalid, or the user does not exist.
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
-    // Look for token in Cookies first, then fallback to Authorization header
+    // Step 1: Extract token from cookies or Authorization header and verify JWT
     const token = request.cookies?.accessToken || request.headers.authorization?.replace("Bearer ", "");
-
-    if (!token) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
-    }
+    if (!token) throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 
     let decodedToken: DecodedToken;
     try {
@@ -49,34 +52,27 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
 
-    if (!decodedToken.id) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
-    }
+    if (!decodedToken.id) throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 
-    const authCacheKey = `auth:${decodedToken.id}`;
+    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, decodedToken.id);
 
-    const cachedUser = await this.redisService.get(authCacheKey);
-
-    if (cachedUser) {
-      const userFromCache = JSON.parse(cachedUser);
-      request.user = userFromCache;
+    // Step 2: Return user from cache if available
+    const cachedUser = await getCachedJson<UserResponse>(authCacheKey, this.cacheService);
+    if (cachedUser !== null) {
+      request.user = cachedUser;
 
       return true;
     }
 
+    // Step 3: Fetch user from DB attach it to request and cache it
     const user = await this.userRepo.findOne({
       where: { id: decodedToken.id },
-      select: { password: false }, // Security: ensure password is never leaked to the request object
+      select: { password: false },
     });
+    if (!user) throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 
-    if (!user) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
-    }
-
-    await this.redisService.set(authCacheKey, JSON.stringify(user), DURATION_CONSTANTS.ONE_HOUR_IN_SEC);
-
-    // Attach user to request for use in @GetUser() decorators or controllers
     request.user = user;
+    await this.cacheService.set(authCacheKey, JSON.stringify(user), DURATION_CONSTANTS.ONE_HOUR_IN_SEC);
 
     return true;
   }

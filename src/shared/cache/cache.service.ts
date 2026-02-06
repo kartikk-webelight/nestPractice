@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Redis } from "ioredis";
 
 @Injectable()
-export class RedisService {
+export class CacheService {
   constructor(@Inject("REDIS_CLIENT") private readonly redis: Redis) {}
 
   async set(key: string, value: string, expirationTime: number) {
@@ -27,6 +27,20 @@ export class RedisService {
 
   async delete(keys: string[]) {
     return this.redis.del(...keys);
+  }
+
+  async deleteByPattern(pattern: string) {
+    let cursor = "0";
+
+    do {
+      const [nextCursor, keys] = await this.redis.scan(cursor, "MATCH", pattern, "COUNT", 100);
+
+      cursor = nextCursor;
+
+      if (keys.length) {
+        await this.delete(keys);
+      }
+    } while (cursor !== "0");
   }
 
   async hSet(key: string, label: string, value: string) {

@@ -112,9 +112,10 @@ export class CategoryService {
   /**
    * Retrieves a single category by its unique identifier.
    *
-   * @param categoryId - The ID of the category to retrieve.
+   *
+   * @param categoryId - The unique ID of the category to retrieve.
    * @returns A promise resolving to the {@link CategoryResponse}.
-   * @throws NotFoundException if the category is not found.
+   * @throws NotFoundException if the category does not exist.
    */
   async getCategoryById(categoryId: string): Promise<CategoryResponse> {
     const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
@@ -129,10 +130,12 @@ export class CategoryService {
   }
 
   /**
-   * Performs a paginated search and filter operation to retrieve a collection of categories.
+   * Retrieves a paginated list of categories based on search terms and date filters.
    *
-   * @param query - The {@link GetCategoriesQueryDto} containing search terms and date filters.
-   * @returns A promise resolving to a paginated object containing the data and metadata {@link CategoriesPaginationResponseDto}.
+   * Applies filters and pagination, and returns it.
+   *
+   * @param query - The {@link GetCategoriesQueryDto} containing search terms, filters, and pagination options.
+   * @returns A promise resolving to a paginated object containing the categories and metadata {@link CategoriesPaginationResponseDto}.
    */
   async getCategories(query: GetCategoriesQueryDto): Promise<CategoriesPaginationResponseDto> {
     logger.info("Fetching categories list with query: %j", query);
@@ -165,13 +168,15 @@ export class CategoryService {
 
     logger.info("Retrieved %d categories out of %d total", categories.length, total);
 
-    return {
+    const paginatedResponse = {
       data: categories,
       total,
       page,
       limit,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    return paginatedResponse;
   }
 
   /**
@@ -189,9 +194,8 @@ export class CategoryService {
     if (!category) {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
+    await this.categoryRepository.softDelete(categoryId);
 
     logger.info("Category %s soft-deleted successfully", categoryId);
-
-    await this.categoryRepository.softDelete(categoryId);
   }
 }

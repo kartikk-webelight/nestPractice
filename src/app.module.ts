@@ -4,6 +4,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { bullConfig } from "config/bullMq.config";
 import { AuthModule } from "modules/auth/auth.module";
+import { THROTTLER_OPTIONS } from "constants/throttler";
 import { SharedModule } from "shared/shared.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -20,13 +21,7 @@ import { UsersModule } from "./modules/users/users.module";
 @Module({
   imports: [
     ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          name: "default",
-          ttl: 60000,
-          limit: 100000,
-        },
-      ],
+      throttlers: [THROTTLER_OPTIONS],
     }),
     BullModule.forRoot(bullConfig),
     DatabaseModule,

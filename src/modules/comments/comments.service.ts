@@ -108,33 +108,6 @@ export class CommentsService {
   }
 
   /**
-   * Retrieves a paginated collection of all comments across the system.
-   *
-   * @param page - The current page number for pagination.
-   * @param limit - The maximum number of records to return.
-   * @returns A promise resolving to a paginated object containing comment data and metadata {@link CommentsPaginationResponseDto}.
-   */
-  async getComments(page: number, limit: number): Promise<CommentsPaginationResponseDto> {
-    logger.info("Fetching paginated comments. Page: %d, Limit: %d", page, limit);
-
-    const [comments, total] = await this.commentRepository.findAndCount({
-      skip: calculateOffset(page, limit),
-      take: limit,
-      order: { createdAt: OrderBy.DESC },
-    });
-
-    logger.info("Retrieved %d comments successfully", comments.length);
-
-    return {
-      data: comments,
-      total,
-      page,
-      limit,
-      totalPages: calculateTotalPages(total, limit),
-    };
-  }
-
-  /**
    * Retrieves a specific comment's details including its author and associated post.
    *
    * @param commentId - The unique identifier of the comment.
@@ -223,14 +196,16 @@ export class CommentsService {
   }
 
   /**
-   * Retrieves a paginated list of comments specifically associated with a single post.
+   * Retrieves a paginated list of comments associated with a specific post.
    *
-   * @param page - The current page number.
-   * @param limit - The maximum number of records.
-   * @param postId - The identifier of the post.
-   * @returns A promise resolving to the paginated collection of post-specific comments {@link CommentsPaginationResponseDto}.
+   * Results are cached for a short duration to reduce database load.
+   *
+   * @param page - Current page number.
+   * @param limit - Number of records per page.
+   * @param postId - Identifier of the post.
+   * @returns Paginated comments for the given post {@link CommentsPaginationResponseDto}.
    */
-  async getCommentByPostId(page: number, limit: number, postId: string): Promise<CommentsPaginationResponseDto> {
+  async getCommentsByPostId(page: number, limit: number, postId: string): Promise<CommentsPaginationResponseDto> {
     logger.info("Fetching comments for Post ID: %s (Page: %d, Limit: %d)", postId, page, limit);
 
     const [comments, total] = await this.commentRepository.findAndCount({
@@ -244,12 +219,14 @@ export class CommentsService {
 
     logger.info("Found %d comments for post %s", comments.length, postId);
 
-    return {
+    const paginatedResponse = {
       data: comments,
       total,
       page,
       limit,
       totalPages: calculateTotalPages(total, limit),
     };
+
+    return paginatedResponse;
   }
 }
