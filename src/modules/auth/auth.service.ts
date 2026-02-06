@@ -76,13 +76,7 @@ export class AuthService {
       return cachedUser;
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-
-    if (!user) {
-      logger.warn("Profile fetch failed: User %s not found", userId);
-
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const user = await this.findUserOrThrow({ id: userId });
 
     // Step 2: Fetch and map related attachments
 
@@ -163,12 +157,7 @@ export class AuthService {
 
     // Step 1: Fetch user and verify their credentials
 
-    const user = await this.userRepository.findOne({ where: { email } });
-    if (!user) {
-      logger.warn("Login failed: Account with email %s does not exist", email);
-
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const user = await this.findUserOrThrow({ email });
 
     if (!user.isEmailVerified) {
       logger.warn("Login blocked: User %s has not verified their email", email);
@@ -226,13 +215,7 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    const user = await this.userRepository.findOne({ where: { id: decodedToken.id } });
-
-    if (!user) {
-      logger.error("Token Conflict: Refresh token belongs to a user that no longer exists.");
-
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const user = await this.findUserOrThrow({ id: decodedToken.id });
 
     const newAccessToken = generateAccessToken({ id: user.id, role: user.role });
 
@@ -262,11 +245,7 @@ export class AuthService {
 
     const { email, name, password } = body;
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const user = await this.findUserOrThrow({ id: userId });
 
     const isPasswordCorrect = await user.isPasswordCorrect(password);
 
@@ -328,11 +307,7 @@ export class AuthService {
       throw new BadRequestException(ERROR_MESSAGES.EMAIL_VERIFICATION_LINK_INVALID);
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const user = await this.findUserOrThrow({ id: userId });
 
     if (user.isEmailVerified) {
       return;
@@ -358,12 +333,7 @@ export class AuthService {
 
     // Step 1: Confirm the user exists and is not already verified to avoid unnecessary email sends
 
-    const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
-      logger.warn("Resend Aborted: No account associated with email: %s", email);
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
+    const user = await this.findUserOrThrow({ email });
 
     if (user.isEmailVerified) {
       logger.info("Resend Ignored: User %s is already verified.", email);
@@ -385,5 +355,24 @@ export class AuthService {
     const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
 
     await this.cacheService.delete([userCacheKey, authCacheKey]);
+  }
+
+  async findUserOrThrow(identifier: { id?: string; email?: string }): Promise<UserEntity> {
+    if (!identifier.id && !identifier.email) {
+      throw new BadRequestException(ERROR_MESSAGES.IDENTIFIER_REQUIRED);
+    }
+
+    const user = await this.userRepository.findOne({ where: identifier });
+
+    if (!user) {
+      const lookupField = identifier.id ? "id" : "email";
+      const lookupValue = identifier.id ?? identifier.email;
+
+      logger.warn("User lookup failed: no user found for %s=%s", lookupField, lookupValue);
+
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    return user;
   }
 }

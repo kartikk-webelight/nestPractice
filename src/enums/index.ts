@@ -10,6 +10,11 @@ export enum PostStatus {
   PUBLISHED = "published",
 }
 
+export enum PostAction {
+  PUBLISH = "publish",
+  UNPUBLISH = "unpublish",
+}
+
 export enum EntityType {
   POST = "post",
   USER = "user",
@@ -40,4 +45,9 @@ export enum RoleRequestAction {
 export enum ReactionCounter {
   DISLIKE = "dislikes",
   LIKE = "likes",
+}
+
+export enum ReactionRelation {
+  COMMENT = "comment",
+  POST = "post",
 }

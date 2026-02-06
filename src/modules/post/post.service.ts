@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, In, Repository, SelectQueryBuilder } from "typeorm";
+import { DataSource, FindOptionsRelations, In, Repository, SelectQueryBuilder } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { CategoryEntity } from "modules/category/category.entity";
 import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
-import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
+import { EntityType, OrderBy, PostAction, PostStatus, SortBy, UserRole } from "enums/index";
 import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 import { SlugService } from "shared/slug.service";
@@ -59,6 +59,7 @@ export class PostService {
       const categoryRepository = manager.getRepository(CategoryEntity);
       const { title, content, categoryIds } = body;
       let categories: CategoryEntity[] = [];
+
       if (categoryIds?.length) {
         categories = await categoryRepository.find({
           where: { id: In(categoryIds) },
@@ -82,21 +83,13 @@ export class PostService {
 
       const savedPost = await manager.save(post);
 
-      const postWithCategories = await manager.findOne(PostEntity, {
-        where: { id: savedPost.id },
-        relations: ["categories"],
-      });
-
-      if (!postWithCategories) {
-        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-      }
-
       const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST, manager);
 
       logger.info("Post created successfully. ID: %s, Slug: %s", savedPost.id, slug);
 
       return {
-        ...postWithCategories,
+        ...savedPost,
+        categories,
         attachments,
       };
     });
@@ -117,14 +110,7 @@ export class PostService {
   async getPostById(postId: string): Promise<PostResponse> {
     logger.info("Fetching post by ID: %s", postId);
 
-    const post = await this.postRepository.findOne({
-      where: { id: postId },
-      relations: { author: true, categories: true },
-    });
-
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    const post = await this.findPostOrThrow({ id: postId }, { author: true, categories: true });
 
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([post.id], EntityType.POST);
 
@@ -202,14 +188,7 @@ export class PostService {
 
     const { title, content, categoryIds } = body;
 
-    const post = await this.postRepository.findOne({
-      where: { id: postId },
-      relations: { author: true, categories: true },
-    });
-
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    const post = await this.findPostOrThrow({ id: postId }, { author: true, categories: true });
 
     if (post?.author.id !== userId) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -258,30 +237,7 @@ export class PostService {
   async publishPost(postId: string, user: User): Promise<PostResponse> {
     logger.info("Status transition requested for Post %s to %s", postId, PostStatus.PUBLISHED);
 
-    // Step 1: Verify permissions and transition post status
-
-    const post = await this.postRepository.findOne({
-      where: { id: postId },
-      relations: { author: true, categories: true },
-    });
-
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
-
-    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
-    }
-    post.status = PostStatus.PUBLISHED;
-    post.publishedAt = new Date();
-
-    const publishedPost = await this.postRepository.save(post);
-
-    await this.invalidatePostCaches(postId);
-
-    logger.info("Post %s is now %s", postId, post.status);
-
-    return publishedPost;
+    return this.applyPostAction(postId, user, PostAction.PUBLISH);
   }
 
   /**
@@ -292,31 +248,28 @@ export class PostService {
    * @returns A promise resolving to the drafted {@link PostResponse}.
    */
   async unPublishPost(postId: string, user: User): Promise<PostResponse> {
-    logger.info("Status transition requested for Post %s to %s", postId, PostStatus.PUBLISHED);
+    logger.info("Status transition requested for Post %s to %s", postId, PostStatus.DRAFT);
 
+    return this.applyPostAction(postId, user, PostAction.UNPUBLISH);
+  }
+
+  async applyPostAction(postId: string, user: User, action: PostAction): Promise<PostResponse> {
     // Step 1: Verify permissions and transition post status
 
-    const post = await this.postRepository.findOne({
-      where: { id: postId },
-      relations: { author: true, categories: true },
-    });
-
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    const post = await this.findPostOrThrow({ id: postId }, { author: true, categories: true });
 
     if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
-    post.status = PostStatus.DRAFT;
+    post.status = action === PostAction.PUBLISH ? PostStatus.PUBLISHED : PostStatus.DRAFT;
 
-    const unPublishedPost = await this.postRepository.save(post);
+    const updatedPost = await this.postRepository.save(post);
 
     await this.invalidatePostCaches(postId);
 
     logger.info("Post %s is now %s", postId, post.status);
 
-    return unPublishedPost;
+    return updatedPost;
   }
 
   /**
@@ -330,11 +283,8 @@ export class PostService {
   async deletePost(postId: string, user: User): Promise<void> {
     logger.info("Deletion requested for Post: %s", postId);
 
-    const post = await this.postRepository.findOne({ where: { id: postId }, relations: { author: true } });
+    const post = await this.findPostOrThrow({ id: postId }, { author: true });
 
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
     if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -356,14 +306,7 @@ export class PostService {
   async getPostBySlug(slug: string): Promise<PostResponse> {
     logger.info("Fetching post with slug: %s", slug);
 
-    const post = await this.postRepository.findOne({
-      where: { slug },
-      relations: { author: true, categories: true },
-    });
-
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    const post = await this.findPostOrThrow({ slug }, { author: true, categories: true });
 
     // Fetch and map attachments associated with the found post
 
@@ -494,7 +437,22 @@ export class PostService {
     await this.cacheService.deleteByPattern(`${postsCacheKey}*`);
   }
 
-  async findById(postId: string): Promise<PostEntity | null> {
-    return await this.postRepository.findOne({ where: { id: postId } });
+  async findPostOrThrow(
+    identifier: { id?: string; slug?: string },
+    relations: FindOptionsRelations<PostEntity> = {},
+  ): Promise<PostEntity> {
+    if (!identifier.id && !identifier.slug) {
+      throw new BadRequestException(ERROR_MESSAGES.IDENTIFIER_REQUIRED);
+    }
+
+    const post = await this.postRepository.findOne({
+      where: identifier,
+      relations,
+    });
+    if (!post) {
+      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+    }
+
+    return post;
   }
 }

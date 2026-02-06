@@ -77,11 +77,7 @@ export class CategoryService {
 
     const { name, description } = body;
 
-    const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
-
-    if (!category) {
-      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
-    }
+    const category = await this.findCategoryOrThrow(categoryId);
 
     if (name) {
       const duplicateCategory = await this.categoryRepository.findOne({
@@ -118,11 +114,7 @@ export class CategoryService {
    * @throws NotFoundException if the category does not exist.
    */
   async getCategoryById(categoryId: string): Promise<CategoryResponse> {
-    const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
-
-    if (!category) {
-      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
-    }
+    const category = await this.findCategoryOrThrow(categoryId);
 
     logger.info("Retrieving category details for ID: %s", categoryId);
 
@@ -189,13 +181,22 @@ export class CategoryService {
   async deleteCategory(categoryId: string): Promise<void> {
     logger.info("Soft-delete requested for Category ID: %s", categoryId);
 
-    const category = await this.categoryRepository.findOne({ where: { id: categoryId } });
+    const category = await this.findCategoryOrThrow(categoryId);
 
-    if (!category) {
-      throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
-    }
-    await this.categoryRepository.softDelete(categoryId);
+    await this.categoryRepository.softDelete(category.id);
 
     logger.info("Category %s soft-deleted successfully", categoryId);
+  }
+
+  private async findCategoryOrThrow(categoryId: string): Promise<CategoryEntity> {
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
+    }
+
+    return category;
   }
 }
