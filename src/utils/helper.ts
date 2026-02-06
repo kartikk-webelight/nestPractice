@@ -1,4 +1,5 @@
 import { ClassConstructor, plainToInstance } from "class-transformer";
+import { DURATION_CONSTANTS } from "constants/duration";
 
 export const generateKSUID = async (prefix?: string) => {
   const ksuidModule = await import("@thi.ng/ksuid/ulid");
@@ -35,4 +36,8 @@ export const getPaginatedData = (data: object, page: number, limit: number, tota
 
 export const calculateOffset = (page: number, limit: number): number => {
   return (page - 1) * limit;
+};
+
+export const thirtyDaysAgo = (): Date => {
+  return new Date(Date.now() - DURATION_CONSTANTS.THIRTY_DAYS_IN_MS);
 };

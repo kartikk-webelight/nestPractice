@@ -5,4 +5,5 @@ export const DURATION_CONSTANTS = {
   ONE_HOUR_IN_SEC: 60 * 60,
   FIVE_MIN_IN_SEC: 5 * 60,
   TWO_MIN_IN_SEC: 2 * 60,
+  THIRTY_DAYS_IN_MS: 30 * 24 * 60 * 60 * 1000,
 };

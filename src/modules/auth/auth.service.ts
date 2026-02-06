@@ -133,7 +133,12 @@ export class AuthService {
       let attachmentArray: AttachmentEntity[] = [];
 
       if (file) {
-        const attachment = await this.attachmentService.createAttachment(file, saved.id, EntityType.USER, manager);
+        const attachment = await this.attachmentService.createAttachment({
+          file,
+          externalId: saved.id,
+          entityType: EntityType.USER,
+          manager,
+        });
         attachmentArray = [attachment];
       }
 
@@ -187,6 +192,8 @@ export class AuthService {
 
     const refreshToken = generateRefreshToken({ id: user.id, role: user.role });
     const accessToken = generateAccessToken({ id: user.id, role: user.role });
+
+    await this.invalidateUserCaches(user.id);
 
     logger.info("Login successful. Tokens issued for user: %s", user.id);
 

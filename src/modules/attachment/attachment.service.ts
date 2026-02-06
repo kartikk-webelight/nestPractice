@@ -1,4 +1,4 @@
-import { Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UploadApiResponse } from "cloudinary";
 import { EntityManager, In, Repository } from "typeorm";
@@ -7,6 +7,7 @@ import { EntityType } from "enums";
 import { logger } from "services/logger.service";
 import { CloudinaryService } from "shared/cloudinary/cloudinary.service";
 import { AttachmentEntity } from "./attachment.entity";
+import { CreateAttachment, CreateAttachments, DeleteAttachments } from "./attachments.types";
 
 /**
  * Performs file upload to cloud storage and persists metadata to the database.
@@ -33,12 +34,9 @@ export class AttachmentService {
    * @returns A promise resolving to the saved {@link AttachmentEntity}.
    * @throws ServiceUnavailableException if the upload fails or storage is unreachable.
    */
-  async createAttachment(
-    file: Express.Multer.File,
-    externalId: string,
-    entityType: EntityType,
-    manager?: EntityManager,
-  ) {
+  async createAttachment(createAttachment: CreateAttachment) {
+    const { manager, file, externalId, entityType } = createAttachment;
+
     logger.info("Initiating single file upload for Entity: %s (ID: %s)", entityType, externalId);
 
     // Step 1: Upload file to Cloudinary and sync metadata with the database
@@ -82,17 +80,19 @@ export class AttachmentService {
    * @returns An array of the saved {@link AttachmentEntity} objects.
    * @throws ServiceUnavailableException if any part of the batch process fails.
    */
-  async createAttachments(
-    files: Express.Multer.File[],
-    externalId: string,
-    entityType: EntityType,
-    manager?: EntityManager,
-  ) {
+  async createAttachments(createAttachment: CreateAttachments) {
+    const { manager, files, externalId, entityType } = createAttachment;
+
+    if (!files || files.length === 0) {
+      return [];
+    }
+
     logger.info("Initiating batch upload of %d files for Entity: %s", files.length, externalId);
 
     // Step 1: Bulk upload to cloud and prepare database batch insertion
 
     const attachmentRepository = manager ? manager.getRepository(AttachmentEntity) : this.attachmentRepository;
+
     let uploadedResults: UploadApiResponse[] = [];
     try {
       uploadedResults = await this.cloudinaryService.uploadFilesToCloudinary(files);
@@ -156,5 +156,32 @@ export class AttachmentService {
     logger.debug("Successfully mapped %d attachments to parent entities", attachments.length);
 
     return attachmentMap;
+  }
+
+  /**
+   * Soft-deletes all attachments associated with a specific parent entity.
+   * @param deleteAttachments - An object containing the deletion criteria {@link deleteAttachments} :
+   * - `externalId`: The ID of the parent entity (e.g., Post ID).
+   * - `entityType`: The specific {@link EntityType} (e.g., POST, USER).
+   * - `manager`: (Optional) An existing {@link EntityManager} to execute within a transaction.
+   * @returns A {@link Promise} that resolves when the soft-delete operation is complete.
+   * @throws {BadRequestException} If the externalId is missing.
+   */
+  async deleteAttachmentsByEntityId(deleteAttachments: DeleteAttachments) {
+    const { manager, externalId, entityType } = deleteAttachments;
+
+    const attachmentRepository = manager ? manager.getRepository(AttachmentEntity) : this.attachmentRepository;
+
+    logger.warn("Attempted to delete attachments without an externalId");
+
+    if (!externalId) {
+      throw new BadRequestException(ERROR_MESSAGES.EXTERNAL_ID_REQUIRED);
+    }
+    await attachmentRepository.softDelete({
+      externalId,
+      entityType,
+    });
+
+    logger.info("Soft-deleted attachments for %s: %s", entityType, externalId);
   }
 }

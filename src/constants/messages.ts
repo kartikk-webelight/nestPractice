@@ -86,6 +86,7 @@ export const ERROR_MESSAGES = {
   // --- Uploads & External Services ---
   CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed.",
   UPLOAD_FAILED_RETRY: "We encountered an issue saving your files. Please try again.",
+  EXTERNAL_ID_REQUIRED: "External ID is required for attachment deletion.",
 
   // --- Validation & Sorting ---
   INTEGER_EXPECTED: "Validation failed. Integer is expected.",
