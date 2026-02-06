@@ -39,5 +39,5 @@ export const calculateOffset = (page: number, limit: number): number => {
 };
 
 export const thirtyDaysAgo = (): Date => {
-  return new Date(Date.now() - DURATION_CONSTANTS.THIRTY_DAYS_IN_MS);
+  return new Date(Date.now() + DURATION_CONSTANTS.THIRTY_DAYS_IN_MS);
 };

@@ -13,7 +13,6 @@ import { AdminModule } from "./modules/admin/admin.module";
 import { AttachmentModule } from "./modules/attachment/attachment.module";
 import { CategoryModule } from "./modules/category/category.module";
 import { CommentsModule } from "./modules/comments/comments.module";
-import { CronModule } from "./modules/cron/cron.module";
 import { PostModule } from "./modules/post/post.module";
 import { ReactionModule } from "./modules/reaction/reaction.module";
 import { RoleModule } from "./modules/role/role.module";
@@ -36,7 +35,6 @@ import { UsersModule } from "./modules/users/users.module";
     AttachmentModule,
     CategoryModule,
     RoleModule,
-    CronModule,
   ],
   controllers: [AppController],
   providers: [
