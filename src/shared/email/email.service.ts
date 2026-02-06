@@ -4,9 +4,9 @@ import { secretConfig } from "config/secret.config";
 import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
+import { getCacheKey } from "utils/cache";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
-import { getCacheKey } from "utils/redis-cache";
-import { CacheService } from "../redis/cache.service";
+import { CacheService } from "../cache/cache.service";
 
 const {
   emailConfigs: { senderEmail, senderName },
@@ -40,13 +40,13 @@ export class EmailService {
   }
 
   /**
-   * Orchestrates the delivery of a verification email and stores the session in Redis.
+   * Orchestrates the delivery of a verification email and stores the session in Redis cache.
    *
    * @param email - Recipient's email address.
    * @param userId - Associated user identifier.
    * @param name - Optional display name for email personalization.
    * @returns A promise that resolves when the email is successfully handed off to the SMTP server.
-   * @throws InternalServerErrorException if the SMTP transport fails or Redis is unreachable.
+   * @throws InternalServerErrorException if the SMTP transport fails or Redis cache is unreachable.
    */
   async sendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
     try {
@@ -70,13 +70,13 @@ export class EmailService {
   }
 
   /**
-   * Validates a verification token against both JWT signature and Redis existence.
+   * Validates a verification token against both JWT signature and Redis cache existence.
    *
    * @param token - The token string provided via the email link.
    * @returns The user's ID if verification is successful; otherwise, null.
    * @remarks
    * This method follows a "consume-on-success" pattern, deleting the token from
-   * Redis once validated to prevent reuse.
+   * Redis cache once validated to prevent reuse.
    */
   async verifyEmail(token: string) {
     try {
@@ -86,7 +86,7 @@ export class EmailService {
         return null;
       }
 
-      // Check if token exists in Redis
+      // Check if token exists in Redis cache
       const cacheKey = getCacheKey(CACHE_PREFIX.VERIFICATION, decoded.userId);
       const storedToken = await this.cacheService.get(cacheKey);
 
@@ -94,7 +94,7 @@ export class EmailService {
         return null;
       }
 
-      // Delete token from Redis after verification
+      // Delete token from Redis cache after verification
       await this.cacheService.delete([cacheKey]);
 
       return decoded.userId;

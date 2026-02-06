@@ -7,9 +7,9 @@ import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse } from "dto/common-response.dto";
-import { CacheService } from "shared/redis/cache.service";
+import { CacheService } from "shared/cache/cache.service";
+import { getCachedJson, getCacheKey } from "utils/cache";
 import { verifyAccessToken } from "utils/jwt";
-import { getCachedJson, getCacheKey } from "utils/redis-cache";
 
 /**
  * Secures routes by validating JSON Web Tokens (JWT) and establishing the request identity.

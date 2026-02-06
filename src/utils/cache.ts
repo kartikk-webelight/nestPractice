@@ -1,12 +1,12 @@
 import { logger } from "services/logger.service";
-import { CacheService } from "shared/redis/cache.service";
+import { CacheService } from "shared/cache/cache.service";
 
 /**
- * Fetches a value from Redis, parses it as JSON, and returns it.
+ * Fetches a value from Redis cache, parses it as JSON, and returns it.
  * If parsing fails, logs a warning, deletes the corrupted key, and returns null.
  *
  * @template T - The expected type of the cached value
- * @param cacheKey - Redis key to fetch
+ * @param cacheKey - Cache key to fetch
  * @param cacheService - Instance of CacheService
  * @returns The parsed object of type T, or null if not found / invalid
  */
@@ -33,7 +33,7 @@ export const getCachedJson = async <T>(cacheKey: string, cacheService: CacheServ
  *
  * @param prefix - Prefix for the Cache key (e.g., 'posts', 'user').
  * @param data - Object or string to generate the key from.
- * @returns A stable Redis key string.
+ * @returns A stable Cache key string.
  */
 export const getCacheKey = (prefix: string, data?: Record<string, any> | string): string => {
   let keyPart: string;

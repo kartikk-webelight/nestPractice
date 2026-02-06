@@ -5,11 +5,11 @@ import Redis from "ioredis";
 import { mailerConfig } from "config/email.config";
 import { redisConfig } from "config/redis-config";
 import { QUEUES } from "constants/queues";
+import { CacheService } from "./cache/cache.service";
 import { CloudinaryService } from "./cloudinary/cloudinary.service";
 import { EmailQueue } from "./email/email.queue";
 import { EmailService } from "./email/email.service";
 import { EmailProcessor } from "./email/email.worker";
-import { CacheService } from "./redis/cache.service";
 import { SlugService } from "./slug.service";
 
 @Global()
