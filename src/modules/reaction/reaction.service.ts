@@ -10,7 +10,7 @@ import { logger } from "services/logger.service";
 import { RedisService } from "shared/redis/redis.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
-import { ApplyReactionToComment, ApplyReactionToPost } from "./reaction.types";
+import { ApplyReactionToComment, ApplyReactionToPost, GetPostByReaction } from "./reaction.types";
 
 /**
  * Provides transactional operations for managing user reactions on content.
@@ -99,31 +99,7 @@ export class ReactionService {
    */
 
   async getLikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
-    logger.info("Fetching liked posts for user %s", userId);
-
-    const [reactions, total] = await this.reactionRepository.findAndCount({
-      where: {
-        isLiked: true,
-        reactedBy: { id: userId },
-        post: { status: PostStatus.PUBLISHED },
-      },
-      relations: { post: true },
-      skip: calculateOffset(page, limit),
-      take: limit,
-    });
-    const likedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
-
-    const paginatedResponse = {
-      data: likedPosts,
-      page,
-      limit,
-      total,
-      totalPages: calculateTotalPages(total, limit),
-    };
-
-    logger.info("Retrieved %d liked posts", likedPosts.length);
-
-    return paginatedResponse;
+    return await this.getPostsByReaction({ page, limit, userId, isliked: true });
   }
 
   /**
@@ -135,11 +111,26 @@ export class ReactionService {
    * @returns A paginated response containing disliked posts.
    */
   async getDislikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
-    logger.info("Fetching disliked posts for user %s", userId);
+    return await this.getPostsByReaction({ page, limit, userId, isliked: false });
+  }
+
+  /**
+   * Retrieves a paginated list of posts liked/disliked by a user.
+   *
+   * @param page - Current page number.
+   * @param limit - Number of posts per page.
+   * @param userId - Identifier of the user.
+   * @returns A paginated response containing disliked posts.
+   */
+  async getPostsByReaction(getPostByReaction: GetPostByReaction): Promise<PostsPaginationResponseDto> {
+    const { page, limit, userId, isliked } = getPostByReaction;
+
+    const reactionType = isliked ? "liked" : "disliked";
+    logger.info("Fetching %s  posts for user %s", reactionType, userId);
 
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
-        isLiked: false,
+        isLiked: isliked,
         reactedBy: { id: userId },
         post: { status: PostStatus.PUBLISHED },
       },
@@ -148,17 +139,17 @@ export class ReactionService {
       take: limit,
     });
 
-    const dislikedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
+    const reactedPosts = reactions.map((reaction) => reaction.post).filter((post): post is PostEntity => !!post);
 
     const paginatedResponse = {
-      data: dislikedPosts,
+      data: reactedPosts,
       page,
       limit,
       total,
       totalPages: calculateTotalPages(total, limit),
     };
 
-    logger.info("Retrieved %d disliked posts", dislikedPosts.length);
+    logger.info("Retrieved %d %s posts", reactedPosts.length, reactionType);
 
     return paginatedResponse;
   }

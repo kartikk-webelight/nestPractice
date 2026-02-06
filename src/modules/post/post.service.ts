@@ -348,7 +348,6 @@ export class PostService {
   /**
    * Retrieves a post using its URL-friendly slug.
    *
-   * The result is cached in Redis using the slug.
    *
    * @param slug - URL-friendly post identifier.
    * @returns The post with attachments.
@@ -383,7 +382,6 @@ export class PostService {
   /**
    * Retrieves a paginated and filtered list of posts based on user visibility rules.
    *
-   * The result is cached in Redis per user and query parameters.
    *
    * @param query - Search, filter, sort, and pagination parameters.
    * @param currentUser - User requesting the posts, used to apply visibility rules.
@@ -418,7 +416,7 @@ export class PostService {
       attachments: attachmentMap[post.id] ?? [],
     }));
 
-    // Step 5: Build paginated response and cache it in Redis
+    // Step 5: Build paginated response
     const paginatedResponse: PostsPaginationResponseDto = {
       data: postsWithAttachments,
       total,
