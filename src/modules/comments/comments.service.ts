@@ -2,14 +2,10 @@ import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/co
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { PostService } from "modules/post/post.service";
-import { REDIS_PREFIX } from "constants/cache-prefixes";
-import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, UserRole } from "enums";
 import { logger } from "services/logger.service";
-import { RedisService } from "shared/redis/redis.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
-import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 import { CommentEntity } from "./comment.entity";
 import { CommentResponse, CommentsPaginationResponseDto } from "./dto/comment-response.dto";
 import { CreateCommentDto, ReplyCommentDto, UpdateCommentDto } from "./dto/comment.dto";
@@ -30,7 +26,6 @@ export class CommentsService {
     @InjectRepository(CommentEntity)
     private readonly commentRepository: Repository<CommentEntity>,
     private readonly postService: PostService,
-    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -62,8 +57,6 @@ export class CommentsService {
     });
 
     const savedComment = await this.commentRepository.save(comment);
-
-    await this.invalidateCommentCaches(savedComment.id);
 
     logger.info("Comment created successfully. ID: %s", savedComment.id);
 
@@ -109,8 +102,6 @@ export class CommentsService {
 
     const savedComment = await this.commentRepository.save(comment);
 
-    await this.invalidateCommentCaches(savedComment.id);
-
     logger.info("Reply successfully saved. ID: %s", savedComment.id);
 
     return savedComment;
@@ -126,16 +117,6 @@ export class CommentsService {
   async getCommentById(commentId: string): Promise<CommentResponse> {
     logger.info("Fetching details for comment: %s", commentId);
 
-    const commentCacheKey = makeRedisKey(REDIS_PREFIX.COMMENT, commentId);
-
-    const cachedComment = await getCachedJson<CommentResponse>(commentCacheKey, this.redisService);
-
-    if (cachedComment) {
-      logger.info("Cache hit for comment with ID: %s", commentId);
-
-      return cachedComment;
-    }
-
     const comment = await this.commentRepository.findOne({
       where: { id: commentId },
       relations: { author: true, post: true },
@@ -145,8 +126,6 @@ export class CommentsService {
     if (!comment) {
       throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
     }
-
-    await this.redisService.set(commentCacheKey, JSON.stringify(comment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     logger.info("Retrieved comment with id: %s", commentId);
 
@@ -183,8 +162,6 @@ export class CommentsService {
     }
 
     const updatedComment = await this.commentRepository.save(comment);
-
-    await this.invalidateCommentCaches(commentId);
 
     logger.info("Comment %s successfully updated", commentId);
 
@@ -231,16 +208,6 @@ export class CommentsService {
   async getCommentsByPostId(page: number, limit: number, postId: string): Promise<CommentsPaginationResponseDto> {
     logger.info("Fetching comments for Post ID: %s (Page: %d, Limit: %d)", postId, page, limit);
 
-    const commentsCacheKey = makeRedisKey(REDIS_PREFIX.COMMENTS, { page, postId, limit });
-
-    const cachedComments = await getCachedJson<CommentsPaginationResponseDto>(commentsCacheKey, this.redisService);
-
-    if (cachedComments) {
-      logger.info("Cache hit for comments of post %s", postId);
-
-      return cachedComments;
-    }
-
     const [comments, total] = await this.commentRepository.findAndCount({
       where: {
         post: { id: postId },
@@ -260,23 +227,6 @@ export class CommentsService {
       totalPages: calculateTotalPages(total, limit),
     };
 
-    await this.redisService.set(commentsCacheKey, JSON.stringify(paginatedResponse), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
-
     return paginatedResponse;
-  }
-
-  /**
-   * Clears Redis caches for a comment and related comment lists.
-   * @param commentId - ID of the comment to invalidate
-   */
-  private async invalidateCommentCaches(commentId: string): Promise<void> {
-    const commentCacheKey = makeRedisKey(REDIS_PREFIX.COMMENT, commentId);
-    const commentsCacheKey = makeRedisKey(REDIS_PREFIX.COMMENTS, "");
-
-    // Delete single comment cache
-    await this.redisService.delete([commentCacheKey]);
-
-    // Delete all cached comment lists
-    await this.redisService.deleteByPattern(`${commentsCacheKey}*`);
   }
 }

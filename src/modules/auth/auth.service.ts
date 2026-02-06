@@ -11,17 +11,17 @@ import { DataSource, Not, Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
-import { REDIS_PREFIX } from "constants/cache-prefixes";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse } from "dto/common-response.dto";
 import { EntityType } from "enums";
 import { logger } from "services/logger.service";
+import { CacheService } from "shared/cache/cache.service";
 import { EmailQueue } from "shared/email/email.queue";
 import { EmailService } from "shared/email/email.service";
-import { RedisService } from "shared/redis/redis.service";
+import { getCachedJson, getCacheKey } from "utils/cache";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
-import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 import { DecodedToken } from "./auth.types";
 import { LoginResponse, RefreshTokenResponse } from "./dto/auth-response.dto";
 import { CreateUserDto, LoginDto, UpdateDetailsDto } from "./dto/auth.dto";
@@ -46,7 +46,7 @@ export class AuthService {
 
     private readonly emailService: EmailService,
 
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -66,9 +66,9 @@ export class AuthService {
 
     // Step 1: Fetch user by ID
 
-    const userCacheKey = makeRedisKey(REDIS_PREFIX.USER, userId);
+    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
 
-    const cachedUser = await getCachedJson<UserResponse>(userCacheKey, this.redisService);
+    const cachedUser = await getCachedJson<UserResponse>(userCacheKey, this.cacheService);
 
     if (cachedUser) {
       logger.info("Cache hit for user profile. ID: %s", userId);
@@ -90,7 +90,7 @@ export class AuthService {
 
     const userWithAttachments = { ...user, attachment: attachmentMap[user.id] ?? [] };
 
-    await this.redisService.set(userCacheKey, JSON.stringify(userWithAttachments), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
+    await this.cacheService.set(userCacheKey, JSON.stringify(userWithAttachments), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     return userWithAttachments;
   }
@@ -144,9 +144,6 @@ export class AuthService {
 
       return { ...saved, attachment: attachmentArray };
     });
-
-    await this.invalidateUserCaches(savedUser.id);
-
     // Step 2: User and attachments secured. Queueing verification email.
 
     await this.emailQueue.enqueueVerification(savedUser.email, savedUser.id, savedUser.name);
@@ -389,14 +386,9 @@ export class AuthService {
    * @param userId - ID of the user to invalidate
    */
   private async invalidateUserCaches(userId: string): Promise<void> {
-    const userCacheKey = makeRedisKey(REDIS_PREFIX.USER, userId);
-    const authCacheKey = makeRedisKey(REDIS_PREFIX.AUTH, userId);
-    const usersCacheKey = makeRedisKey(REDIS_PREFIX.USERS, "");
+    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
+    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
 
-    // Delete single user and auth caches
-    await this.redisService.delete([userCacheKey, authCacheKey]);
-
-    // Delete all cached user lists
-    await this.redisService.deleteByPattern(`${usersCacheKey}*`);
+    await this.cacheService.delete([userCacheKey, authCacheKey]);
   }
 }

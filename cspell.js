@@ -12,7 +12,7 @@
       ".eslintrc.json",
       ".mega-linter.yaml",
       "Dockerfile",
-      "redis.service.ts",
+      "cache.service.ts",
       "collections",
       "src/migrations"
     ]

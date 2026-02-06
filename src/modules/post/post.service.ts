@@ -3,15 +3,15 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository, SelectQueryBuilder } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { CategoryEntity } from "modules/category/category.entity";
-import { REDIS_PREFIX } from "constants/cache-prefixes";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { logger } from "services/logger.service";
-import { RedisService } from "shared/redis/redis.service";
+import { CacheService } from "shared/cache/cache.service";
 import { SlugService } from "shared/slug.service";
+import { getCachedJson, getCacheKey } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
-import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 import { CreatePostDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import { PostResponse, PostsPaginationResponseDto } from "./dto/posts-response.dto";
 import { PostEntity } from "./post.entity";
@@ -36,7 +36,7 @@ export class PostService {
     @InjectRepository(CategoryEntity)
     private readonly categoryRepository: Repository<CategoryEntity>,
     private readonly slugService: SlugService,
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -122,16 +122,6 @@ export class PostService {
   async getPostById(postId: string): Promise<PostResponse> {
     logger.info("Fetching post by ID: %s", postId);
 
-    const postCacheKey = makeRedisKey("post", postId);
-
-    const cachedPost = await getCachedJson<PostResponse>(postCacheKey, this.redisService);
-
-    if (cachedPost) {
-      logger.info("Cache hit for post with ID: %s", postId);
-
-      return cachedPost;
-    }
-
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: { author: true, categories: true },
@@ -148,8 +138,6 @@ export class PostService {
       attachments: attachmentMap[post.id] || [],
     };
 
-    await this.redisService.set(postCacheKey, JSON.stringify(postWithAttachment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
-
     return postWithAttachment;
   }
 
@@ -163,9 +151,9 @@ export class PostService {
    * @returns Paginated posts with attachments {@link PostsPaginationResponseDto}.
    */
   async getMyPosts(userId: string, page: number, limit: number): Promise<PostsPaginationResponseDto> {
-    const postsCacheKey = makeRedisKey("posts", { userId, page, limit });
+    const postsCacheKey = getCacheKey("posts", { userId, page, limit });
 
-    const cachedPosts = await getCachedJson<PostsPaginationResponseDto>(postsCacheKey, this.redisService);
+    const cachedPosts = await getCachedJson<PostsPaginationResponseDto>(postsCacheKey, this.cacheService);
 
     if (cachedPosts) {
       logger.info("Cache hit for posts list of user with ID %s", userId);
@@ -197,7 +185,7 @@ export class PostService {
       totalPages: calculateTotalPages(total, limit),
     };
 
-    await this.redisService.set(postsCacheKey, JSON.stringify(paginatedResponse), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
+    await this.cacheService.set(postsCacheKey, JSON.stringify(paginatedResponse), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     return paginatedResponse;
   }
@@ -365,15 +353,15 @@ export class PostService {
         entityType: EntityType.POST,
         manager,
       });
-
-      logger.info("Post %s successfully soft-deleted", postId);
     });
+    await this.invalidatePostCaches(postId);
+
+    logger.info("Post %s successfully soft-deleted", postId);
   }
 
   /**
    * Retrieves a post using its URL-friendly slug.
    *
-   * The result is cached in Redis using the slug.
    *
    * @param slug - URL-friendly post identifier.
    * @returns The post with attachments.
@@ -381,16 +369,6 @@ export class PostService {
    */
   async getPostBySlug(slug: string): Promise<PostResponse> {
     logger.info("Fetching post with slug: %s", slug);
-
-    const postCacheKey = makeRedisKey("post", slug);
-
-    const cachedPost = await getCachedJson<PostResponse>(postCacheKey, this.redisService);
-
-    if (cachedPost) {
-      logger.info("Cache hit for post with slug: %s", slug);
-
-      return cachedPost;
-    }
 
     const post = await this.postRepository.findOne({
       where: { slug },
@@ -410,8 +388,6 @@ export class PostService {
       attachments: attachmentMap[post.id] || [],
     };
 
-    await this.redisService.set(postCacheKey, JSON.stringify(postWithAttachment), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
-
     logger.info("Successfully retrieved post: %s", post.slug);
 
     return postWithAttachment;
@@ -420,7 +396,6 @@ export class PostService {
   /**
    * Retrieves a paginated and filtered list of posts based on user visibility rules.
    *
-   * The result is cached in Redis per user and query parameters.
    *
    * @param query - Search, filter, sort, and pagination parameters.
    * @param currentUser - User requesting the posts, used to apply visibility rules.
@@ -431,30 +406,21 @@ export class PostService {
 
     const { search, fromDate, toDate, sortBy = SortBy.CREATED_AT, order = OrderBy.DESC, status, page, limit } = query;
 
-    // Step 1: Generate Redis key and attempt to fetch cached response
-    const postsCacheKey = makeRedisKey("posts", { ...query, userId: currentUser.id });
-    const cachedPosts = await getCachedJson<PostsPaginationResponseDto>(postsCacheKey, this.redisService);
-    if (cachedPosts) {
-      logger.info("Cache hit for posts list (query: %j)", query);
-
-      return cachedPosts;
-    }
-
-    // Step 2: Initialize query builder and apply visibility rules based on user role
+    // Step 1: Initialize query builder and apply visibility rules based on user role
     const qb = this.postRepository.createQueryBuilder("post").leftJoinAndSelect("post.author", "author");
     this.applyPostVisibilityFilters(qb, currentUser, status);
 
-    // Step 3: Apply filters (search, date range)
+    // Step 2: Apply filters (search, date range)
     if (search) {
       qb.andWhere("(post.title ILIKE :search OR post.content ILIKE :search)", { search: `%${search}%` });
     }
     if (fromDate) qb.andWhere("post.createdAt >= :fromDate", { fromDate });
     if (toDate) qb.andWhere("post.createdAt <= :toDate", { toDate });
 
-    // Step 4: Apply sorting and pagination
+    // Step 3: Apply sorting and pagination
     qb.orderBy(`post.${sortBy}`, order).skip(calculateOffset(page, limit)).take(limit);
 
-    // Step 5: Execute query and fetch related attachments
+    // Step 4: Execute query and fetch related attachments
     const [posts, total] = await qb.getManyAndCount();
     const postIds = posts.map((post) => post.id);
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds(postIds, EntityType.POST);
@@ -464,7 +430,7 @@ export class PostService {
       attachments: attachmentMap[post.id] ?? [],
     }));
 
-    // Step 6: Build paginated response and cache it in Redis
+    // Step 5: Build paginated response
     const paginatedResponse: PostsPaginationResponseDto = {
       data: postsWithAttachments,
       total,
@@ -472,7 +438,6 @@ export class PostService {
       limit,
       totalPages: calculateTotalPages(total, limit),
     };
-    await this.redisService.set(postsCacheKey, JSON.stringify(paginatedResponse), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     logger.info("Retrieved %d posts for the current page", posts.length);
 
@@ -536,11 +501,11 @@ export class PostService {
    * @param postId - ID of the post to invalidate
    */
   private async invalidatePostCaches(postId: string): Promise<void> {
-    const postCacheKey = makeRedisKey(REDIS_PREFIX.POST, postId);
-    const postsCacheKey = makeRedisKey(REDIS_PREFIX.POSTS, "");
+    const postCacheKey = getCacheKey(CACHE_PREFIX.POST, postId);
+    const postsCacheKey = getCacheKey(CACHE_PREFIX.POSTS, "");
 
-    await this.redisService.delete([postCacheKey]);
-    await this.redisService.deleteByPattern(`${postsCacheKey}*`);
+    await this.cacheService.delete([postCacheKey]);
+    await this.cacheService.deleteByPattern(`${postsCacheKey}*`);
   }
 
   async findById(postId: string): Promise<PostEntity | null> {

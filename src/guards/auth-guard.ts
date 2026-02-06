@@ -3,13 +3,13 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { DecodedToken } from "modules/auth/auth.types";
 import { UserEntity } from "modules/users/users.entity";
-import { REDIS_PREFIX } from "constants/cache-prefixes";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse } from "dto/common-response.dto";
-import { RedisService } from "shared/redis/redis.service";
+import { CacheService } from "shared/cache/cache.service";
+import { getCachedJson, getCacheKey } from "utils/cache";
 import { verifyAccessToken } from "utils/jwt";
-import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 
 /**
  * Secures routes by validating JSON Web Tokens (JWT) and establishing the request identity.
@@ -25,7 +25,7 @@ export class AuthGuard implements CanActivate {
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
 
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -54,10 +54,10 @@ export class AuthGuard implements CanActivate {
 
     if (!decodedToken.id) throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 
-    const authCacheKey = makeRedisKey(REDIS_PREFIX.AUTH, decodedToken.id);
+    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, decodedToken.id);
 
     // Step 2: Return user from cache if available
-    const cachedUser = await getCachedJson<UserResponse>(authCacheKey, this.redisService);
+    const cachedUser = await getCachedJson<UserResponse>(authCacheKey, this.cacheService);
     if (cachedUser !== null) {
       request.user = cachedUser;
 
@@ -72,7 +72,7 @@ export class AuthGuard implements CanActivate {
     if (!user) throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 
     request.user = user;
-    await this.redisService.set(authCacheKey, JSON.stringify(user), DURATION_CONSTANTS.ONE_HOUR_IN_SEC);
+    await this.cacheService.set(authCacheKey, JSON.stringify(user), DURATION_CONSTANTS.ONE_HOUR_IN_SEC);
 
     return true;
   }

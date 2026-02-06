@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Redis } from "ioredis";
 
 @Injectable()
-export class RedisService {
+export class CacheService {
   constructor(@Inject("REDIS_CLIENT") private readonly redis: Redis) {}
 
   async set(key: string, value: string, expirationTime: number) {

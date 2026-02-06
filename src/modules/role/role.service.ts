@@ -2,15 +2,14 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { UserEntity } from "modules/users/users.entity";
-import { REDIS_PREFIX } from "constants/cache-prefixes";
-import { DURATION_CONSTANTS } from "constants/duration";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { logger } from "services/logger.service";
-import { RedisService } from "shared/redis/redis.service";
+import { CacheService } from "shared/cache/cache.service";
 import { User } from "types/types";
+import { getCacheKey } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
-import { getCachedJson, makeRedisKey } from "utils/redis-cache";
 import { RoleRequestPaginationDataDto, RoleRequestResponse } from "./dto/role-response.dto";
 import { GetRoleRequestsQueryDto } from "./dto/role.dto";
 import { RoleEntity } from "./role.entity";
@@ -32,7 +31,7 @@ export class RoleService {
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
 
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -150,16 +149,6 @@ export class RoleService {
 
     // Step 1: Retrieve the most recent request record for the user profile
 
-    const roleRequestCacheKey = makeRedisKey(REDIS_PREFIX.ROLE_REQUEST, userId);
-
-    const cachedRoleRequest = await getCachedJson<RoleRequestResponse>(roleRequestCacheKey, this.redisService);
-
-    if (cachedRoleRequest) {
-      logger.info("Cache hit role request for user with ID: %s", userId);
-
-      return cachedRoleRequest;
-    }
-
     const roleRequest = await this.roleRepository.findOne({
       where: { user: { id: userId } },
       order: { createdAt: OrderBy.DESC },
@@ -167,8 +156,6 @@ export class RoleService {
     if (!roleRequest) {
       throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
     }
-
-    await this.redisService.set(roleRequestCacheKey, JSON.stringify(roleRequest), DURATION_CONSTANTS.TWO_MIN_IN_SEC);
 
     return roleRequest;
   }
@@ -182,22 +169,7 @@ export class RoleService {
   async getRoleRequests(query: GetRoleRequestsQueryDto): Promise<RoleRequestPaginationDataDto> {
     logger.info("Admin role request lookup: %j", query);
 
-    // Fetch cached requests
-
-    const roleRequestsCacheKey = makeRedisKey(REDIS_PREFIX.ROLE_REQUESTS, query);
-
-    const cachedRoleRequests = await getCachedJson<RoleRequestPaginationDataDto>(
-      roleRequestsCacheKey,
-      this.redisService,
-    );
-
-    if (cachedRoleRequests) {
-      logger.info("Cache hit for posts list (query: %j)", query);
-
-      return cachedRoleRequests;
-    }
-
-    // Step 2: Build dynamic query with user relations and status/date filters
+    // Step 1: Build dynamic query with user relations and status/date filters
 
     const { page = 1, limit = 10, search, status, order = OrderBy.DESC, fromDate, toDate } = query;
 
@@ -219,7 +191,7 @@ export class RoleService {
       qb.andWhere("role.createdAt <= :toDate", { toDate });
     }
 
-    // Step 3: Apply pagination and sorting before executing administrative fetch
+    // Step 2: Apply pagination and sorting before executing administrative fetch
 
     qb.orderBy("role.createdAt", order);
 
@@ -235,12 +207,6 @@ export class RoleService {
       totalPages: calculateTotalPages(total, limit),
     };
 
-    await this.redisService.set(
-      roleRequestsCacheKey,
-      JSON.stringify(paginatedResponse),
-      DURATION_CONSTANTS.TWO_MIN_IN_SEC,
-    );
-
     logger.info("Retrieved %d role requests for review", roleRequests.length);
 
     return paginatedResponse;
@@ -252,14 +218,9 @@ export class RoleService {
    */
 
   private async invalidateUserAndRoleRequestCaches(userId: string): Promise<void> {
-    const userCacheKey = makeRedisKey(REDIS_PREFIX.USER, userId);
-    const authCacheKey = makeRedisKey(REDIS_PREFIX.AUTH, userId);
-    const usersCacheKey = makeRedisKey(REDIS_PREFIX.USERS, "");
-    const roleRequestCacheKey = makeRedisKey(REDIS_PREFIX.ROLE_REQUEST, userId);
-    const roleRequestsCacheKey = makeRedisKey(REDIS_PREFIX.ROLE_REQUESTS, "");
+    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
+    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
 
-    await this.redisService.delete([userCacheKey, authCacheKey, roleRequestCacheKey]);
-    await this.redisService.deleteByPattern(`${usersCacheKey}*`);
-    await this.redisService.deleteByPattern(`${roleRequestsCacheKey}*`);
+    await this.cacheService.delete([userCacheKey, authCacheKey]);
   }
 }
