@@ -1,10 +1,12 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { MailerService } from "@nestjs-modules/mailer";
 import { secretConfig } from "config/secret.config";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
-import { RedisService } from "../redis/redis.service";
+import { getCacheKey } from "utils/redis-cache";
+import { CacheService } from "../redis/cache.service";
 
 const {
   emailConfigs: { senderEmail, senderName },
@@ -14,7 +16,7 @@ const {
  * Provides automated email communication and secure account verification workflows.
  *
  * @remarks
- * This service integrates with an SMTP transport (Nodemailer) and {@link RedisService}
+ * This service integrates with an SMTP transport (Nodemailer) and {@link CacheService}
  * to manage the lifecycle of verification tokens. It ensures that account security
  * actions are cryptographically signed and statefully tracked for single-use validation.
  *
@@ -23,7 +25,7 @@ const {
 @Injectable()
 export class EmailService {
   constructor(
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
     private readonly mailerService: MailerService,
   ) {}
 
@@ -49,8 +51,8 @@ export class EmailService {
   async sendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
     try {
       const token = this.generateVerificationToken(userId);
-      const redisKey = `verification:${userId}`;
-      await this.redisService.set(redisKey, token, DURATION_CONSTANTS.ONE_DAY_IN_SEC);
+      const cacheKey = getCacheKey(CACHE_PREFIX.VERIFICATION, userId);
+      await this.cacheService.set(cacheKey, token, DURATION_CONSTANTS.ONE_DAY_IN_SEC);
 
       const verificationLink = `${baseUrl}/auth/verify-email?token=${token}`;
 
@@ -85,15 +87,15 @@ export class EmailService {
       }
 
       // Check if token exists in Redis
-      const redisKey = `verification:${decoded.userId}`;
-      const storedToken = await this.redisService.get(redisKey);
+      const cacheKey = getCacheKey(CACHE_PREFIX.VERIFICATION, decoded.userId);
+      const storedToken = await this.cacheService.get(cacheKey);
 
       if (!storedToken || storedToken !== token) {
         return null;
       }
 
       // Delete token from Redis after verification
-      await this.redisService.delete([redisKey]);
+      await this.cacheService.delete([cacheKey]);
 
       return decoded.userId;
     } catch {
@@ -111,8 +113,8 @@ export class EmailService {
    */
   async resendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
     // Delete old token if exists
-    const redisKey = `verification:${userId}`;
-    await this.redisService.delete([redisKey]);
+    const cacheKey = getCacheKey(CACHE_PREFIX.VERIFICATION, userId);
+    await this.cacheService.delete([cacheKey]);
 
     // Send new verification email
     await this.sendVerificationEmail(email, userId, name);

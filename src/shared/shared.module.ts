@@ -9,7 +9,7 @@ import { CloudinaryService } from "./cloudinary/cloudinary.service";
 import { EmailQueue } from "./email/email.queue";
 import { EmailService } from "./email/email.service";
 import { EmailProcessor } from "./email/email.worker";
-import { RedisService } from "./redis/redis.service";
+import { CacheService } from "./redis/cache.service";
 import { SlugService } from "./slug.service";
 
 @Global()
@@ -24,7 +24,7 @@ import { SlugService } from "./slug.service";
     CloudinaryService,
     SlugService,
     EmailService,
-    RedisService,
+    CacheService,
     {
       provide: "REDIS_CLIENT",
       useFactory: () => {
@@ -34,6 +34,6 @@ import { SlugService } from "./slug.service";
     EmailQueue,
     EmailProcessor,
   ],
-  exports: [CloudinaryService, SlugService, RedisService, EmailService, EmailQueue],
+  exports: [CloudinaryService, SlugService, CacheService, EmailService, EmailQueue],
 })
 export class SharedModule {}

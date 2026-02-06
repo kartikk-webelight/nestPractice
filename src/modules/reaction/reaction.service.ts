@@ -7,7 +7,6 @@ import { PostEntity } from "modules/post/post.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { PostStatus, ReactionCounter } from "enums";
 import { logger } from "services/logger.service";
-import { RedisService } from "shared/redis/redis.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
 import { ApplyReactionToComment, ApplyReactionToPost } from "./reaction.types";
@@ -27,8 +26,6 @@ export class ReactionService {
   constructor(
     @InjectRepository(ReactionEntity)
     private readonly reactionRepository: Repository<ReactionEntity>,
-
-    private readonly redisService: RedisService,
 
     private readonly dataSource: DataSource,
   ) {}
