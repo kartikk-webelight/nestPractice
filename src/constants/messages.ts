@@ -76,6 +76,7 @@ export const ERROR_MESSAGES = {
 
   // --- Category Domain ---
   INVALID_CATEGORY_ID: "Category id is invalid.",
+  CATEGORY_NOT_FOUND: "Category not found",
 
   // --- Role Request Domain ---
   ROLE_ALREADY_ASSIGNED: "You already have this role.",
