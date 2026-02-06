@@ -5,12 +5,12 @@ import { CommentEntity } from "modules/comments/comment.entity";
 import { PostsPaginationResponseDto } from "modules/post/dto/posts-response.dto";
 import { PostEntity } from "modules/post/post.entity";
 import { ERROR_MESSAGES } from "constants/messages";
-import { PostStatus, ReactionCounter } from "enums";
+import { PostStatus, ReactionCounter, ReactionRelation } from "enums";
 import { logger } from "services/logger.service";
 import { RedisService } from "shared/redis/redis.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { ReactionEntity } from "./reaction.entity";
-import { ApplyReactionToComment, ApplyReactionToPost, GetPostByReaction } from "./reaction.types";
+import { ApplyReactionToComment, ApplyReactionToPost, GetPostByReaction, Options } from "./reaction.types";
 
 /**
  * Provides transactional operations for managing user reactions on content.
@@ -99,7 +99,7 @@ export class ReactionService {
    */
 
   async getLikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
-    return await this.getPostsByReaction({ page, limit, userId, isliked: true });
+    return this.getPostsReactedByUser({ page, limit, userId, isLiked: true });
   }
 
   /**
@@ -111,7 +111,7 @@ export class ReactionService {
    * @returns A paginated response containing disliked posts.
    */
   async getDislikedPosts(page: number, limit: number, userId: string): Promise<PostsPaginationResponseDto> {
-    return await this.getPostsByReaction({ page, limit, userId, isliked: false });
+    return this.getPostsReactedByUser({ page, limit, userId, isLiked: false });
   }
 
   /**
@@ -122,15 +122,15 @@ export class ReactionService {
    * @param userId - Identifier of the user.
    * @returns A paginated response containing disliked posts.
    */
-  async getPostsByReaction(getPostByReaction: GetPostByReaction): Promise<PostsPaginationResponseDto> {
-    const { page, limit, userId, isliked } = getPostByReaction;
+  async getPostsReactedByUser(getPostByReaction: GetPostByReaction): Promise<PostsPaginationResponseDto> {
+    const { page, limit, userId, isLiked } = getPostByReaction;
 
-    const reactionType = isliked ? "liked" : "disliked";
+    const reactionType = isLiked ? "liked" : "disliked";
     logger.info("Fetching %s  posts for user %s", reactionType, userId);
 
     const [reactions, total] = await this.reactionRepository.findAndCount({
       where: {
-        isLiked: isliked,
+        isLiked,
         reactedBy: { id: userId },
         post: { status: PostStatus.PUBLISHED },
       },
@@ -155,156 +155,133 @@ export class ReactionService {
   }
 
   /**
-   * Toggles or switches a user's reaction state on a post using a transactional lock.
+   * Processes a user's reaction on a Post.
    *
    * @remarks
-   * Executes a pessimistic write lock on the target post to ensure counter integrity.
-   * Handles first-time reactions, removals (un-reacting), and switching between like/dislike.
+   * Creates, removes, or switches the reaction while keeping counters consistent
+   * within a transactional boundary.
    *
-   * @param reactionDetails - The IDs and state required to process the post reaction.
-   * @returns A promise that resolves when the transaction is committed.
-   * @throws NotFoundException if the post does not exist.
-   * @group Social & Interaction Services
+   * @throws NotFoundException if the post does not exist
    */
   async applyReactionToPost(reactionDetails: ApplyReactionToPost): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const { postId, userId, isLiked } = reactionDetails;
 
-      logger.info("Processing post reaction transaction for User: %s, Post: %s", userId, postId);
+      logger.info("Processing post reaction for User: %s, Post: %s", userId, postId);
 
-      const postRepository = manager.getRepository(PostEntity);
-      const reactionRepository = manager.getRepository(ReactionEntity);
-
-      const post = await postRepository.findOne({
-        where: { id: postId, status: PostStatus.PUBLISHED },
-        lock: { mode: "pessimistic_write" },
+      await this.applyReaction({
+        entityId: postId,
+        userId,
+        isLiked,
+        entityRepository: manager.getRepository(PostEntity),
+        manager,
+        reactionWhere: { post: { id: postId } },
+        relationKey: ReactionRelation.POST,
+        errorMessage: ERROR_MESSAGES.POST_NOT_FOUND,
       });
 
-      if (!post) {
-        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-      }
-
-      const existingReaction = await reactionRepository.findOne({
-        where: {
-          post: { id: postId },
-          reactedBy: { id: userId },
-        },
-      });
-
-      /**
-       * CASE 1: No existing reaction → create one
-       */
-      if (!existingReaction) {
-        logger.debug("Creating new %s reaction for post %s", isLiked ? "like" : "dislike", postId);
-
-        await this.increment(this.getCounter(isLiked), postRepository, postId);
-
-        await reactionRepository.save(
-          reactionRepository.create({
-            post,
-            reactedBy: { id: userId },
-            isLiked,
-          }),
-        );
-
-        return;
-      }
-
-      /**
-       * CASE 2: Same reaction again → remove reaction
-       */
-      if (existingReaction.isLiked === isLiked) {
-        logger.debug("Removing existing %s from post %s", isLiked ? "like" : "dislike", postId);
-
-        await this.decrement(this.getCounter(isLiked), postRepository, postId);
-        await reactionRepository.softDelete(existingReaction.id);
-
-        return;
-      }
-
-      /**
-       * CASE 3: Switching reaction (like ↔ dislike)
-       */
-      await this.decrement(this.getCounter(existingReaction.isLiked), postRepository, postId);
-      await this.increment(this.getCounter(isLiked), postRepository, postId);
-
-      existingReaction.isLiked = isLiked;
-      await reactionRepository.save(existingReaction);
-
-      logger.info("Reaction transaction committed for post %s", postId);
+      logger.info("Reaction committed for post %s", postId);
     });
   }
 
   /**
-   * Toggles or switches a user's reaction state on a comment using a transactional lock.
+   * Processes a user's reaction on a comment.
    *
    * @remarks
-   * Utilizes a row-level lock on the comment entity to safely increment or decrement
-   * interaction counts while preventing race conditions in high-traffic environments.
+   * Creates, removes, or switches the reaction while keeping counters consistent
+   * within a transactional boundary.
    *
-   * @param reactionDetails - The IDs and state required to process the comment reaction.
-   * @returns A promise that resolves when the transaction is committed.
-   * @throws NotFoundException if the comment does not exist.
-   * @group Social & Interaction Services
+   * @throws NotFoundException if the comment does not exist
    */
   async applyReactionToComment(reactionDetails: ApplyReactionToComment): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
       const { commentId, userId, isLiked } = reactionDetails;
 
-      logger.info("Processing comment reaction transaction for User: %s, Comment: %s", userId, commentId);
+      logger.info("Processing comment reaction for User: %s, Comment: %s", userId, commentId);
 
-      const commentRepository = manager.getRepository(CommentEntity);
-      const reactionRepository = manager.getRepository(ReactionEntity);
-
-      const comment = await commentRepository.findOne({
-        where: { id: commentId },
-        lock: { mode: "pessimistic_write" },
+      await this.applyReaction({
+        entityId: commentId,
+        userId,
+        isLiked,
+        entityRepository: manager.getRepository(CommentEntity),
+        manager,
+        reactionWhere: { comment: { id: commentId } },
+        relationKey: ReactionRelation.COMMENT,
+        errorMessage: ERROR_MESSAGES.COMMENT_NOT_FOUND,
       });
 
-      if (!comment) {
-        throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-      }
+      logger.info("Reaction committed for comment %s", commentId);
+    });
+  }
 
-      const existingReaction = await reactionRepository.findOne({
-        where: {
-          comment: { id: commentId },
-          reactedBy: { id: userId },
-        },
-      });
+  /**
+   * Applies a user's reaction to a reactable entity.
+   *
+   * @remarks
+   * Executes within a transaction, ensuring safe reaction state changes
+   * and consistent counter updates.
+   *
+   * @throws NotFoundException if the target entity is not found
+   */
+  async applyReaction(options: Options): Promise<void> {
+    const {
+      entityId,
+      entityRepository,
+      userId,
+      manager,
+      extraWhere = {},
+      reactionWhere = {},
+      isLiked,
+      relationKey,
+      errorMessage,
+    } = options;
 
-      /**
-       * CASE 1: No existing reaction → create one
-       */
-      if (!existingReaction) {
-        await this.increment(this.getCounter(isLiked), commentRepository, commentId);
-        const reaction = reactionRepository.create({
-          comment,
+    const reactionRepository = manager.getRepository(ReactionEntity);
+
+    const entity = await entityRepository.findOne({
+      where: { id: entityId, ...extraWhere },
+      lock: { mode: "pessimistic_write" },
+    });
+
+    if (!entity) {
+      throw new NotFoundException(errorMessage);
+    }
+
+    const existingReaction = await reactionRepository.findOne({
+      where: {
+        reactedBy: { id: userId },
+        ...reactionWhere,
+      },
+    });
+
+    // First-time reaction
+    if (!existingReaction) {
+      await this.increment(this.getCounter(isLiked), entityRepository, entityId);
+
+      await reactionRepository.save(
+        reactionRepository.create({
           reactedBy: { id: userId },
           isLiked,
-        });
-        await reactionRepository.save(reaction);
+          [relationKey]: entity,
+        }),
+      );
 
-        return;
-      }
-      /**
-       * CASE 2: Same reaction again → remove reaction
-       */
-      if (existingReaction.isLiked === isLiked) {
-        await this.decrement(this.getCounter(isLiked), commentRepository, commentId);
-        await reactionRepository.softDelete(existingReaction.id);
+      return;
+    }
 
-        return;
-      }
+    // Same reaction → remove
+    if (existingReaction.isLiked === isLiked) {
+      await this.decrement(this.getCounter(isLiked), entityRepository, entityId);
+      await reactionRepository.softDelete(existingReaction.id);
 
-      /**
-       * CASE 3: Switching reaction (like ↔ dislike)
-       */
-      await this.decrement(this.getCounter(existingReaction.isLiked), commentRepository, commentId);
-      await this.increment(this.getCounter(isLiked), commentRepository, commentId);
-      await reactionRepository.save(existingReaction);
+      return;
+    }
 
-      logger.info("Reaction transaction committed for comment %s", commentId);
-    });
+    // Switch reaction
+    await this.increment(this.getCounter(isLiked), entityRepository, entityId);
+    await this.decrement(this.getCounter(existingReaction.isLiked), entityRepository, entityId);
+
+    await reactionRepository.update(existingReaction.id, { isLiked });
   }
 
   getCounter = (liked: boolean): ReactionCounter => (liked ? ReactionCounter.LIKE : ReactionCounter.DISLIKE);

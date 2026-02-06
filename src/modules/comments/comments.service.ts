@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { FindOptionsRelations, Repository } from "typeorm";
 import { PostService } from "modules/post/post.service";
 import { ERROR_MESSAGES } from "constants/messages";
-import { OrderBy, UserRole } from "enums";
+import { UserRole } from "enums";
 import { logger } from "services/logger.service";
 import { RedisService } from "shared/redis/redis.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
@@ -45,11 +45,7 @@ export class CommentsService {
 
     const { postId, content } = body;
 
-    const post = await this.postService.findById(postId);
-
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    const post = await this.postService.findPostOrThrow({ id: postId });
 
     const comment = this.commentRepository.create({
       content,
@@ -80,11 +76,7 @@ export class CommentsService {
 
     const { postId, content, parentCommentId } = body;
 
-    const post = await this.postService.findById(postId);
-
-    if (!post) {
-      throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
-    }
+    const post = await this.postService.findPostOrThrow({ id: postId });
 
     const parentComment = await this.commentRepository.findOne({
       where: { id: parentCommentId, post: { id: postId } },
@@ -119,15 +111,7 @@ export class CommentsService {
   async getCommentById(commentId: string): Promise<CommentResponse> {
     logger.info("Fetching details for comment: %s", commentId);
 
-    const comment = await this.commentRepository.findOne({
-      where: { id: commentId },
-      relations: { author: true, post: true },
-      order: { createdAt: OrderBy.DESC },
-    });
-
-    if (!comment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
+    const comment = await this.findCommentOrThrow(commentId, { author: true, post: true });
 
     logger.info("Retrieved comment with id: %s", commentId);
 
@@ -150,11 +134,8 @@ export class CommentsService {
     // Step 1: Verify existence and ownership permissions before updating
 
     const { content } = body;
-    const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
+    const comment = await this.findCommentOrThrow(commentId);
 
-    if (!comment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
     if (comment.author.id !== userId) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
@@ -182,11 +163,7 @@ export class CommentsService {
   async deleteComment(commentId: string, user: User): Promise<void> {
     logger.info("Delete request for comment %s by user %s", commentId, user.id);
 
-    const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: { author: true } });
-
-    if (!comment) {
-      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
-    }
+    const comment = await this.findCommentOrThrow(commentId);
 
     if (comment.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -230,5 +207,21 @@ export class CommentsService {
     };
 
     return paginatedResponse;
+  }
+
+  private async findCommentOrThrow(
+    commentId: string,
+    relations: FindOptionsRelations<CommentEntity> = { author: true },
+  ): Promise<CommentEntity> {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId },
+      relations,
+    });
+
+    if (!comment) {
+      throw new NotFoundException(ERROR_MESSAGES.COMMENT_NOT_FOUND);
+    }
+
+    return comment;
   }
 }

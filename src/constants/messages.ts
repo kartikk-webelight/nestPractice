@@ -72,6 +72,7 @@ export const ERROR_MESSAGES = {
   POST_NOT_FOUND: "Post not found.",
   COMMENT_NOT_FOUND: "Comment not found.",
   PREFIX_REQUIRED: "Prefix is required to create a slug.",
+  IDENTIFIER_REQUIRED: "Either ID or Slug must be provided.",
 
   // --- Category Domain ---
   INVALID_CATEGORY_ID: "Category id is invalid.",
