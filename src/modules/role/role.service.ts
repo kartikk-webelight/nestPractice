@@ -2,14 +2,14 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { UserEntity } from "modules/users/users.entity";
-import { REDIS_PREFIX } from "constants/cache-prefixes";
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { logger } from "services/logger.service";
-import { RedisService } from "shared/redis/redis.service";
+import { CacheService } from "shared/cache/cache.service";
 import { User } from "types/types";
+import { getCacheKey } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
-import { makeRedisKey } from "utils/redis-cache";
 import { RoleRequestPaginationDataDto, RoleRequestResponse } from "./dto/role-response.dto";
 import { GetRoleRequestsQueryDto } from "./dto/role.dto";
 import { RoleEntity } from "./role.entity";
@@ -31,7 +31,7 @@ export class RoleService {
     @InjectRepository(RoleEntity)
     private readonly roleRepository: Repository<RoleEntity>,
 
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -218,14 +218,9 @@ export class RoleService {
    */
 
   private async invalidateUserAndRoleRequestCaches(userId: string): Promise<void> {
-    const userCacheKey = makeRedisKey(REDIS_PREFIX.USER, userId);
-    const authCacheKey = makeRedisKey(REDIS_PREFIX.AUTH, userId);
-    const usersCacheKey = makeRedisKey(REDIS_PREFIX.USERS, "");
-    const roleRequestCacheKey = makeRedisKey(REDIS_PREFIX.ROLE_REQUEST, userId);
-    const roleRequestsCacheKey = makeRedisKey(REDIS_PREFIX.ROLE_REQUESTS, "");
+    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
+    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
 
-    await this.redisService.delete([userCacheKey, authCacheKey, roleRequestCacheKey]);
-    await this.redisService.deleteByPattern(`${usersCacheKey}*`);
-    await this.redisService.deleteByPattern(`${roleRequestsCacheKey}*`);
+    await this.cacheService.delete([userCacheKey, authCacheKey]);
   }
 }

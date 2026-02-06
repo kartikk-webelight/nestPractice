@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import { json as expressJson, urlencoded as expressUrlencoded } from "express";
 import { allowedOrigins, globalPrefix, swaggerInfo } from "constants/app";
 import { MainExceptionFilter } from "filters/main-exception.filter";
+import { logger } from "services/logger.service";
 import { AppModule } from "./app.module";
 import { appConfig } from "./config/app.config";
 import { QueryCountInterceptor } from "./interceptors/query-counter-interceptor";
@@ -70,4 +71,7 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3000);
 }
 
-bootstrap().catch(() => process.exit(1));
+bootstrap().catch((error) => {
+  logger.error("Server failed to start: %o", error);
+  process.exit(1);
+});

@@ -5,7 +5,6 @@ import { PostService } from "modules/post/post.service";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserRole } from "enums";
 import { logger } from "services/logger.service";
-import { RedisService } from "shared/redis/redis.service";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CommentEntity } from "./comment.entity";
 import { CommentResponse, CommentsPaginationResponseDto } from "./dto/comment-response.dto";
@@ -27,7 +26,6 @@ export class CommentsService {
     @InjectRepository(CommentEntity)
     private readonly commentRepository: Repository<CommentEntity>,
     private readonly postService: PostService,
-    private readonly redisService: RedisService,
   ) {}
 
   /**
