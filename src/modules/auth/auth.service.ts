@@ -193,6 +193,8 @@ export class AuthService {
     const refreshToken = generateRefreshToken({ id: user.id, role: user.role });
     const accessToken = generateAccessToken({ id: user.id, role: user.role });
 
+    await this.invalidateUserCaches(user.id);
+
     logger.info("Login successful. Tokens issued for user: %s", user.id);
 
     return {

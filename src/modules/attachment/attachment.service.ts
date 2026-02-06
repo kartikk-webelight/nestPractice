@@ -83,11 +83,16 @@ export class AttachmentService {
   async createAttachments(createAttachment: CreateAttachments) {
     const { manager, files, externalId, entityType } = createAttachment;
 
+    if (!files || files.length === 0) {
+      return [];
+    }
+
     logger.info("Initiating batch upload of %d files for Entity: %s", files.length, externalId);
 
     // Step 1: Bulk upload to cloud and prepare database batch insertion
 
     const attachmentRepository = manager ? manager.getRepository(AttachmentEntity) : this.attachmentRepository;
+
     let uploadedResults: UploadApiResponse[] = [];
     try {
       uploadedResults = await this.cloudinaryService.uploadFilesToCloudinary(files);

@@ -1,7 +1,6 @@
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { getOsEnv } from "config/env.config";
 import { appConfig } from "./app.config";
-import { secretConfig } from "./secret.config";
 
 const { isLocal } = appConfig;
 
