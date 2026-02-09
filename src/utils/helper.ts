@@ -1,6 +1,9 @@
 import { ClassConstructor, plainToInstance } from "class-transformer";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { TIME_UNITS, TIME_VALUES } from "constants/duration";
+
+dayjs.extend(utc);
 
 export const generateKSUID = async (prefix?: string) => {
   const ksuidModule = await import("@thi.ng/ksuid/ulid");
@@ -40,5 +43,5 @@ export const calculateOffset = (page: number, limit: number): number => {
 };
 
 export const thirtyDaysAgo = (): Date => {
-  return dayjs().subtract(TIME_VALUES.THIRTY, TIME_UNITS.DAYS).toDate();
+  return dayjs().utc().subtract(TIME_VALUES.THIRTY, TIME_UNITS.DAYS).toDate();
 };
