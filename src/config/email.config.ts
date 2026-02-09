@@ -1,4 +1,4 @@
-import { join } from "path";
+import { join } from "node:path";
 import { MailerOptions } from "@nestjs-modules/mailer";
 import { HandlebarsAdapter } from "@nestjs-modules/mailer/dist/adapters/handlebars.adapter";
 import { secretConfig } from "./secret.config";
