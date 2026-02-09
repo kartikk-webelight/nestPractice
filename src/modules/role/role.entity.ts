@@ -23,6 +23,6 @@ export class RoleEntity extends BaseEntity {
   })
   status: RoleStatus;
 
-  @ManyToOne(() => UserEntity, { onDelete: "SET NULL", nullable: true })
+  @ManyToOne(() => UserEntity, { nullable: true })
   reviewedBy: UserEntity;
 }
