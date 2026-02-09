@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository, SelectQueryBuilder } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
@@ -274,7 +280,10 @@ export class PostService {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+    const canPublishPost = this.canManagePost(user, post);
+
+    if (!canPublishPost) {
+      logger.warn("Post status change forbidden: postId=%s, userId=%s, role=%s", postId, user.id, user.role);
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
     }
     post.status = PostStatus.PUBLISHED;
@@ -297,7 +306,7 @@ export class PostService {
    * @returns A promise resolving to the drafted {@link PostResponse}.
    */
   async unPublishPost(postId: string, user: User): Promise<PostResponse> {
-    logger.info("Status transition requested for Post %s to %s", postId, PostStatus.PUBLISHED);
+    logger.info("Status transition requested for Post %s to %s", postId, PostStatus.DRAFT);
 
     // Step 1: Verify permissions and transition post status
 
@@ -310,8 +319,11 @@ export class PostService {
       throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
     }
 
-    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+    const canUnpublishPost = this.canManagePost(user, post);
+
+    if (!canUnpublishPost) {
+      logger.warn("Post status change forbidden: postId=%s, userId=%s, role=%s", postId, user.id, user.role);
+      throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
     }
     post.status = PostStatus.DRAFT;
 
@@ -343,7 +355,10 @@ export class PostService {
       if (!post) {
         throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
       }
-      if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
+
+      const canDeletePost = this.canManagePost(user, post);
+
+      if (!canDeletePost) {
         throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
       }
       await postRepository.softDelete({ id: postId });
@@ -510,5 +525,14 @@ export class PostService {
 
   async findById(postId: string): Promise<PostEntity | null> {
     return await this.postRepository.findOne({ where: { id: postId } });
+  }
+
+  private canManagePost(user: User, post: PostEntity): boolean {
+    // RoleGuard already allowed ADMIN & EDITOR
+    if (user.role === UserRole.AUTHOR) {
+      return user.id === post.author.id;
+    }
+
+    return true;
   }
 }

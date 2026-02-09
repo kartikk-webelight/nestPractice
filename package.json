@@ -50,6 +50,7 @@
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
     "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
     "eslint-plugin-typescript-sort-keys": "^3.3.0",
     "express": "^5.2.1",
