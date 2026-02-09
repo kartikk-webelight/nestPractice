@@ -76,7 +76,7 @@ export class AuthService {
       return cachedUser;
     }
 
-    const user = await this.findUserOrThrow({ id: userId });
+    const user = await this.getUser({ id: userId });
 
     // Step 2: Fetch and map related attachments
 
@@ -157,7 +157,7 @@ export class AuthService {
 
     // Step 1: Fetch user and verify their credentials
 
-    const user = await this.findUserOrThrow({ email });
+    const user = await this.getUser({ email });
 
     if (!user.isEmailVerified) {
       logger.warn("Login blocked: User %s has not verified their email", email);
@@ -215,7 +215,7 @@ export class AuthService {
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    const user = await this.findUserOrThrow({ id: decodedToken.id });
+    const user = await this.getUser({ id: decodedToken.id });
 
     const newAccessToken = generateAccessToken({ id: user.id, role: user.role });
 
@@ -245,7 +245,7 @@ export class AuthService {
 
     const { email, name, password } = body;
 
-    const user = await this.findUserOrThrow({ id: userId });
+    const user = await this.getUser({ id: userId });
 
     const isPasswordCorrect = await user.isPasswordCorrect(password);
 
@@ -307,7 +307,7 @@ export class AuthService {
       throw new BadRequestException(ERROR_MESSAGES.EMAIL_VERIFICATION_LINK_INVALID);
     }
 
-    const user = await this.findUserOrThrow({ id: userId });
+    const user = await this.getUser({ id: userId });
 
     if (user.isEmailVerified) {
       return;
@@ -333,7 +333,7 @@ export class AuthService {
 
     // Step 1: Confirm the user exists and is not already verified to avoid unnecessary email sends
 
-    const user = await this.findUserOrThrow({ email });
+    const user = await this.getUser({ email });
 
     if (user.isEmailVerified) {
       logger.info("Resend Ignored: User %s is already verified.", email);
@@ -357,9 +357,9 @@ export class AuthService {
     await this.cacheService.delete([userCacheKey, authCacheKey]);
   }
 
-  async findUserOrThrow(identifier: { id?: string; email?: string }): Promise<UserEntity> {
+  async getUser(identifier: { id?: string; email?: string }): Promise<UserEntity> {
     if (!identifier.id && !identifier.email) {
-      throw new BadRequestException(ERROR_MESSAGES.IDENTIFIER_REQUIRED);
+      throw new BadRequestException(ERROR_MESSAGES.MISSING_ID_OR_EMAIL);
     }
 
     const user = await this.userRepository.findOne({ where: identifier });

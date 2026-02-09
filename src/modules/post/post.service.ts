@@ -110,7 +110,7 @@ export class PostService {
   async getPostById(postId: string): Promise<PostResponse> {
     logger.info("Fetching post by ID: %s", postId);
 
-    const post = await this.findPostOrThrow({ id: postId }, { author: true, categories: true });
+    const post = await this.getPost({ id: postId }, { author: true, categories: true });
 
     const attachmentMap = await this.attachmentService.getAttachmentsByEntityIds([post.id], EntityType.POST);
 
@@ -188,7 +188,7 @@ export class PostService {
 
     const { title, content, categoryIds } = body;
 
-    const post = await this.findPostOrThrow({ id: postId }, { author: true, categories: true });
+    const post = await this.getPost({ id: postId }, { author: true, categories: true });
 
     if (post?.author.id !== userId) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -256,7 +256,7 @@ export class PostService {
   async applyPostAction(postId: string, user: User, action: PostAction): Promise<PostResponse> {
     // Step 1: Verify permissions and transition post status
 
-    const post = await this.findPostOrThrow({ id: postId }, { author: true, categories: true });
+    const post = await this.getPost({ id: postId }, { author: true, categories: true });
 
     if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -283,7 +283,7 @@ export class PostService {
   async deletePost(postId: string, user: User): Promise<void> {
     logger.info("Deletion requested for Post: %s", postId);
 
-    const post = await this.findPostOrThrow({ id: postId }, { author: true });
+    const post = await this.getPost({ id: postId }, { author: true });
 
     if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -306,7 +306,7 @@ export class PostService {
   async getPostBySlug(slug: string): Promise<PostResponse> {
     logger.info("Fetching post with slug: %s", slug);
 
-    const post = await this.findPostOrThrow({ slug }, { author: true, categories: true });
+    const post = await this.getPost({ slug }, { author: true, categories: true });
 
     // Fetch and map attachments associated with the found post
 
@@ -437,12 +437,12 @@ export class PostService {
     await this.cacheService.deleteByPattern(`${postsCacheKey}*`);
   }
 
-  async findPostOrThrow(
+  async getPost(
     identifier: { id?: string; slug?: string },
     relations: FindOptionsRelations<PostEntity> = {},
   ): Promise<PostEntity> {
     if (!identifier.id && !identifier.slug) {
-      throw new BadRequestException(ERROR_MESSAGES.IDENTIFIER_REQUIRED);
+      throw new BadRequestException(ERROR_MESSAGES.MISSING_ID_OR_SLUG);
     }
 
     const post = await this.postRepository.findOne({

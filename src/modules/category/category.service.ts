@@ -77,7 +77,7 @@ export class CategoryService {
 
     const { name, description } = body;
 
-    const category = await this.findCategoryOrThrow(categoryId);
+    const category = await this.getCategory(categoryId);
 
     if (name) {
       const duplicateCategory = await this.categoryRepository.findOne({
@@ -114,7 +114,7 @@ export class CategoryService {
    * @throws NotFoundException if the category does not exist.
    */
   async getCategoryById(categoryId: string): Promise<CategoryResponse> {
-    const category = await this.findCategoryOrThrow(categoryId);
+    const category = await this.getCategory(categoryId);
 
     logger.info("Retrieving category details for ID: %s", categoryId);
 
@@ -181,14 +181,14 @@ export class CategoryService {
   async deleteCategory(categoryId: string): Promise<void> {
     logger.info("Soft-delete requested for Category ID: %s", categoryId);
 
-    const category = await this.findCategoryOrThrow(categoryId);
+    const category = await this.getCategory(categoryId);
 
     await this.categoryRepository.softDelete(category.id);
 
     logger.info("Category %s soft-deleted successfully", categoryId);
   }
 
-  private async findCategoryOrThrow(categoryId: string): Promise<CategoryEntity> {
+  private async getCategory(categoryId: string): Promise<CategoryEntity> {
     const category = await this.categoryRepository.findOne({
       where: { id: categoryId },
     });

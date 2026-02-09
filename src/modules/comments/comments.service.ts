@@ -43,7 +43,7 @@ export class CommentsService {
 
     const { postId, content } = body;
 
-    const post = await this.postService.findPostOrThrow({ id: postId });
+    const post = await this.postService.getPost({ id: postId });
 
     const comment = this.commentRepository.create({
       content,
@@ -74,7 +74,7 @@ export class CommentsService {
 
     const { postId, content, parentCommentId } = body;
 
-    const post = await this.postService.findPostOrThrow({ id: postId });
+    const post = await this.postService.getPost({ id: postId });
 
     const parentComment = await this.commentRepository.findOne({
       where: { id: parentCommentId, post: { id: postId } },
@@ -109,7 +109,7 @@ export class CommentsService {
   async getCommentById(commentId: string): Promise<CommentResponse> {
     logger.info("Fetching details for comment: %s", commentId);
 
-    const comment = await this.findCommentOrThrow(commentId, { author: true, post: true });
+    const comment = await this.getComment(commentId, { author: true, post: true });
 
     logger.info("Retrieved comment with id: %s", commentId);
 
@@ -132,7 +132,7 @@ export class CommentsService {
     // Step 1: Verify existence and ownership permissions before updating
 
     const { content } = body;
-    const comment = await this.findCommentOrThrow(commentId);
+    const comment = await this.getComment(commentId);
 
     if (comment.author.id !== userId) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -161,7 +161,7 @@ export class CommentsService {
   async deleteComment(commentId: string, user: User): Promise<void> {
     logger.info("Delete request for comment %s by user %s", commentId, user.id);
 
-    const comment = await this.findCommentOrThrow(commentId);
+    const comment = await this.getComment(commentId, { author: true, post: { author: true } });
 
     if (comment.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
       throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
@@ -207,7 +207,7 @@ export class CommentsService {
     return paginatedResponse;
   }
 
-  private async findCommentOrThrow(
+  private async getComment(
     commentId: string,
     relations: FindOptionsRelations<CommentEntity> = { author: true },
   ): Promise<CommentEntity> {

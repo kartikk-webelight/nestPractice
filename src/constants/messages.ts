@@ -67,12 +67,13 @@ export const ERROR_MESSAGES = {
   PASSWORD_WEAK:
     "Password must contain 8 characters, one uppercase, one lowercase, one number and one special case character.",
   INVALID_CONTACT_NO: "Invalid contact number.",
+  MISSING_ID_OR_EMAIL: "Either ID or Email must be provided.",
 
   // --- Post & Comment Domain ---
   POST_NOT_FOUND: "Post not found.",
   COMMENT_NOT_FOUND: "Comment not found.",
   PREFIX_REQUIRED: "Prefix is required to create a slug.",
-  IDENTIFIER_REQUIRED: "Either ID or Slug must be provided.",
+  MISSING_ID_OR_SLUG: "Either ID or Slug must be provided.",
 
   // --- Category Domain ---
   INVALID_CATEGORY_ID: "Category id is invalid.",
