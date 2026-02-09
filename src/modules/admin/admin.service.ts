@@ -7,6 +7,9 @@ import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse, UsersPaginationResponseDto } from "dto/common-response.dto";
 import { EntityType, OrderBy } from "enums";
 import { logger } from "services/logger.service";
+import { CacheService } from "shared/cache/cache.service";
+import { EmailQueue } from "shared/email/email.queue";
+import { invalidateUserCaches } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { GetUsersQueryDto } from "./dto/admin.dto";
 
@@ -24,6 +27,9 @@ export class AdminService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly attachmentService: AttachmentService,
+
+    private readonly emailQueue: EmailQueue,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -109,5 +115,32 @@ export class AdminService {
     logger.debug("Successfully mapped attachments for user: %s", user.email);
 
     return userWithAttachments;
+  }
+
+  /**
+   * Administratively marks a user record for soft deletion.
+   *
+   * @param userId - The unique identifier of the user to be removed.
+   * @throws NotFoundException If no active user is found with the provided ID.
+   * @returns A promise that resolves once the soft-delete update is committed.
+   */
+  async deleteUserById(userId: string): Promise<void> {
+    logger.info("Delete request for user  ID %s", userId);
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    await this.userRepository.softDelete(userId);
+
+    if (user.isEmailVerified) {
+      logger.info("Enqueuing deactivation email for verified user: %s", user.email);
+      await this.emailQueue.enqueueUserDeactivationEmail(user.email, user.name);
+    }
+
+    await invalidateUserCaches(userId, this.cacheService);
+
+    logger.info("User %s has been soft-deleted", userId);
   }
 }

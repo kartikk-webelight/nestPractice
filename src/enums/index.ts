@@ -41,3 +41,8 @@ export enum ReactionCounter {
   DISLIKE = "dislikes",
   LIKE = "likes",
 }
+
+export enum EmailType {
+  ACCOUNT_DEACTIVATED = "account_deletion",
+  VERIFICATION = "verification",
+}

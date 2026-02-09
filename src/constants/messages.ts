@@ -59,6 +59,7 @@ export const ERROR_MESSAGES = {
   EMAIL_VERIFICATION_LINK_INVALID: "Email verification link invalid or expired.",
   EMAIL_VERIFICATION_FAILED: "Error occured while sending verification email.",
   INVALID_EMAIL: "Invalid email address.",
+  ACCOUNT_DEACTIVATION_EMAIL_FAILED: "Could not send account deactivation email.",
 
   // --- User Registration & Validation ---
   USER_ALREADY_EXISTS: "User with same email already exists.",

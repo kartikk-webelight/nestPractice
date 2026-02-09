@@ -2,13 +2,12 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { UserEntity } from "modules/users/users.entity";
-import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { ERROR_MESSAGES } from "constants/messages";
 import { OrderBy, RoleRequestAction, RoleStatus, UserRole } from "enums";
 import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 import { User } from "types/types";
-import { getCacheKey } from "utils/cache";
+import { invalidateUserCaches } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { RoleRequestPaginationDataDto, RoleRequestResponse } from "./dto/role-response.dto";
 import { GetRoleRequestsQueryDto } from "./dto/role.dto";
@@ -125,7 +124,7 @@ export class RoleService {
       // 3. If approved → update user role
       if (isApproved) {
         await userRepository.update(roleRequest.user.id, { role: roleRequest.requestedRole });
-        await this.invalidateUserAndRoleRequestCaches(roleRequest.user.id);
+        await invalidateUserCaches(roleRequest.user.id, this.cacheService);
       }
 
       await roleRepository.update(requestId, {
@@ -210,17 +209,5 @@ export class RoleService {
     logger.info("Retrieved %d role requests for review", roleRequests.length);
 
     return paginatedResponse;
-  }
-
-  /**
-   * Clears Redis caches for a user and their role requests to prevent stale data.
-   * @param userId - ID of the user whose caches should be invalidated
-   */
-
-  private async invalidateUserAndRoleRequestCaches(userId: string): Promise<void> {
-    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
-    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
-
-    await this.cacheService.delete([userCacheKey, authCacheKey]);
   }
 }

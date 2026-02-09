@@ -1,3 +1,4 @@
+import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 
@@ -58,4 +59,27 @@ export const getCacheKey = (prefix: string, data?: Record<string, any> | string)
   }
 
   return `${prefix}:${keyPart}`;
+};
+
+/**
+ * Clears Redis caches for a user and related user lists.
+ * @param userId - ID of the user to invalidate
+ */
+export const invalidateUserCaches = async (userId: string, cacheService: CacheService): Promise<void> => {
+  const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
+  const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
+
+  await cacheService.delete([userCacheKey, authCacheKey]);
+};
+
+/**
+ * Clears Redis caches for a post and related post lists.
+ * @param postId - ID of the post to invalidate
+ */
+export const invalidatePostCaches = async (postId: string, cacheService: CacheService): Promise<void> => {
+  const postCacheKey = getCacheKey(CACHE_PREFIX.POST, postId);
+  const postsCacheKey = getCacheKey(CACHE_PREFIX.POSTS, "");
+
+  await cacheService.delete([postCacheKey]);
+  await cacheService.deleteByPattern(`${postsCacheKey}*`);
 };

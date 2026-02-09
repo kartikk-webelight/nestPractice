@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import dayjs from "dayjs";
 import { DataSource, Not, Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
@@ -20,7 +21,7 @@ import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 import { EmailQueue } from "shared/email/email.queue";
 import { EmailService } from "shared/email/email.service";
-import { getCachedJson, getCacheKey } from "utils/cache";
+import { getCachedJson, getCacheKey, invalidateUserCaches } from "utils/cache";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
 import { DecodedToken } from "./auth.types";
 import { LoginResponse, RefreshTokenResponse } from "./dto/auth-response.dto";
@@ -113,14 +114,26 @@ export class AuthService {
 
       const { name, email, password } = body;
 
-      const existingUser = await userRepository.findOne({ where: { email } });
+      // Step 2: Check for existing/soft-deleted users
+      const existingUser = await userRepository.findOne({
+        where: { email },
+        withDeleted: true,
+      });
 
       if (existingUser) {
-        logger.warn("Registration conflict: Email %s is already in use", email);
+        if (!existingUser.deletedAt) {
+          logger.warn("Registration conflict: Email %s is already in use", email);
+          throw new ConflictException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
+        }
 
-        throw new ConflictException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
+        // If user was soft-deleted, rename their old record to free up the email unique constraint
+        const timestamp = dayjs().valueOf();
+        existingUser.email = `deleted_${timestamp}_${existingUser.email}`;
+        await manager.save(existingUser);
+        logger.debug("Renamed soft-deleted user to free up email: %s", email);
       }
 
+      // Step 3: Create a new user
       const newUser = userRepository.create({
         name,
         email,
@@ -144,7 +157,7 @@ export class AuthService {
 
       return { ...saved, attachment: attachmentArray };
     });
-    // Step 2: User and attachments secured. Queueing verification email.
+    // Step 4: User and attachments secured. Queueing verification email.
 
     await this.emailQueue.enqueueVerification(savedUser.email, savedUser.id, savedUser.name);
 
@@ -193,7 +206,7 @@ export class AuthService {
     const refreshToken = generateRefreshToken({ id: user.id, role: user.role });
     const accessToken = generateAccessToken({ id: user.id, role: user.role });
 
-    await this.invalidateUserCaches(user.id);
+    await invalidateUserCaches(user.id, this.cacheService);
 
     logger.info("Login successful. Tokens issued for user: %s", user.id);
 
@@ -305,7 +318,7 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(user);
 
-    await this.invalidateUserCaches(userId);
+    await invalidateUserCaches(userId, this.cacheService);
 
     logger.info("Profile updated successfully for UserID: %s. Email changed: %s", userId, emailChanged);
 
@@ -384,13 +397,27 @@ export class AuthService {
   }
 
   /**
-   * Clears Redis caches for a user and related user lists.
-   * @param userId - ID of the user to invalidate
+   * Soft-deletes a user from the database.
+   *
+   * Ensures the user exists before updating the deletedAt column.
+   * @param userId - The ID of the user requesting deletion.
    */
-  private async invalidateUserCaches(userId: string): Promise<void> {
-    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
-    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
+  async deleteSelf(userId: string): Promise<void> {
+    logger.info("Delete request for user  ID %s", userId);
 
-    await this.cacheService.delete([userCacheKey, authCacheKey]);
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    await this.userRepository.softDelete(userId);
+
+    if (user.isEmailVerified) {
+      logger.info("Enqueuing deactivation email for verified user: %s", user.email);
+      await this.emailQueue.enqueueUserDeactivationEmail(user.email, user.name);
+    }
+
+    await invalidateUserCaches(userId, this.cacheService);
+    logger.info("User %s has been soft-deleted", userId);
   }
 }

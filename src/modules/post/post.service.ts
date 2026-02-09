@@ -9,14 +9,13 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository, SelectQueryBuilder } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { CategoryEntity } from "modules/category/category.entity";
-import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostStatus, SortBy, UserRole } from "enums/index";
 import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 import { SlugService } from "shared/slug.service";
-import { getCachedJson, getCacheKey } from "utils/cache";
+import { getCachedJson, getCacheKey, invalidatePostCaches } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CreatePostDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import { PostResponse, PostsPaginationResponseDto } from "./dto/posts-response.dto";
@@ -111,7 +110,7 @@ export class PostService {
         attachments,
       };
     });
-    await this.invalidatePostCaches(savedPost.id);
+    await invalidatePostCaches(savedPost.id, this.cacheService);
 
     return savedPost;
   }
@@ -251,7 +250,7 @@ export class PostService {
 
     const updatedPost = await this.postRepository.save(post);
 
-    await this.invalidatePostCaches(postId);
+    await invalidatePostCaches(postId, this.cacheService);
 
     logger.info("Post %s updated successfully", postId);
 
@@ -291,7 +290,7 @@ export class PostService {
 
     const publishedPost = await this.postRepository.save(post);
 
-    await this.invalidatePostCaches(postId);
+    await invalidatePostCaches(postId, this.cacheService);
 
     logger.info("Post %s is now %s", postId, post.status);
 
@@ -329,7 +328,7 @@ export class PostService {
 
     const unPublishedPost = await this.postRepository.save(post);
 
-    await this.invalidatePostCaches(postId);
+    await invalidatePostCaches(postId, this.cacheService);
 
     logger.info("Post %s is now %s", postId, post.status);
 
@@ -369,7 +368,7 @@ export class PostService {
         manager,
       });
     });
-    await this.invalidatePostCaches(postId);
+    await invalidatePostCaches(postId, this.cacheService);
 
     logger.info("Post %s successfully soft-deleted", postId);
   }
@@ -509,18 +508,6 @@ export class PostService {
         }
         break;
     }
-  }
-
-  /**
-   * Clears Redis caches for a post and related post lists.
-   * @param postId - ID of the post to invalidate
-   */
-  private async invalidatePostCaches(postId: string): Promise<void> {
-    const postCacheKey = getCacheKey(CACHE_PREFIX.POST, postId);
-    const postsCacheKey = getCacheKey(CACHE_PREFIX.POSTS, "");
-
-    await this.cacheService.delete([postCacheKey]);
-    await this.cacheService.deleteByPattern(`${postsCacheKey}*`);
   }
 
   async findById(postId: string): Promise<PostEntity | null> {

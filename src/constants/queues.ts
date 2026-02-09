@@ -4,6 +4,5 @@ export const QUEUES = {
 
 export const EMAIL_JOBS = {
   VERIFY: "verify-email",
-  RESET_PASSWORD: "reset-password",
-  WELCOME: "welcome-email",
+  DEACTIVATE: "deactivate-email",
 };

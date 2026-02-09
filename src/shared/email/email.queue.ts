@@ -18,4 +18,14 @@ export class EmailQueue {
 
     return job;
   }
+
+  async enqueueUserDeactivationEmail(email: string, name: string) {
+    logger.info("Adding user deletion email job to queue. email=%s", email);
+
+    const job = await this.queue.add(EMAIL_JOBS.DEACTIVATE, { email, name }, QUEUE_OPTIONS.DEFAULT_RETRY);
+
+    logger.info("Job added successfully. jobId=%s email=%s", job.id, email);
+
+    return job;
+  }
 }
