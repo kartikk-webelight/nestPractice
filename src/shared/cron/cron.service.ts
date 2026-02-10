@@ -18,36 +18,30 @@ export class CronService {
     private readonly attachmentRepository: Repository<AttachmentEntity>,
   ) {}
 
-  @Cron(CronExpression.EVERY_WEEK)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async handleAttachmentCleanup(): Promise<void> {
     try {
       const cutoffDate = getDateThirtyDaysAgo();
       const batchSize = CRON_LIMITS.ATTACHMENT_CLEANUP.BATCH_SIZE;
 
-      // 1. Get the total number of items to process once
-      const totalToProcess = await this.attachmentRepository.count({
-        where: { deletedAt: LessThan(cutoffDate) },
-        withDeleted: true,
-      });
+      // Step 1: Initialize reusable query and get total count
+      const query = this.attachmentRepository
+        .createQueryBuilder("attachment")
+        .withDeleted()
+        .where("attachment.deletedAt < :cutoffDate", { cutoffDate });
+
+      const totalToProcess = await query.getCount();
+
       let offset = 0;
       let processedSoFar = 0;
 
       logger.info("Starting cleanup. Total items: %d", totalToProcess);
 
-      // 2.  move the offset forward until it hits the total
-      while (processedSoFar < totalToProcess) {
-        const batch = await this.attachmentRepository.find({
-          where: { deletedAt: LessThan(cutoffDate) },
-          withDeleted: true,
-          order: { id: OrderBy.ASC },
-          skip: offset,
-          take: batchSize,
-        });
+      while (offset < totalToProcess) {
+        // Step 2: Fetch batch using cloned query to maintain offset isolation
+        const batch = await query.orderBy("attachment.id", OrderBy.ASC).skip(offset).take(batchSize).getMany();
 
-        // Safety check: if no data is returned, we're done
-        if (batch.length === 0) {
-          break;
-        }
+        if (batch.length === 0) break;
 
         const results = await Promise.allSettled(batch.map((a) => this.cloudinaryService.deleteFromCloudinary(a.path)));
 
@@ -56,24 +50,23 @@ export class CronService {
           .filter((id): id is string => id !== null);
 
         if (succeededIds.length > 0) {
-          const deleteResult = await this.attachmentRepository.delete(succeededIds);
-          logger.info("%d records deleted", deleteResult.affected);
+          await this.attachmentRepository.delete(succeededIds);
+          logger.info("%d records deleted", succeededIds.length);
         }
-
-        /**
-         * If we deleted everything, offset stays the same (next records slide up).
-         * If some failed, we must increase the offset to skip them.
-         */
+        // Step 3: Log failures and increment offset to move to the next page
         const failedCount = batch.length - succeededIds.length;
 
-        offset += failedCount;
+        if (failedCount > 0) {
+          logger.warn("%d items failed to delete", failedCount);
+        }
 
+        offset += batchSize;
         processedSoFar += batch.length;
       }
 
       logger.info("Cleanup process finished.");
     } catch (error) {
-      logger.error("Cleanup failed: %s", error);
+      logger.error("Cleanup failed: %s", error instanceof Error ? error.message : error);
     }
   }
 }
