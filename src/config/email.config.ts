@@ -7,10 +7,7 @@ const {
   mailtrapConfigs: { host, port, sandboxPassword, sandboxUsername },
 } = secretConfig;
 
-const templateDir =
-  process.env.NODE_ENV === "production"
-    ? join(process.cwd(), "dist/shared/email/templates")
-    : join(process.cwd(), "src/shared/email/templates");
+const templateDir = join(__dirname, "..", "shared", "email", "templates");
 
 export const mailerConfig: MailerOptions = {
   transport: {
