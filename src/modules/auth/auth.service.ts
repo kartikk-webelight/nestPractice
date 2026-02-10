@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -389,12 +390,19 @@ export class AuthService {
         throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
       }
 
+      // Step 1: Soft delete FIRST
+      const deleteResult = await userRepository.softDelete(user.id);
+
+      if (!deleteResult.affected) {
+        throw new InternalServerErrorException(ERROR_MESSAGES.USER_SOFT_DELETE_FAILED);
+      }
+
+      // Step 2: Anonymize email AFTER delete
       const emailBeforeDeletion = user.email;
 
-      user.email = getRandomUserEmail(user.id);
-
-      await userRepository.save(user);
-      await userRepository.softDelete(userId);
+      await userRepository.update(user.id, {
+        email: getRandomUserEmail(user.id),
+      });
 
       return {
         isEmailVerified: user.isEmailVerified,
@@ -403,17 +411,31 @@ export class AuthService {
       };
     });
 
+    // ---- Outside transaction (side-effects) ----
+
     const { isEmailVerified, emailBeforeDeletion, name } = deletionMeta;
 
     if (isEmailVerified) {
-      logger.info("Enqueuing deactivation email for verified user: %s", emailBeforeDeletion);
+      try {
+        logger.info("Enqueuing deactivation email for verified user: %s", emailBeforeDeletion);
 
-      await this.emailQueue.enqueueUserDeactivationEmail(emailBeforeDeletion, name);
+        await this.emailQueue.enqueueUserDeactivationEmail(emailBeforeDeletion, name);
+      } catch (error) {
+        logger.error(
+          "Failed to enqueue deactivation email for user %s: %s",
+          userId,
+          error instanceof Error ? error.stack : error,
+        );
+      }
     }
 
-    await invalidateUserCaches(userId, this.cacheService);
+    try {
+      await invalidateUserCaches(userId, this.cacheService);
+    } catch (error) {
+      logger.warn("Cache invalidation failed for deleted user %s : %s", userId, error);
+    }
 
-    logger.info("User %s has been soft-deleted", userId);
+    logger.info("User %s has been soft-deleted successfully", userId);
   }
 
   async getUser(identifier: { id?: string; email?: string }): Promise<UserEntity> {

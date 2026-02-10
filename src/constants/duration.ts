@@ -14,3 +14,7 @@ export const TIME_VALUES = {
 export const TIME_UNITS = {
   DAYS: "days",
 } as const;
+
+export const DATE_FORMATS = {
+  YMD_HMS_TIMESTAMP: "yyyyMMddHHmmss",
+} as const;

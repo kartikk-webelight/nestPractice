@@ -474,10 +474,10 @@ export class PostService {
 
   private canManagePost(user: User, post: PostEntity): boolean {
     // RoleGuard already allowed ADMIN & EDITOR
-    if (user.role === UserRole.AUTHOR) {
-      return user.id === post.author.id;
+    if (user.role !== UserRole.AUTHOR) {
+      return true;
     }
 
-    return true;
+    return user.id === post.author?.id;
   }
 }

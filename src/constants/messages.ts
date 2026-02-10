@@ -69,6 +69,7 @@ export const ERROR_MESSAGES = {
     "Password must contain 8 characters, one uppercase, one lowercase, one number and one special case character.",
   INVALID_CONTACT_NO: "Invalid contact number.",
   MISSING_ID_OR_EMAIL: "Either ID or Email must be provided.",
+  USER_SOFT_DELETE_FAILED: "User soft delete failed",
 
   // --- Post & Comment Domain ---
   POST_NOT_FOUND: "Post not found.",

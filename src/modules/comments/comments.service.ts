@@ -211,12 +211,11 @@ export class CommentsService {
   }
 
   private canDeleteComment(user: User, comment: CommentEntity): boolean {
-    return (
-      user.role === UserRole.ADMIN ||
-      user.role === UserRole.EDITOR ||
-      user.id === comment.post.author.id ||
-      user.id === comment.author.id
-    );
+    if (user.role === UserRole.AUTHOR || user.role === UserRole.READER) {
+      return comment.post.author.id === user.id || comment.author.id === user.id;
+    }
+
+    return true;
   }
 
   private async getComment(

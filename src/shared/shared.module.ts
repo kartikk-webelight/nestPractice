@@ -6,12 +6,7 @@ import { MailerModule } from "@nestjs-modules/mailer";
 import Redis from "ioredis";
 import { mailerConfig } from "config/email.config";
 import { redisConfig } from "config/redis-config";
-import { CategoryEntity } from "modules/category/category.entity";
-import { CommentEntity } from "modules/comments/comment.entity";
-import { PostEntity } from "modules/post/post.entity";
-import { ReactionEntity } from "modules/reaction/reaction.entity";
-import { RoleEntity } from "modules/role/role.entity";
-import { UserEntity } from "modules/users/users.entity";
+import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { QUEUES } from "constants/queues";
 import { CacheService } from "./cache/cache.service";
 import { CloudinaryService } from "./cloudinary/cloudinary.service";
@@ -29,7 +24,7 @@ import { SlugService } from "./slug.service";
       useFactory: async () => mailerConfig,
     }),
     ScheduleModule.forRoot(),
-    TypeOrmModule.forFeature([UserEntity, RoleEntity, CategoryEntity, PostEntity, ReactionEntity, CommentEntity]),
+    TypeOrmModule.forFeature([AttachmentEntity]),
   ],
   providers: [
     CloudinaryService,
