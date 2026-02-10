@@ -45,3 +45,9 @@ export const calculateOffset = (page: number, limit: number): number => {
 export const thirtyDaysAgo = (): Date => {
   return dayjs().utc().subtract(TIME_VALUES.THIRTY, TIME_UNITS.DAYS).toDate();
 };
+
+export const getRandomUserEmail = (userId: string): string => {
+  const timestamp = dayjs().utc().format("YYYYMMDDHHmmss");
+
+  return `deleted.user.${userId}.${timestamp}@example.invalid`;
+};

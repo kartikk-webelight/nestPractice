@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
+import { AuthService } from "modules/auth/auth.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse, UsersPaginationResponseDto } from "dto/common-response.dto";
@@ -9,7 +10,6 @@ import { EntityType, OrderBy } from "enums";
 import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 import { EmailQueue } from "shared/email/email.queue";
-import { invalidateUserCaches } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { GetUsersQueryDto } from "./dto/admin.dto";
 
@@ -30,6 +30,7 @@ export class AdminService {
 
     private readonly emailQueue: EmailQueue,
     private readonly cacheService: CacheService,
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -125,22 +126,6 @@ export class AdminService {
    * @returns A promise that resolves once the soft-delete update is committed.
    */
   async deleteUserById(userId: string): Promise<void> {
-    logger.info("Delete request for user  ID %s", userId);
-
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
-    }
-
-    await this.userRepository.softDelete(userId);
-
-    if (user.isEmailVerified) {
-      logger.info("Enqueuing deactivation email for verified user: %s", user.email);
-      await this.emailQueue.enqueueUserDeactivationEmail(user.email, user.name);
-    }
-
-    await invalidateUserCaches(userId, this.cacheService);
-
-    logger.info("User %s has been soft-deleted", userId);
+    await this.authService.deleteUser(userId);
   }
 }
