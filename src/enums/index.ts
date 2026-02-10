@@ -10,6 +10,11 @@ export enum PostStatus {
   PUBLISHED = "published",
 }
 
+export enum PostAction {
+  PUBLISH = "publish",
+  UNPUBLISH = "unpublish",
+}
+
 export enum EntityType {
   POST = "post",
   USER = "user",
@@ -45,4 +50,9 @@ export enum ReactionCounter {
 export enum EmailType {
   ACCOUNT_DEACTIVATED = "account_deletion",
   VERIFICATION = "verification",
+}
+
+export enum ReactionRelation {
+  COMMENT = "comment",
+  POST = "post",
 }
