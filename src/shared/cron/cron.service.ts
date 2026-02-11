@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
-import { LessThan, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { CRON_LIMITS } from "constants/cron";
 import { OrderBy } from "enums";
@@ -50,8 +50,18 @@ export class CronService {
           .filter((id): id is string => id !== null);
 
         if (succeededIds.length > 0) {
-          await this.attachmentRepository.delete(succeededIds);
-          logger.info("%d records deleted", succeededIds.length);
+          const deleted = await this.attachmentRepository.delete(succeededIds);
+
+          const countFromDB = deleted.affected ?? 0;
+          processedSoFar += countFromDB;
+
+          logger.info(
+            "Sync Details - Cloudinary deleted: %d, DB affected: %d. Total processed: %d/%d",
+            succeededIds.length,
+            countFromDB,
+            processedSoFar,
+            totalToProcess,
+          );
         }
         // Step 3: Log failures and increment offset to move to the next page
         const failedCount = batch.length - succeededIds.length;
