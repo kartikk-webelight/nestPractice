@@ -1,4 +1,9 @@
 import { ClassConstructor, plainToInstance } from "class-transformer";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import { DATE_FORMATS, TIME_UNITS, TIME_VALUES } from "constants/duration";
+
+dayjs.extend(utc);
 
 export const generateKSUID = async (prefix?: string) => {
   const ksuidModule = await import("@thi.ng/ksuid/ulid");
@@ -35,4 +40,14 @@ export const getPaginatedData = (data: object, page: number, limit: number, tota
 
 export const calculateOffset = (page: number, limit: number): number => {
   return (page - 1) * limit;
+};
+
+export const getDateThirtyDaysAgo = (): Date => {
+  return dayjs().utc().subtract(TIME_VALUES.THIRTY, TIME_UNITS.DAYS).toDate();
+};
+
+export const getRandomUserEmail = (userId: string): string => {
+  const timestamp = dayjs().utc().format(DATE_FORMATS.YMD_HMS_TIMESTAMP);
+
+  return `deleted.user.${userId}.${timestamp}@example.invalid`;
 };

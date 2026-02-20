@@ -46,6 +46,7 @@ export class MainExceptionFilter implements ExceptionFilter {
       HttpStatus.NOT_FOUND,
       HttpStatus.TOO_MANY_REQUESTS,
       HttpStatus.CONFLICT,
+      HttpStatus.SERVICE_UNAVAILABLE,
     ];
 
     if (safeStatusCodes.includes(statusCode)) {

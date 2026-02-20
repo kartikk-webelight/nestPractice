@@ -6,3 +6,15 @@ export const DURATION_CONSTANTS = {
   FIVE_MIN_IN_SEC: 5 * 60,
   TWO_MIN_IN_SEC: 2 * 60,
 };
+
+export const TIME_VALUES = {
+  THIRTY: 30,
+};
+
+export const TIME_UNITS = {
+  DAYS: "days",
+} as const;
+
+export const DATE_FORMATS = {
+  YMD_HMS_TIMESTAMP: "yyyyMMddHHmmss",
+} as const;

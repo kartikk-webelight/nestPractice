@@ -59,6 +59,7 @@ export const ERROR_MESSAGES = {
   EMAIL_VERIFICATION_LINK_INVALID: "Email verification link invalid or expired.",
   EMAIL_VERIFICATION_FAILED: "Error occured while sending verification email.",
   INVALID_EMAIL: "Invalid email address.",
+  ACCOUNT_DEACTIVATION_EMAIL_FAILED: "Could not send account deactivation email.",
 
   // --- User Registration & Validation ---
   USER_ALREADY_EXISTS: "User with same email already exists.",
@@ -68,6 +69,7 @@ export const ERROR_MESSAGES = {
     "Password must contain 8 characters, one uppercase, one lowercase, one number and one special case character.",
   INVALID_CONTACT_NO: "Invalid contact number.",
   MISSING_ID_OR_EMAIL: "Either ID or Email must be provided.",
+  USER_SOFT_DELETE_FAILED: "User soft delete failed",
 
   // --- Post & Comment Domain ---
   POST_NOT_FOUND: "Post not found.",
@@ -89,6 +91,7 @@ export const ERROR_MESSAGES = {
   // --- Uploads & External Services ---
   CLOUDINARY_UPLOAD_FAILED: "cloudinary upload failed.",
   UPLOAD_FAILED_RETRY: "We encountered an issue saving your files. Please try again.",
+  EXTERNAL_ID_REQUIRED: "External ID is required for attachment deletion.",
 
   // --- Validation & Sorting ---
   INTEGER_EXPECTED: "Validation failed. Integer is expected.",

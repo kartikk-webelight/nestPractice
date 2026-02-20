@@ -1,7 +1,8 @@
-import { Controller, Get, Param, Query, Res, UseGuards } from "@nestjs/common";
+import { Controller, Delete, Get, Param, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { SUCCESS_MESSAGES } from "constants/messages";
 import { Roles } from "decorators/role";
+import { MessageResponseDto } from "dto/common-response.dto";
 import { UserRole } from "enums";
 import { AuthGuard } from "guards/auth-guard";
 import { RolesGuard } from "guards/role-guard";
@@ -58,6 +59,24 @@ export class AdminController {
     return responseUtils.success(res, {
       data: { data, message: SUCCESS_MESSAGES.USER_FETCHED },
       transformWith: GetUserByIdResponseDto,
+    });
+  }
+
+  /**
+   * Administratively removes a user by ID.
+   * Performs a soft-delete, allowing for data recovery or audit before permanent cleanup.
+   * @param userId - Unique identifier of the target user.
+   * @param res - Response object for structured output.
+   * @returns Confirmation of successful removal.
+   */
+  @ApiSwaggerResponse(MessageResponseDto)
+  @Delete("users/:id")
+  async deleteUserById(@Res() res: Response, @Param("id") userId: string) {
+    await this.adminService.deleteUserById(userId);
+
+    return responseUtils.success(res, {
+      data: { message: SUCCESS_MESSAGES.DELETED },
+      transformWith: MessageResponseDto,
     });
   }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -203,6 +204,26 @@ export class AuthController {
 
     return responseUtils.success(res, {
       data: { message: SUCCESS_MESSAGES.EMAIL_SENT },
+      transformWith: MessageResponseDto,
+    });
+  }
+
+  /**
+   * Soft-deletes the authenticated user's account.
+   * Schedules permanent removal after 30 days while providing immediate deactivation.
+   *
+   * @param req - Request containing the user's identity.
+   * @param res - Response object for structured output.
+   * @returns Confirmation of account deactivation.
+   */
+  @ApiSwaggerResponse(MessageResponseDto)
+  @UseGuards(AuthGuard)
+  @Delete()
+  async deleteSelf(@Req() req: Request, @Res() res: Response) {
+    await this.authService.deleteSelf(req.user.id);
+
+    return responseUtils.success(res, {
+      data: { message: SUCCESS_MESSAGES.DELETED },
       transformWith: MessageResponseDto,
     });
   }

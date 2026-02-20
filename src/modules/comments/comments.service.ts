@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { FindOptionsRelations, Repository } from "typeorm";
 import { PostService } from "modules/post/post.service";
@@ -163,8 +163,11 @@ export class CommentsService {
 
     const comment = await this.getComment(commentId, { author: true, post: { author: true } });
 
-    if (comment.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+    const canDeleteComment = this.canDeleteComment(user, comment);
+
+    if (!canDeleteComment) {
+      logger.warn("Delete comment forbidden: commentId=%s, userId=%s, role=%s", commentId, user.id, user.role);
+      throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
     }
 
     await this.commentRepository.softDelete(commentId);
@@ -205,6 +208,14 @@ export class CommentsService {
     };
 
     return paginatedResponse;
+  }
+
+  private canDeleteComment(user: User, comment: CommentEntity): boolean {
+    if (user.role === UserRole.AUTHOR || user.role === UserRole.READER) {
+      return comment.post.author.id === user.id || comment.author.id === user.id;
+    }
+
+    return true;
   }
 
   private async getComment(

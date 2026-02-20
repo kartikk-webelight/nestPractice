@@ -4,6 +4,8 @@ import { secretConfig } from "config/secret.config";
 import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
+import { EmailType } from "enums";
+import { logger } from "services/logger.service";
 import { getCacheKey } from "utils/cache";
 import { generateEmailToken, verifyEmailToken } from "utils/jwt";
 import { CacheService } from "../cache/cache.service";
@@ -40,6 +42,46 @@ export class EmailService {
   }
 
   /**
+   * Sends a system email based on the specified type.
+   * @param email - Recipient's email address.
+   * @param name - Recipient's name for personalization.
+   * @param emailType - The category of email to send (VERIFICATION, DELETION, etc.).
+   * @param data - Optional object containing dynamic links or tokens (e.g., verificationLink).
+   */
+  async sendEmail(email: string, name: string, emailType: EmailType, data?: { link: string }) {
+    const userName = name || "User";
+
+    // Define which template and subject to use per EmailType
+    const emailMap = {
+      [EmailType.VERIFICATION]: {
+        template: "verification", // Matches verification.hbs
+        subject: "Verify Your Email Address",
+      },
+      [EmailType.ACCOUNT_DEACTIVATED]: {
+        template: "deactivation", // Matches deactivation.hbs
+        subject: "Account Deactivated",
+      },
+    };
+
+    const config = emailMap[emailType];
+    if (!config) throw new Error(`Email type ${emailType} not supported`);
+
+    await this.mailerService.sendMail({
+      from: `"${senderName}" <${senderEmail}>`,
+      to: email,
+      subject: config.subject,
+      template: config.template,
+      context: {
+        // Data for the {{variables}} in .hbs
+        name: userName,
+        link: data?.link,
+      },
+    });
+
+    logger.info("Email sent: %s to %s", emailType, email);
+  }
+
+  /**
    * Orchestrates the delivery of a verification email and stores the session in Redis cache.
    *
    * @param email - Recipient's email address.
@@ -48,7 +90,7 @@ export class EmailService {
    * @returns A promise that resolves when the email is successfully handed off to the SMTP server.
    * @throws InternalServerErrorException if the SMTP transport fails or Redis cache is unreachable.
    */
-  async sendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
+  async sendVerificationEmail(email: string, userId: string, name: string): Promise<void> {
     try {
       const token = this.generateVerificationToken(userId);
       const cacheKey = getCacheKey(CACHE_PREFIX.VERIFICATION, userId);
@@ -57,15 +99,27 @@ export class EmailService {
       const verificationLink = `${baseUrl}/auth/verify-email?token=${token}`;
 
       // Send email using Transporter
-      await this.mailerService.sendMail({
-        from: `"${senderName}" <${senderEmail}>`,
-        to: email,
-        subject: "Verify Your Email Address",
-        text: `Hello ${name || "User"},\n\nPlease verify your email: ${verificationLink}`,
-        html: this.getVerificationEmailTemplate(name || "User", verificationLink),
-      });
-    } catch {
+      await this.sendEmail(email, name, EmailType.VERIFICATION, { link: verificationLink });
+    } catch (error) {
+      logger.error("Email Service Failure Details: %o", error);
       throw new InternalServerErrorException(ERROR_MESSAGES.EMAIL_VERIFICATION_FAILED);
+    }
+  }
+
+  /**
+   * Sends an account deactivation notice with details on the 30-day grace period.
+   *
+   * @param email - Recipient's email address.
+   * @param name - User's name for personalization.
+   * @returns A promise that resolves when the deactivation notice is successfully dispatched.
+   * @throws InternalServerErrorException if the email dispatch fails.
+   */
+  async sendAccountDeactivationEmail(email: string, name: string): Promise<void> {
+    try {
+      await this.sendEmail(email, name, EmailType.ACCOUNT_DEACTIVATED);
+    } catch (error) {
+      logger.error("Email Service Failure Details: %o", error);
+      throw new InternalServerErrorException(ERROR_MESSAGES.ACCOUNT_DEACTIVATION_EMAIL_FAILED);
     }
   }
 
@@ -111,49 +165,12 @@ export class EmailService {
    * @param name - Optional display name.
    * @returns A promise that resolves when the new email is sent.
    */
-  async resendVerificationEmail(email: string, userId: string, name?: string): Promise<void> {
+  async resendVerificationEmail(email: string, userId: string, name: string): Promise<void> {
     // Delete old token if exists
     const cacheKey = getCacheKey(CACHE_PREFIX.VERIFICATION, userId);
     await this.cacheService.delete([cacheKey]);
 
     // Send new verification email
     await this.sendVerificationEmail(email, userId, name);
-  }
-
-  /**
-   * Generates a responsive HTML template for account verification.
-   *
-   * @param name - User's name for personalization.
-   * @param verificationLink - The absolute URL for the verification endpoint.
-   * @returns A string containing the full HTML document.
-   */
-  private getVerificationEmailTemplate(name: string, verificationLink: string): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Verify Your Email</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
-            <h2 style="color: #333;">Hello ${name}!</h2>
-            <p>Thank you for signing up. Please verify your email address by clicking the button below:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationLink}" 
-                 style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                Verify Email Address
-              </a>
-            </div>
-            <p>Or copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; color: #007bff;">${verificationLink}</p>
-            <p style="color: #666; font-size: 12px; margin-top: 30px;">
-              This link will expire in 24 hours. If you did not create an account, please ignore this email.
-            </p>
-          </div>
-        </body>
-      </html>
-    `;
   }
 }

@@ -7,7 +7,7 @@ import { RoleStatus, UserRole } from "enums";
 export class RoleEntity extends BaseEntity {
   protected idPrefix = "r";
 
-  @ManyToOne(() => UserEntity)
+  @ManyToOne(() => UserEntity, { onDelete: "CASCADE" })
   user: UserEntity; // user making the request
 
   @Column({

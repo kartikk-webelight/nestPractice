@@ -3,11 +3,12 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Not, Repository } from "typeorm";
+import { DataSource, EntityManager, Not, Repository } from "typeorm";
 import { AttachmentEntity } from "modules/attachment/attachment.entity";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { UserEntity } from "modules/users/users.entity";
@@ -20,7 +21,8 @@ import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 import { EmailQueue } from "shared/email/email.queue";
 import { EmailService } from "shared/email/email.service";
-import { getCachedJson, getCacheKey } from "utils/cache";
+import { getCachedJson, getCacheKey, invalidateUserCaches } from "utils/cache";
+import { getRandomUserEmail } from "utils/helper";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "utils/jwt";
 import { DecodedToken } from "./auth.types";
 import { LoginResponse, RefreshTokenResponse } from "./dto/auth-response.dto";
@@ -107,14 +109,17 @@ export class AuthService {
 
       const { name, email, password } = body;
 
-      const existingUser = await userRepository.findOne({ where: { email } });
+      // Step 2: Check for existing
+      const existingUser = await userRepository.findOne({
+        where: { email },
+      });
 
       if (existingUser) {
         logger.warn("Registration conflict: Email %s is already in use", email);
-
         throw new ConflictException(ERROR_MESSAGES.USER_ALREADY_EXISTS);
       }
 
+      // Step 3: Create a new user
       const newUser = userRepository.create({
         name,
         email,
@@ -127,13 +132,18 @@ export class AuthService {
       let attachmentArray: AttachmentEntity[] = [];
 
       if (file) {
-        const attachment = await this.attachmentService.createAttachment(file, saved.id, EntityType.USER, manager);
+        const attachment = await this.attachmentService.createAttachment({
+          file,
+          externalId: saved.id,
+          entityType: EntityType.USER,
+          manager,
+        });
         attachmentArray = [attachment];
       }
 
       return { ...saved, attachment: attachmentArray };
     });
-    // Step 2: User and attachments secured. Queueing verification email.
+    // Step 4: User and attachments secured. Queueing verification email.
 
     await this.emailQueue.enqueueVerification(savedUser.email, savedUser.id, savedUser.name);
 
@@ -176,6 +186,8 @@ export class AuthService {
 
     const refreshToken = generateRefreshToken({ id: user.id, role: user.role });
     const accessToken = generateAccessToken({ id: user.id, role: user.role });
+
+    await invalidateUserCaches(user.id, this.cacheService);
 
     logger.info("Login successful. Tokens issued for user: %s", user.id);
 
@@ -277,7 +289,7 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(user);
 
-    await this.invalidateUserCaches(userId);
+    await invalidateUserCaches(userId, this.cacheService);
 
     logger.info("Profile updated successfully for UserID: %s. Email changed: %s", userId, emailChanged);
 
@@ -347,14 +359,83 @@ export class AuthService {
   }
 
   /**
-   * Clears Redis caches for a user and related user lists.
-   * @param userId - ID of the user to invalidate
+   * Soft-deletes a user from the database.
+   *
+   * Ensures the user exists before updating the deletedAt column.
+   * @param userId - The ID of the user requesting deletion.
    */
-  private async invalidateUserCaches(userId: string): Promise<void> {
-    const userCacheKey = getCacheKey(CACHE_PREFIX.USER, userId);
-    const authCacheKey = getCacheKey(CACHE_PREFIX.AUTH, userId);
+  async deleteSelf(userId: string): Promise<void> {
+    await this.deleteUser(userId);
+  }
 
-    await this.cacheService.delete([userCacheKey, authCacheKey]);
+  /**
+   * Soft-deletes a user from the system.
+   *
+   * Anonymizes the user's email before deletion and triggers
+   * post-deletion side effects after the transaction commits.
+   * @param userId - ID of the user to delete
+   * @throws NotFoundException If the user does not exist
+   */
+  async deleteUser(userId: string): Promise<void> {
+    const deletionMeta = await this.dataSource.transaction(async (manager: EntityManager) => {
+      logger.info("Delete request for user ID %s", userId);
+
+      const userRepository = manager.getRepository(UserEntity);
+
+      const user = await userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+      }
+
+      // Step 1: Soft delete FIRST
+      const deleteResult = await userRepository.softDelete(user.id);
+
+      if (!deleteResult.affected) {
+        throw new InternalServerErrorException(ERROR_MESSAGES.USER_SOFT_DELETE_FAILED);
+      }
+
+      // Step 2: Anonymize email AFTER delete
+      const emailBeforeDeletion = user.email;
+
+      await userRepository.update(user.id, {
+        email: getRandomUserEmail(user.id),
+      });
+
+      return {
+        isEmailVerified: user.isEmailVerified,
+        emailBeforeDeletion,
+        name: user.name,
+      };
+    });
+
+    // ---- Outside transaction (side-effects) ----
+
+    const { isEmailVerified, emailBeforeDeletion, name } = deletionMeta;
+
+    if (isEmailVerified) {
+      try {
+        logger.info("Enqueuing deactivation email for verified user: %s", emailBeforeDeletion);
+
+        await this.emailQueue.enqueueUserDeactivationEmail(emailBeforeDeletion, name);
+      } catch (error) {
+        logger.error(
+          "Failed to enqueue deactivation email for user %s: %s",
+          userId,
+          error instanceof Error ? error.stack : error,
+        );
+      }
+    }
+
+    try {
+      await invalidateUserCaches(userId, this.cacheService);
+    } catch (error) {
+      logger.warn("Cache invalidation failed for deleted user %s : %s", userId, error);
+    }
+
+    logger.info("User %s has been soft-deleted successfully", userId);
   }
 
   async getUser(identifier: { id?: string; email?: string }): Promise<UserEntity> {

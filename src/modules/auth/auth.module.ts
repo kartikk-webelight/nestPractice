@@ -10,5 +10,6 @@ import { AuthService } from "./auth.service";
   imports: [TypeOrmModule.forFeature([UserEntity, AttachmentEntity])],
   providers: [AuthService, AttachmentService],
   controllers: [AuthController],
+  exports: [AuthService],
 })
 export class AuthModule {}

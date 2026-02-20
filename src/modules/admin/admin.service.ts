@@ -2,11 +2,14 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
+import { AuthService } from "modules/auth/auth.service";
 import { UserEntity } from "modules/users/users.entity";
 import { ERROR_MESSAGES } from "constants/messages";
 import { UserResponse, UsersPaginationResponseDto } from "dto/common-response.dto";
 import { EntityType, OrderBy } from "enums";
 import { logger } from "services/logger.service";
+import { CacheService } from "shared/cache/cache.service";
+import { EmailQueue } from "shared/email/email.queue";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { GetUsersQueryDto } from "./dto/admin.dto";
 
@@ -24,6 +27,10 @@ export class AdminService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly attachmentService: AttachmentService,
+
+    private readonly emailQueue: EmailQueue,
+    private readonly cacheService: CacheService,
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -109,5 +116,16 @@ export class AdminService {
     logger.debug("Successfully mapped attachments for user: %s", user.email);
 
     return userWithAttachments;
+  }
+
+  /**
+   * Administratively marks a user record for soft deletion.
+   *
+   * @param userId - The unique identifier of the user to be removed.
+   * @throws NotFoundException If no active user is found with the provided ID.
+   * @returns A promise that resolves once the soft-delete update is committed.
+   */
+  async deleteUserById(userId: string): Promise<void> {
+    await this.authService.deleteUser(userId);
   }
 }

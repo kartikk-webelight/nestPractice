@@ -1,16 +1,21 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, FindOptionsRelations, In, Repository, SelectQueryBuilder } from "typeorm";
 import { AttachmentService } from "modules/attachment/attachment.service";
 import { CategoryEntity } from "modules/category/category.entity";
-import { CACHE_PREFIX } from "constants/cache-prefixes";
 import { DURATION_CONSTANTS } from "constants/duration";
 import { ERROR_MESSAGES } from "constants/messages";
 import { EntityType, OrderBy, PostAction, PostStatus, SortBy, UserRole } from "enums/index";
 import { logger } from "services/logger.service";
 import { CacheService } from "shared/cache/cache.service";
 import { SlugService } from "shared/slug.service";
-import { getCachedJson, getCacheKey } from "utils/cache";
+import { getCachedJson, getCacheKey, invalidatePostCaches } from "utils/cache";
 import { calculateOffset, calculateTotalPages } from "utils/helper";
 import { CreatePostDto, GetPostsQueryDto, UpdatePostDto } from "./dto/post.dto";
 import { PostResponse, PostsPaginationResponseDto } from "./dto/posts-response.dto";
@@ -83,7 +88,12 @@ export class PostService {
 
       const savedPost = await manager.save(post);
 
-      const attachments = await this.attachmentService.createAttachments(files, savedPost.id, EntityType.POST, manager);
+      const attachments = await this.attachmentService.createAttachments({
+        files,
+        externalId: savedPost.id,
+        entityType: EntityType.POST,
+        manager,
+      });
 
       logger.info("Post created successfully. ID: %s, Slug: %s", savedPost.id, slug);
 
@@ -93,7 +103,7 @@ export class PostService {
         attachments,
       };
     });
-    await this.invalidatePostCaches(savedPost.id);
+    await invalidatePostCaches(savedPost.id, this.cacheService);
 
     return savedPost;
   }
@@ -219,7 +229,7 @@ export class PostService {
 
     const updatedPost = await this.postRepository.save(post);
 
-    await this.invalidatePostCaches(postId);
+    await invalidatePostCaches(postId, this.cacheService);
 
     logger.info("Post %s updated successfully", postId);
 
@@ -258,14 +268,17 @@ export class PostService {
 
     const post = await this.getPost({ id: postId }, { author: true, categories: true });
 
-    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+    const canUnpublishPost = this.canManagePost(user, post);
+
+    if (!canUnpublishPost) {
+      logger.warn("Post status change forbidden: postId=%s, userId=%s, role=%s", postId, user.id, user.role);
+      throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
     }
     post.status = action === PostAction.PUBLISH ? PostStatus.PUBLISHED : PostStatus.DRAFT;
 
     const updatedPost = await this.postRepository.save(post);
 
-    await this.invalidatePostCaches(postId);
+    await invalidatePostCaches(postId, this.cacheService);
 
     logger.info("Post %s is now %s", postId, post.status);
 
@@ -281,16 +294,31 @@ export class PostService {
    * @throws NotFoundException if the post is not found.
    */
   async deletePost(postId: string, user: User): Promise<void> {
-    logger.info("Deletion requested for Post: %s", postId);
+    await this.dataSource.transaction(async (manager) => {
+      const postRepository = manager.getRepository(PostEntity);
 
-    const post = await this.getPost({ id: postId }, { author: true });
+      logger.info("Deletion requested for Post: %s", postId);
 
-    if (post.author.id !== user.id && ![UserRole.ADMIN, UserRole.EDITOR].includes(user.role)) {
-      throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
-    }
-    await this.postRepository.softDelete({ id: postId });
+      const post = await this.getPost({ id: postId }, { author: true });
 
-    await this.invalidatePostCaches(postId);
+      if (!post) {
+        throw new NotFoundException(ERROR_MESSAGES.POST_NOT_FOUND);
+      }
+
+      const canDeletePost = this.canManagePost(user, post);
+
+      if (!canDeletePost) {
+        throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+      }
+      await postRepository.softDelete({ id: postId });
+
+      await this.attachmentService.deleteAttachmentsByEntityId({
+        externalId: postId,
+        entityType: EntityType.POST,
+        manager,
+      });
+    });
+    await invalidatePostCaches(postId, this.cacheService);
 
     logger.info("Post %s successfully soft-deleted", postId);
   }
@@ -425,18 +453,6 @@ export class PostService {
     }
   }
 
-  /**
-   * Clears Redis caches for a post and related post lists.
-   * @param postId - ID of the post to invalidate
-   */
-  private async invalidatePostCaches(postId: string): Promise<void> {
-    const postCacheKey = getCacheKey(CACHE_PREFIX.POST, postId);
-    const postsCacheKey = getCacheKey(CACHE_PREFIX.POSTS, "");
-
-    await this.cacheService.delete([postCacheKey]);
-    await this.cacheService.deleteByPattern(`${postsCacheKey}*`);
-  }
-
   async getPost(
     identifier: { id?: string; slug?: string },
     relations: FindOptionsRelations<PostEntity> = {},
@@ -454,5 +470,14 @@ export class PostService {
     }
 
     return post;
+  }
+
+  private canManagePost(user: User, post: PostEntity): boolean {
+    // RoleGuard already allowed ADMIN & EDITOR
+    if (user.role !== UserRole.AUTHOR) {
+      return true;
+    }
+
+    return user.id === post.author?.id;
   }
 }
